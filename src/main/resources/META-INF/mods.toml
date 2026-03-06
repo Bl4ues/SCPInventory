@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="All Rights Reserved"
+
+[[mods]]
+modId="scpinventory"
+version="1.0.0"
+displayName="SCP Inventory"
+authors="Bl4ues"
+description='''
+Bring SCP Unity's Inventory System to Minecraft
+'''
+
+[[dependencies.scpinventory]]
+modId="forge"
+mandatory=true
+versionRange="${forge_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.scpinventory]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
