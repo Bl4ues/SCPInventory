@@ -9,3 +9,4 @@ public class ScpInventoryCapability {
     public static final Capability<IScpInventory> INSTANCE =
             CapabilityManager.get(new CapabilityToken<>() {});
 }
+
