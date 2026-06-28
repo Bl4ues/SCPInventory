@@ -135,13 +135,18 @@ public class ScpInventory implements IScpInventory {
     @Override
     public void setKeys(List<ItemStack> list) {
         keys.clear();
-        addAllStacks(keys, list);
+        if (list == null) return;
+
+        for (ItemStack stack : list) {
+            if (getKeyCount() >= MAX_KEY_COUNT) break;
+            if (stack != null && !stack.isEmpty()) keys.add(toSingleItemOrEmpty(stack));
+        }
     }
 
     @Override
     public boolean addKeyItem(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return false;
-        keys.add(stack.copy());
+        if (stack == null || stack.isEmpty() || getKeyCount() >= MAX_KEY_COUNT) return false;
+        keys.add(toSingleItemOrEmpty(stack));
         return true;
     }
 
@@ -253,7 +258,7 @@ public class ScpInventory implements IScpInventory {
         normalizeMainInventorySize();
 
         keys.clear();
-        loadStackList(keys, tag.getList("Keys", 10));
+        loadKeyList(keys, tag.getList("Keys", 10));
 
         documents.clear();
         loadStackList(documents, tag.getList("Documents", 10));
@@ -354,6 +359,13 @@ public class ScpInventory implements IScpInventory {
     private static void loadStackList(List<ItemStack> target, ListTag list) {
         for (int i = 0; i < list.size(); i++) {
             ItemStack stack = ItemStack.of(list.getCompound(i));
+            if (!stack.isEmpty()) target.add(stack);
+        }
+    }
+
+    private static void loadKeyList(List<ItemStack> target, ListTag list) {
+        for (int i = 0; i < list.size() && target.size() < MAX_KEY_COUNT; i++) {
+            ItemStack stack = toSingleItemOrEmpty(ItemStack.of(list.getCompound(i)));
             if (!stack.isEmpty()) target.add(stack);
         }
     }
