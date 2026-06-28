@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.commands;
 
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.ScpKeyringMirror;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -81,6 +82,7 @@ public class ScpInventoryCommands {
 
     private static int resetSingle(ServerPlayer player) {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
+            ScpKeyringMirror.removeMirroredKeys(player, inventory.getKeys());
             inventory.resetAll();
             clearMirroredVanillaEquipment(player);
             ModNetwork.syncTo(player, inventory);
@@ -141,6 +143,7 @@ public class ScpInventoryCommands {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory ->
                 player.sendSystemMessage(Component.literal(
                         "SCP main slots: " + inventory.getInventoryCount() + "/" + inventory.getMaxMainSlots()
+                                + ", keys: " + inventory.getKeyCount() + "/" + inventory.MAX_KEY_COUNT
                 ))
         );
 
