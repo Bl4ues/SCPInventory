@@ -116,14 +116,12 @@ public class InventoryActionPacket {
     }
 
     public static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
-        if (slot == ScpEquipmentSlot.HEAD) {
-            return EquipmentSlot.HEAD;
-        }
-
-        if (slot == ScpEquipmentSlot.BODY) {
-            return EquipmentSlot.CHEST;
-        }
-
-        return null;
+        return switch (slot) {
+            case HEAD -> EquipmentSlot.HEAD;
+            case CHEST -> EquipmentSlot.CHEST;
+            case LEGS -> EquipmentSlot.LEGS;
+            case FEET -> EquipmentSlot.FEET;
+            default -> null;
+        };
     }
 }
