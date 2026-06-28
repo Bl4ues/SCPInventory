@@ -4,7 +4,9 @@ import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.client.ClientInventoryBridge;
 import com.bl4ues.scpinventory.client.gui.components.ContextMenu;
+import com.bl4ues.scpinventory.client.gui.components.EquipmentPanel;
 import com.bl4ues.scpinventory.client.gui.components.ScrollableItemList;
+import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -14,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 public class ScpInventoryScreen extends Screen {
 
     private ScrollableItemList itemList;
+    private EquipmentPanel equipmentPanel;
     private ContextMenu contextMenu;
     private IScpInventory inventory;
     private int contextIndex = -1;
@@ -34,10 +37,16 @@ public class ScpInventoryScreen extends Screen {
         mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inv -> {
             inventory = inv;
             itemList = new ScrollableItemList(
-                    width / 2 - 100,
+                    width / 2 - 260,
                     height / 2 - 120,
-                    200,
+                    220,
                     inv.getInventory(),
+                    inv
+            );
+            equipmentPanel = new EquipmentPanel(
+                    width / 2 + 20,
+                    height / 2 - 120,
+                    240,
                     inv
             );
         });
@@ -49,6 +58,10 @@ public class ScpInventoryScreen extends Screen {
 
         if (itemList != null) {
             itemList.render(g, mouseX, mouseY);
+        }
+
+        if (equipmentPanel != null) {
+            equipmentPanel.render(g, mouseX, mouseY);
         }
 
         if (contextMenu != null) {
@@ -78,7 +91,26 @@ public class ScpInventoryScreen extends Screen {
             contextMenu.close();
         }
 
-        if (itemList == null || inventory == null) {
+        if (inventory == null) {
+            return false;
+        }
+
+        if (equipmentPanel != null) {
+            ScpEquipmentSlot clickedEquipmentSlot = equipmentPanel.getClickedSlot(mouseX, mouseY);
+            if (clickedEquipmentSlot != null && !inventory.getEquipment(clickedEquipmentSlot).isEmpty()) {
+                if (button == 0) {
+                    ClientInventoryBridge.performEquipment(clickedEquipmentSlot, "UNEQUIP");
+                    return true;
+                }
+
+                if (button == 1) {
+                    ClientInventoryBridge.performEquipment(clickedEquipmentSlot, "DROP");
+                    return true;
+                }
+            }
+        }
+
+        if (itemList == null) {
             return false;
         }
 
