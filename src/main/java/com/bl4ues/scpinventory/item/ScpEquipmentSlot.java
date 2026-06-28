@@ -9,7 +9,8 @@ public enum ScpEquipmentSlot {
     CHEST("Chest", "Chest"),
     LEGS("Legs", "Legs"),
     FEET("Feet", "Feet"),
-    WEAPON("Weapon", "Weapon");
+    WEAPON("Weapon", "Weapon"),
+    BODY("Legacy", "Legacy");
 
     private final String displayName;
     private final String tagName;
