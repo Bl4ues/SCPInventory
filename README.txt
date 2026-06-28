@@ -86,6 +86,8 @@ Reset everything for selected players:
 
 Clear only the main inventory, keeping keys, documents, equipment, and current max slots:
 
+    /scpinventory clear
+    /scpinventory clear <targets>
     /scpinventory clearmain
     /scpinventory clearmain <targets>
 
