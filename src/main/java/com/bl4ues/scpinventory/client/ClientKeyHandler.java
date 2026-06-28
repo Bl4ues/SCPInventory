@@ -12,12 +12,9 @@ public class ClientKeyHandler {
 
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
-
         if (Keybinds.OPEN_SCP_INVENTORY.consumeClick()) {
-
-            Minecraft mc = Minecraft.getInstance();
-
-            mc.setScreen(new ScpInventoryScreen());
+            ClientNetwork.requestInventorySync();
+            Minecraft.getInstance().setScreen(new ScpInventoryScreen());
         }
     }
 }
