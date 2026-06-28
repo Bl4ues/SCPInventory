@@ -30,7 +30,7 @@ public class ContextMenu {
             options.add("USE");
         }
 
-        if (type.equals("Head") || type.equals("Body") || type.equals("Legs") || type.equals("Feet")) {
+        if (isEquipmentType(type)) {
             options.add("EQUIP");
         }
 
@@ -51,7 +51,7 @@ public class ContextMenu {
 
         int height = options.size() * 14 + 4;
 
-        g.fill(x, y, x + 60, y + height, 0xFF222222);
+        g.fill(x, y, x + 70, y + height, 0xFF222222);
 
         for (int i = 0; i < options.size(); i++) {
 
@@ -70,7 +70,7 @@ public class ContextMenu {
 
         if (!open) return -1;
 
-        if (mouseX < x || mouseX > x + 60) return -1;
+        if (mouseX < x || mouseX > x + 70) return -1;
 
         int index = (int) ((mouseY - y) / 14);
 
@@ -81,5 +81,12 @@ public class ContextMenu {
 
     public String getOption(int index) {
         return options.get(index);
+    }
+
+    private boolean isEquipmentType(String type) {
+        return type.equals("Head")
+                || type.equals("Accessory")
+                || type.equals("Body")
+                || type.equals("Weapon");
     }
 }
