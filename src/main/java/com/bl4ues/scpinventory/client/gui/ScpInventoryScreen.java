@@ -23,11 +23,11 @@ import net.minecraft.world.item.ItemStack;
 public class ScpInventoryScreen extends Screen {
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int TAB_ACTIVE = 0x44B2B3B3;
-    private static final int TAB_INACTIVE = 0x226A6C6C;
-    private static final int ROOT_TINT = 0x22000000;
-    private static final int PANEL_BACKGROUND = 0x334B5557;
-    private static final int FOOTER_BACKGROUND = 0x222B3133;
+    private static final int TAB_ACTIVE = 0x55B2B3B3;
+    private static final int TAB_INACTIVE = 0x336A6C6C;
+    private static final int ROOT_TINT = 0x11000000;
+    private static final int PANEL_BACKGROUND = 0x88545D5F;
+    private static final int FOOTER_BACKGROUND = 0x2A2B3133;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -87,7 +87,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void computeLayout() {
-        int margin = 12;
+        int margin = 24;
         int availableWidth = width - (margin * 2);
         int availableHeight = height - (margin * 2);
         float aspect = BACKGROUND_SOURCE_WIDTH / (float) BACKGROUND_SOURCE_HEIGHT;
@@ -101,25 +101,28 @@ public class ScpInventoryScreen extends Screen {
 
         rootX = (width - rootWidth) / 2;
         rootY = (height - rootHeight) / 2;
-        titleY = rootY + 78;
-        tabY = titleY + 38;
-        navY = rootY + rootHeight - 92;
 
-        listPanelX = rootX + 38;
+        titleY = rootY + Math.round(rootHeight * 0.105F);
+        tabY = titleY + Math.round(rootHeight * 0.043F);
+        navY = rootY + rootHeight - Math.round(rootHeight * 0.105F);
+
+        listPanelX = rootX + Math.round(rootWidth * 0.038F);
         listPanelY = tabY - 5;
-        listPanelWidth = Math.round(rootWidth * 0.45F);
-        listPanelHeight = rootHeight - 250;
-        listX = listPanelX + 12;
-        listY = tabY + 34;
-        listWidth = listPanelWidth - 24;
+        listPanelWidth = Math.round(rootWidth * 0.455F);
+        listPanelHeight = Math.round(rootHeight * 0.590F);
 
-        equipmentPanelX = rootX + Math.round(rootWidth * 0.53F);
-        equipmentPanelY = titleY + 24;
-        equipmentPanelWidth = rootX + rootWidth - equipmentPanelX - 38;
-        equipmentPanelHeight = listPanelHeight;
-        equipmentX = equipmentPanelX + 26;
+        listX = listPanelX + 18;
+        listY = tabY + 34;
+        listWidth = listPanelWidth - 36;
+
+        equipmentPanelX = rootX + Math.round(rootWidth * 0.530F);
+        equipmentPanelY = titleY + Math.round(rootHeight * 0.045F);
+        equipmentPanelWidth = rootX + rootWidth - equipmentPanelX - Math.round(rootWidth * 0.038F);
+        equipmentPanelHeight = Math.round(rootHeight * 0.595F);
+
+        equipmentX = equipmentPanelX + 28;
         equipmentY = equipmentPanelY + 56;
-        equipmentWidth = equipmentPanelWidth - 52;
+        equipmentWidth = equipmentPanelWidth - 56;
     }
 
     private void rebuildItemList() {
@@ -155,8 +158,8 @@ public class ScpInventoryScreen extends Screen {
         g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
 
         if (mode == ScreenMode.CODEX) {
-            g.fill(listPanelX, titleY + 24, listPanelX + listPanelWidth, rootY + rootHeight - 102, PANEL_BACKGROUND);
-            g.fill(equipmentPanelX, titleY + 24, equipmentPanelX + equipmentPanelWidth, rootY + rootHeight - 102, PANEL_BACKGROUND);
+            g.fill(listPanelX, titleY + 24, listPanelX + listPanelWidth, rootY + rootHeight - 112, PANEL_BACKGROUND);
+            g.fill(equipmentPanelX, titleY + 24, equipmentPanelX + equipmentPanelWidth, rootY + rootHeight - 112, PANEL_BACKGROUND);
         } else {
             g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, listPanelY + listPanelHeight, PANEL_BACKGROUND);
             g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
@@ -165,8 +168,8 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderHealthStatus(GuiGraphics g) {
         if (minecraft == null || minecraft.player == null) return;
-        int healthX = rootX + 38;
-        int healthY = rootY + 34;
+        int healthX = rootX + Math.round(rootWidth * 0.040F);
+        int healthY = rootY + Math.round(rootHeight * 0.040F);
         int textX = healthX + HEALTH_ICON_SIZE + 8;
         blitFullIcon(g, HEALTH_ICON, healthX, healthY + 3, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
 
@@ -228,6 +231,7 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
         if (button == 0 && clickedBottomNavigation(mouseX, mouseY)) return true;
         if (mode == ScreenMode.CODEX) return codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
         if (button == 0 && clickedTabs(mouseX, mouseY)) return true;
@@ -260,6 +264,18 @@ public class ScpInventoryScreen extends Screen {
 
         if (itemList == null) return false;
         return showingKeys ? handleKeyClick(mouseX, mouseY, button) : handleMainInventoryClick(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseDraggedScrollbar(mouseY)) return true;
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseReleasedScrollbar(button)) return true;
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     private boolean handleMainInventoryClick(double mouseX, double mouseY, int button) {
