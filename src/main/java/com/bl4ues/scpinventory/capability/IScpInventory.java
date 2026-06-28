@@ -8,7 +8,9 @@ import java.util.List;
 
 public interface IScpInventory {
 
-    int MAIN_SLOT_COUNT = 12;
+    int DEFAULT_MAIN_SLOT_COUNT = 12;
+    int MIN_MAIN_SLOT_COUNT = 1;
+    int MAX_MAIN_SLOT_COUNT = 128;
 
     List<ItemStack> getInventory();
     void setInventory(List<ItemStack> list);
@@ -18,6 +20,11 @@ public interface IScpInventory {
     boolean addInventoryItem(ItemStack stack);
     ItemStack extractInventoryItem(int index);
     boolean removeInventoryItem(int index);
+
+    int getMaxMainSlots();
+    void setMaxMainSlots(int slots);
+    void resetMainInventory();
+    void resetAll();
 
     List<ItemStack> getKeys();
     void setKeys(List<ItemStack> list);
@@ -55,7 +62,7 @@ public interface IScpInventory {
     }
 
     default int getFreeMainSlots() {
-        return MAIN_SLOT_COUNT - getInventoryCount();
+        return getMaxMainSlots() - getInventoryCount();
     }
 
     default boolean hasFreeMainSlots(int amount) {
@@ -63,7 +70,7 @@ public interface IScpInventory {
     }
 
     default boolean isValidMainSlot(int slot) {
-        return slot >= 0 && slot < MAIN_SLOT_COUNT;
+        return slot >= 0 && slot < getMaxMainSlots();
     }
 
     default String getItemType(int slot) {
