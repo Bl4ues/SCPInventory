@@ -63,11 +63,19 @@ public class ModNetwork {
         );
 
         CHANNEL.registerMessage(
-                id,
+                id++,
                 KeyActionPacket.class,
                 KeyActionPacket::encode,
                 KeyActionPacket::decode,
                 KeyActionPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id,
+                InventoryMovePacket.class,
+                InventoryMovePacket::encode,
+                InventoryMovePacket::decode,
+                InventoryMovePacket::handle
         );
     }
 
