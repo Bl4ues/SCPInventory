@@ -1,46 +1,75 @@
+SCP Inventory
+=============
 
-Source installation information for modders
--------------------------------------------
-This code follows the Minecraft Forge installation methodology. It will apply
-some small patches to the vanilla MCP source code, giving you and it access 
-to some of the data and functions you need to build a successful mod.
+SCP Inventory is a Forge 1.20.1 mod that replaces the normal pickup flow with a custom SCP/survival-horror inventory model.
 
-Note also that the patches are built against "un-renamed" MCP source code (aka
-SRG Names) - this means that you will not be able to read them directly against
-normal code.
+Current architecture
+--------------------
 
-Setup Process:
-==============================
+- Main inventory capability with 12 normal item slots.
+- Separate keyring storage for key/keycard items.
+- Separate Codex unlock list for document-style items.
+- Equipment storage for Head, Body, Legs, and Feet.
+- Custom TAB screen with a scrollable item list and context menu.
+- Server-authoritative item actions: the GUI requests actions, and the server mutates the capability.
+- Server-to-client sync packet so the GUI sees the real inventory state.
+- Inventory Full overlay is now triggered through networking instead of client code being called from server events.
 
-Step 1: Open your command-line and browse to the folder where you extracted the zip file.
+Config
+------
 
-Step 2: You're left with a choice.
-If you prefer to use Eclipse:
-1. Run the following command: `./gradlew genEclipseRuns`
-2. Open Eclipse, Import > Existing Gradle Project > Select Folder 
-   or run `gradlew eclipse` to generate the project.
+Forge generates the common config at:
 
-If you prefer to use IntelliJ:
-1. Open IDEA, and import project.
-2. Select your build.gradle file and have it import.
-3. Run the following command: `./gradlew genIntellijRuns`
-4. Refresh the Gradle Project in IDEA if required.
+    config/scpinventory-common.toml
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can 
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-(this does not affect your code) and then start the process again.
+Item rules use this format:
 
-Mapping Names:
-=============================
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license, if you do not agree with it you can change your mapping names to other crowdsourced names in your 
-build.gradle. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
+    modid:item|TYPE
 
-Additional Resources: 
-=========================
-Community Documentation: https://docs.minecraftforge.net/en/1.20.1/gettingstarted/
-LexManos' Install Video: https://youtu.be/8VEdtQLuLO0
-Forge Forums: https://forums.minecraftforge.net/
-Forge Discord: https://discord.minecraftforge.net/
+Accepted TYPE values:
+
+    MISC
+    CONSUMABLE
+    KEY
+    CODEX
+    HEAD
+    BODY
+    LEGS
+    FEET
+
+Examples:
+
+    scp_additions:level_2_keycard|KEY
+    scp_additions:gas_mask|HEAD
+    minecraft:golden_apple|CONSUMABLE
+
+Items not listed in the config fall back to automatic detection:
+
+- edible items become Consumable;
+- vanilla armor becomes its matching equipment slot;
+- everything else becomes Miscellaneous.
+
+Codex documents
+---------------
+
+Codex document rules use this recommended format:
+
+    item_id|display_name|creator|timestamp|uuid
+
+Example for CameraCapture-style pictures:
+
+    camerapture:picture|SCP-330 Containment Protocol|Bl4ues|1772756289088L|I; 1717201316, -226147414, -127193371, 1090671268
+
+The UUID field may contain semicolons because the parser splits this format by pipes.
+
+Development
+-----------
+
+Generate runs normally for ForgeGradle:
+
+    ./gradlew genIntellijRuns
+    ./gradlew runClient
+
+Build:
+
+    ./gradlew build
