@@ -54,23 +54,29 @@ public class ScpInventory implements IScpInventory {
 
     @Override
     public boolean addInventoryItem(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return false;
+        return addInventoryItems(stack) == getStackCount(stack);
+    }
+
+    @Override
+    public int addInventoryItems(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return 0;
 
         normalizeMainInventorySize();
 
-        int amount = stack.getCount();
-        if (!hasFreeMainSlots(amount)) return false;
+        int amountToInsert = Math.min(stack.getCount(), getFreeMainSlots());
+        int inserted = 0;
 
-        for (int amountAdded = 0; amountAdded < amount; amountAdded++) {
+        for (int i = 0; i < amountToInsert; i++) {
             int emptySlot = firstEmptyMainSlot();
-            if (emptySlot == -1) return false;
+            if (emptySlot == -1) break;
 
             ItemStack singleItem = stack.copy();
             singleItem.setCount(1);
             inventory.set(emptySlot, singleItem);
+            inserted++;
         }
 
-        return true;
+        return inserted;
     }
 
     @Override
@@ -265,6 +271,10 @@ public class ScpInventory implements IScpInventory {
 
     private static int clampSlots(int slots) {
         return Math.max(MIN_MAIN_SLOT_COUNT, Math.min(MAX_MAIN_SLOT_COUNT, slots));
+    }
+
+    private static int getStackCount(ItemStack stack) {
+        return stack == null || stack.isEmpty() ? 0 : stack.getCount();
     }
 
     private static ItemStack copyOrEmpty(ItemStack stack) {
