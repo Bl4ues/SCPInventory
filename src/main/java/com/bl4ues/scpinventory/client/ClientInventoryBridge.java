@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.network.EquipmentActionPacket;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
+import com.bl4ues.scpinventory.network.KeyActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
 
 public final class ClientInventoryBridge {
@@ -12,6 +13,10 @@ public final class ClientInventoryBridge {
 
     public static void perform(int slot, String name) {
         ModNetwork.CHANNEL.sendToServer(new InventoryActionPacket(slot, name));
+    }
+
+    public static void performKey(int index, String name) {
+        ModNetwork.CHANNEL.sendToServer(new KeyActionPacket(index, name));
     }
 
     public static void performEquipment(ScpEquipmentSlot slot, String name) {
