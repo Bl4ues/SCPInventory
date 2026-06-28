@@ -31,7 +31,7 @@ public class InventoryFullOverlay {
             active = true;
             shownAt = now;
         }
-        visibleUntil = now + VISIBLE_DURATION;
+        visibleUntil = Math.max(visibleUntil, now + VISIBLE_DURATION);
     }
 
     public static void render(GuiGraphics guiGraphics) {
@@ -52,9 +52,14 @@ public class InventoryFullOverlay {
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, TEXTURE);
         RenderSystem.setShaderColor(1f, 1f, 1f, alpha);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 1000);
         guiGraphics.blit(
                 TEXTURE,
                 PADDING_X,
@@ -66,7 +71,11 @@ public class InventoryFullOverlay {
                 TEXTURE_WIDTH,
                 TEXTURE_HEIGHT
         );
+        guiGraphics.pose().popPose();
+
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
     }
 
