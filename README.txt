@@ -16,8 +16,8 @@ Current architecture
 - Same items are never merged inside the custom main inventory.
 - Separate keyring storage for key/keycard ItemStacks.
 - Separate Codex storage for document ItemStacks, preserving their NBT for image/document rendering.
-- Equipment storage for Head, Body, Legs, and Feet.
-- Custom TAB screen with a scrollable item list and context menu.
+- Equipment storage uses custom SCP slots: Head, Accessory, Body, and Weapon.
+- Custom TAB screen with a scrollable item list, context menu, and functional equipment panel.
 - Server-authoritative item actions: the GUI requests actions, and the server mutates the capability.
 - Server-to-client sync packet so the GUI sees the real inventory state.
 - Inventory Full overlay is triggered through networking instead of client code being called from server events.
@@ -40,21 +40,40 @@ Accepted TYPE values:
     KEY
     CODEX
     HEAD
+    ACCESSORY
     BODY
-    LEGS
-    FEET
+    WEAPON
 
 Examples:
 
     scp_additions:level_2_keycard|KEY
     scp_additions:gas_mask|HEAD
+    scp_additions:scp_714|ACCESSORY
+    minecraft:leather_chestplate|BODY
+    minecraft:stick|WEAPON
     minecraft:golden_apple|CONSUMABLE
 
 Items not listed in the config fall back to automatic detection:
 
 - edible items become Consumable;
-- vanilla armor becomes its matching equipment slot;
+- vanilla helmets become Head;
+- vanilla chestplates become Body;
 - everything else becomes Miscellaneous.
+
+Equipment
+---------
+
+Planned/custom equipment slots:
+
+    HEAD
+    ACCESSORY
+    BODY
+    WEAPON
+
+Left-click an occupied equipment slot in the current test GUI to unequip it back into the main inventory.
+Right-click an occupied equipment slot to drop it into the world.
+
+Weapon is currently stored as custom equipment only. It is not yet force-synced into the vanilla hand/hotbar.
 
 Codex documents
 ---------------
