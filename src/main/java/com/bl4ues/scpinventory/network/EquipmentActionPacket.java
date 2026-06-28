@@ -54,6 +54,7 @@ public class EquipmentActionPacket {
 
                         if (inventory.addInventoryItem(equipped)) {
                             inventory.clearEquipment(slot.get());
+                            InventoryActionPacket.syncVanillaEquipmentSlot(player, slot.get(), ItemStack.EMPTY);
                         } else {
                             ModNetwork.showInventoryFull(player);
                         }
@@ -61,6 +62,7 @@ public class EquipmentActionPacket {
                     case ACTION_DROP -> {
                         ItemStack equipped = inventory.extractEquipment(slot.get());
                         if (!equipped.isEmpty()) {
+                            InventoryActionPacket.syncVanillaEquipmentSlot(player, slot.get(), ItemStack.EMPTY);
                             player.drop(equipped, false);
                         }
                     }
