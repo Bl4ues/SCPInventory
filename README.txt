@@ -84,22 +84,22 @@ Reset everything for selected players:
 
     /scpinventory reset <targets>
 
-Clear only the 12-slot main inventory, keeping keys, documents, equipment, and current max slots:
+Clear only the main inventory, keeping keys, documents, equipment, and current max slots:
 
-    /scpinventory clearMain
-    /scpinventory clearMain <targets>
+    /scpinventory clearmain
+    /scpinventory clearmain <targets>
 
 Set max main slots for yourself:
 
-    /scpinventory setMax <slots>
+    /scpinventory setmax <slots>
 
 Set max main slots for selected players:
 
-    /scpinventory setMax <targets> <slots>
+    /scpinventory setmax <targets> <slots>
 
 Check your current occupied/max main slots:
 
-    /scpinventory getMax
+    /scpinventory getmax
 
 Development
 -----------
