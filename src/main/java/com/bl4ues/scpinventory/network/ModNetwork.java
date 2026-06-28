@@ -47,11 +47,19 @@ public class ModNetwork {
         );
 
         CHANNEL.registerMessage(
-                id,
+                id++,
                 InventoryActionPacket.class,
                 InventoryActionPacket::encode,
                 InventoryActionPacket::decode,
                 InventoryActionPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id,
+                EquipmentActionPacket.class,
+                EquipmentActionPacket::encode,
+                EquipmentActionPacket::decode,
+                EquipmentActionPacket::handle
         );
     }
 
