@@ -33,7 +33,7 @@ public class ScpInventory implements IScpInventory {
     public void setInventory(List<ItemStack> list) {
         inventory.clear();
         for (int i = 0; i < MAX_SLOTS; i++) {
-            if (list != null && i < list.size()) inventory.add(copyOrEmpty(list.get(i)));
+            if (list != null && i < list.size()) inventory.add(toSingleItemOrEmpty(list.get(i)));
             else inventory.add(ItemStack.EMPTY);
         }
     }
@@ -47,20 +47,27 @@ public class ScpInventory implements IScpInventory {
     @Override
     public boolean setInventoryItem(int index, ItemStack stack) {
         if (index < 0 || index >= MAX_SLOTS) return false;
-        inventory.set(index, copyOrEmpty(stack));
+        inventory.set(index, toSingleItemOrEmpty(stack));
         return true;
     }
 
     @Override
     public boolean addInventoryItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        for (int i = 0; i < inventory.size(); i++) {
-            if (inventory.get(i).isEmpty()) {
-                inventory.set(i, stack.copy());
-                return true;
-            }
+
+        int amount = stack.getCount();
+        if (!hasFreeMainSlots(amount)) return false;
+
+        for (int amountAdded = 0; amountAdded < amount; amountAdded++) {
+            int emptySlot = firstEmptyMainSlot();
+            if (emptySlot == -1) return false;
+
+            ItemStack singleItem = stack.copy();
+            singleItem.setCount(1);
+            inventory.set(emptySlot, singleItem);
         }
-        return false;
+
+        return true;
     }
 
     @Override
@@ -180,7 +187,7 @@ public class ScpInventory implements IScpInventory {
         inventory.clear();
         ListTag invList = tag.getList("Inventory", 10);
         for (int i = 0; i < MAX_SLOTS; i++) {
-            if (i < invList.size()) inventory.add(ItemStack.of(invList.getCompound(i)));
+            if (i < invList.size()) inventory.add(toSingleItemOrEmpty(ItemStack.of(invList.getCompound(i))));
             else inventory.add(ItemStack.EMPTY);
         }
 
@@ -197,8 +204,22 @@ public class ScpInventory implements IScpInventory {
         feet = equipTag.contains("Feet") ? ItemStack.of(equipTag.getCompound("Feet")) : ItemStack.EMPTY;
     }
 
+    private int firstEmptyMainSlot() {
+        for (int i = 0; i < inventory.size(); i++) {
+            if (inventory.get(i).isEmpty()) return i;
+        }
+        return -1;
+    }
+
     private static ItemStack copyOrEmpty(ItemStack stack) {
         return stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+    }
+
+    private static ItemStack toSingleItemOrEmpty(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return ItemStack.EMPTY;
+        ItemStack copy = stack.copy();
+        copy.setCount(1);
+        return copy;
     }
 
     private static void addAllStacks(List<ItemStack> target, List<ItemStack> source) {
