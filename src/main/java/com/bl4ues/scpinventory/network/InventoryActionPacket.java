@@ -7,6 +7,7 @@ import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -52,7 +53,7 @@ public class InventoryActionPacket {
                 switch (msg.action) {
                     case ACTION_DROP -> moveSlotToWorld(player, inventory, msg.slot);
                     case ACTION_USE -> useSlot(player, inventory, msg.slot);
-                    case ACTION_EQUIP -> equipSlot(inventory, msg.slot);
+                    case ACTION_EQUIP -> equipSlot(player, inventory, msg.slot);
                     default -> {
                     }
                 }
@@ -84,7 +85,7 @@ public class InventoryActionPacket {
         }
     }
 
-    private static void equipSlot(IScpInventory inventory, int slot) {
+    private static void equipSlot(ServerPlayer player, IScpInventory inventory, int slot) {
         ItemStack stack = inventory.getInventoryItem(slot);
         if (stack.isEmpty()) {
             return;
@@ -100,9 +101,29 @@ public class InventoryActionPacket {
         ItemStack previousEquipment = inventory.getEquipment(targetSlot);
 
         inventory.setEquipment(targetSlot, newEquipment);
+        syncVanillaEquipmentSlot(player, targetSlot, newEquipment);
 
         if (!previousEquipment.isEmpty()) {
             inventory.setInventoryItem(slot, previousEquipment);
         }
+    }
+
+    static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
+        EquipmentSlot vanillaSlot = getVanillaEquipmentSlot(slot);
+        if (vanillaSlot != null) {
+            player.setItemSlot(vanillaSlot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
+        }
+    }
+
+    static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
+        if (slot == ScpEquipmentSlot.HEAD) {
+            return EquipmentSlot.HEAD;
+        }
+
+        if (slot == ScpEquipmentSlot.BODY) {
+            return EquipmentSlot.CHEST;
+        }
+
+        return null;
     }
 }
