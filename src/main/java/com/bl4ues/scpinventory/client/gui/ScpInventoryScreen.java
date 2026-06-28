@@ -33,6 +33,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int NAV_BUTTON_WIDTH = 120;
     private static final int NAV_BUTTON_HEIGHT = 42;
     private static final int HEALTH_ICON_SIZE = 24;
+    private static final int SOURCE_ICON_SIZE = 128;
 
     private enum ScreenMode {
         INVENTORY,
@@ -138,7 +139,7 @@ public class ScpInventoryScreen extends Screen {
         int healthY = Math.max(18, listY - 92);
         int textX = healthX + HEALTH_ICON_SIZE + 8;
 
-        g.blit(HEALTH_ICON, healthX, healthY + 3, 0, 0, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE, 128, 128);
+        blitFullIcon(g, HEALTH_ICON, healthX, healthY + 3, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
 
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
@@ -189,8 +190,12 @@ public class ScpInventoryScreen extends Screen {
         int textX = x + (NAV_BUTTON_WIDTH - minecraft.font.width(label)) / 2;
         int color = active ? TEXT_WHITE : TEXT_GRAY;
 
-        g.blit(icon, iconX, y, 0, 0, NAV_ICON_SIZE, NAV_ICON_SIZE, 128, 128);
+        blitFullIcon(g, icon, iconX, y, NAV_ICON_SIZE, NAV_ICON_SIZE);
         g.drawString(minecraft.font, label, textX, y + NAV_ICON_SIZE + 6, color, false);
+    }
+
+    private void blitFullIcon(GuiGraphics g, ResourceLocation icon, int x, int y, int width, int height) {
+        g.blit(icon, x, y, width, height, 0.0F, 0.0F, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE);
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
