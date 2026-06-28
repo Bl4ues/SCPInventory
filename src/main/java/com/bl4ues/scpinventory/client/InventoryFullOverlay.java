@@ -11,6 +11,7 @@ public class InventoryFullOverlay {
             new ResourceLocation("scpinventory", "textures/gui/inventoryfull.png");
 
     private static final long VISIBLE_DURATION = 2500L;
+    private static final long FADE_IN_TIME = 150L;
     private static final long FADE_OUT_TIME = 500L;
 
     private static final int PADDING_X = 10;
@@ -21,11 +22,16 @@ public class InventoryFullOverlay {
     private static final int TEXTURE_HEIGHT = 376;
 
     private static boolean active = false;
+    private static long shownAt = 0L;
     private static long visibleUntil = 0L;
 
     public static void show() {
-        active = true;
-        visibleUntil = System.currentTimeMillis() + VISIBLE_DURATION;
+        long now = System.currentTimeMillis();
+        if (!active) {
+            active = true;
+            shownAt = now;
+        }
+        visibleUntil = now + VISIBLE_DURATION;
     }
 
     public static void render(GuiGraphics guiGraphics) {
@@ -33,13 +39,16 @@ public class InventoryFullOverlay {
             return;
         }
 
-        long remaining = visibleUntil - System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        long visibleFor = now - shownAt;
+        long remaining = visibleUntil - now;
+
         if (remaining <= 0L) {
             active = false;
             return;
         }
 
-        float alpha = getAlpha(remaining);
+        float alpha = getAlpha(visibleFor, remaining);
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -61,11 +70,15 @@ public class InventoryFullOverlay {
         RenderSystem.disableBlend();
     }
 
-    private static float getAlpha(long remaining) {
-        if (remaining < FADE_OUT_TIME) {
-            return Math.max(0f, (float) remaining / FADE_OUT_TIME);
-        }
+    private static float getAlpha(long visibleFor, long remaining) {
+        float fadeInAlpha = FADE_IN_TIME <= 0L
+                ? 1.0f
+                : Math.min(1.0f, (float) visibleFor / FADE_IN_TIME);
 
-        return 1.0f;
+        float fadeOutAlpha = remaining < FADE_OUT_TIME
+                ? Math.max(0f, (float) remaining / FADE_OUT_TIME)
+                : 1.0f;
+
+        return Math.min(fadeInAlpha, fadeOutAlpha);
     }
 }
