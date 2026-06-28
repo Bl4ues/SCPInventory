@@ -1,10 +1,10 @@
 package com.bl4ues.scpinventory.item;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -114,9 +114,25 @@ public final class CodexDocumentDefinition {
                 && matchesTagValue(tag, "uuid", uuid);
     }
 
-    public String getUnlockId() {
+    public String getDisplayName(ItemStack fallbackStack) {
         if (!displayName.isBlank()) {
             return displayName;
+        }
+
+        if (fallbackStack != null && !fallbackStack.isEmpty()) {
+            return fallbackStack.getHoverName().getString();
+        }
+
+        return itemId.toString();
+    }
+
+    public String getStableId(ItemStack fallbackStack) {
+        if (!displayName.isBlank()) {
+            return displayName;
+        }
+
+        if (fallbackStack != null && !fallbackStack.isEmpty() && fallbackStack.hasTag()) {
+            return itemId + "|" + fallbackStack.getTag();
         }
 
         return itemId + "|" + creator + "|" + timestamp + "|" + uuid;
