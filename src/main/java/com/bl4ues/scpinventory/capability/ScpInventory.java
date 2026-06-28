@@ -9,11 +9,11 @@ import java.util.List;
 
 public class ScpInventory implements IScpInventory {
 
-    private static final int MAX_SLOTS = MAIN_SLOT_COUNT;
-
     private final List<ItemStack> inventory = new ArrayList<>();
     private final List<ItemStack> keys = new ArrayList<>();
     private final List<ItemStack> documents = new ArrayList<>();
+
+    private int maxMainSlots = DEFAULT_MAIN_SLOT_COUNT;
 
     private ItemStack head = ItemStack.EMPTY;
     private ItemStack chest = ItemStack.EMPTY;
@@ -21,9 +21,7 @@ public class ScpInventory implements IScpInventory {
     private ItemStack feet = ItemStack.EMPTY;
 
     public ScpInventory() {
-        for (int i = 0; i < MAX_SLOTS; i++) {
-            inventory.add(ItemStack.EMPTY);
-        }
+        normalizeMainInventorySize();
     }
 
     @Override
@@ -32,21 +30,24 @@ public class ScpInventory implements IScpInventory {
     @Override
     public void setInventory(List<ItemStack> list) {
         inventory.clear();
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < maxMainSlots; i++) {
             if (list != null && i < list.size()) inventory.add(toSingleItemOrEmpty(list.get(i)));
             else inventory.add(ItemStack.EMPTY);
         }
+        normalizeMainInventorySize();
     }
 
     @Override
     public ItemStack getInventoryItem(int index) {
-        if (index < 0 || index >= MAX_SLOTS) return ItemStack.EMPTY;
+        if (index < 0 || index >= maxMainSlots) return ItemStack.EMPTY;
+        normalizeMainInventorySize();
         return inventory.get(index);
     }
 
     @Override
     public boolean setInventoryItem(int index, ItemStack stack) {
-        if (index < 0 || index >= MAX_SLOTS) return false;
+        if (index < 0 || index >= maxMainSlots) return false;
+        normalizeMainInventorySize();
         inventory.set(index, toSingleItemOrEmpty(stack));
         return true;
     }
@@ -54,6 +55,8 @@ public class ScpInventory implements IScpInventory {
     @Override
     public boolean addInventoryItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
+
+        normalizeMainInventorySize();
 
         int amount = stack.getCount();
         if (!hasFreeMainSlots(amount)) return false;
@@ -72,13 +75,15 @@ public class ScpInventory implements IScpInventory {
 
     @Override
     public boolean isInventoryFull() {
+        normalizeMainInventorySize();
         for (ItemStack stack : inventory) if (stack.isEmpty()) return false;
         return true;
     }
 
     @Override
     public ItemStack extractInventoryItem(int index) {
-        if (index < 0 || index >= MAX_SLOTS) return ItemStack.EMPTY;
+        if (index < 0 || index >= maxMainSlots) return ItemStack.EMPTY;
+        normalizeMainInventorySize();
         ItemStack stack = inventory.get(index);
         inventory.set(index, ItemStack.EMPTY);
         return stack;
@@ -86,9 +91,39 @@ public class ScpInventory implements IScpInventory {
 
     @Override
     public boolean removeInventoryItem(int index) {
-        if (index < 0 || index >= MAX_SLOTS) return false;
+        if (index < 0 || index >= maxMainSlots) return false;
+        normalizeMainInventorySize();
         inventory.set(index, ItemStack.EMPTY);
         return true;
+    }
+
+    @Override
+    public int getMaxMainSlots() {
+        return maxMainSlots;
+    }
+
+    @Override
+    public void setMaxMainSlots(int slots) {
+        maxMainSlots = clampSlots(slots);
+        normalizeMainInventorySize();
+    }
+
+    @Override
+    public void resetMainInventory() {
+        inventory.clear();
+        normalizeMainInventorySize();
+    }
+
+    @Override
+    public void resetAll() {
+        maxMainSlots = DEFAULT_MAIN_SLOT_COUNT;
+        resetMainInventory();
+        keys.clear();
+        documents.clear();
+        head = ItemStack.EMPTY;
+        chest = ItemStack.EMPTY;
+        legs = ItemStack.EMPTY;
+        feet = ItemStack.EMPTY;
     }
 
     @Override
@@ -168,6 +203,7 @@ public class ScpInventory implements IScpInventory {
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
 
+        tag.putInt("MaxMainSlots", maxMainSlots);
         tag.put("Inventory", saveStackList(inventory, true));
         tag.put("Keys", saveStackList(keys, false));
         tag.put("Documents", saveStackList(documents, false));
@@ -184,12 +220,17 @@ public class ScpInventory implements IScpInventory {
 
     @Override
     public void deserializeNBT(CompoundTag tag) {
+        maxMainSlots = tag.contains("MaxMainSlots")
+                ? clampSlots(tag.getInt("MaxMainSlots"))
+                : DEFAULT_MAIN_SLOT_COUNT;
+
         inventory.clear();
         ListTag invList = tag.getList("Inventory", 10);
-        for (int i = 0; i < MAX_SLOTS; i++) {
+        for (int i = 0; i < maxMainSlots; i++) {
             if (i < invList.size()) inventory.add(toSingleItemOrEmpty(ItemStack.of(invList.getCompound(i))));
             else inventory.add(ItemStack.EMPTY);
         }
+        normalizeMainInventorySize();
 
         keys.clear();
         loadStackList(keys, tag.getList("Keys", 10));
@@ -205,10 +246,25 @@ public class ScpInventory implements IScpInventory {
     }
 
     private int firstEmptyMainSlot() {
+        normalizeMainInventorySize();
         for (int i = 0; i < inventory.size(); i++) {
             if (inventory.get(i).isEmpty()) return i;
         }
         return -1;
+    }
+
+    private void normalizeMainInventorySize() {
+        while (inventory.size() < maxMainSlots) {
+            inventory.add(ItemStack.EMPTY);
+        }
+
+        while (inventory.size() > maxMainSlots) {
+            inventory.remove(inventory.size() - 1);
+        }
+    }
+
+    private static int clampSlots(int slots) {
+        return Math.max(MIN_MAIN_SLOT_COUNT, Math.min(MAX_MAIN_SLOT_COUNT, slots));
     }
 
     private static ItemStack copyOrEmpty(ItemStack stack) {
