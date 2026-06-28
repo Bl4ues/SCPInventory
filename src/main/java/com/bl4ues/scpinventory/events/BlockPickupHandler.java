@@ -11,8 +11,15 @@ import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 @Mod.EventBusSubscriber(modid = "scpinventory")
 public class BlockPickupHandler {
+
+    private static final long FULL_MESSAGE_COOLDOWN_MS = 350L;
+    private static final Map<UUID, Long> LAST_FULL_MESSAGE = new HashMap<>();
 
     @SubscribeEvent
     public static void onItemPickup(EntityItemPickupEvent event) {
@@ -33,7 +40,7 @@ public class BlockPickupHandler {
             event.setCanceled(true);
 
             if (acceptedCount <= 0) {
-                ModNetwork.showInventoryFull(serverPlayer);
+                showInventoryFullThrottled(serverPlayer);
                 return;
             }
 
@@ -43,10 +50,21 @@ public class BlockPickupHandler {
                 stack.shrink(acceptedCount);
                 itemEntity.setItem(stack);
                 itemEntity.setPickUpDelay(10);
-                ModNetwork.showInventoryFull(serverPlayer);
+                showInventoryFullThrottled(serverPlayer);
             }
 
             ModNetwork.syncTo(serverPlayer, inventory);
         });
+    }
+
+    private static void showInventoryFullThrottled(ServerPlayer player) {
+        long now = System.currentTimeMillis();
+        UUID playerId = player.getUUID();
+        long lastShown = LAST_FULL_MESSAGE.getOrDefault(playerId, 0L);
+
+        if (now - lastShown >= FULL_MESSAGE_COOLDOWN_MS) {
+            LAST_FULL_MESSAGE.put(playerId, now);
+            ModNetwork.showInventoryFull(player);
+        }
     }
 }
