@@ -10,38 +10,28 @@ public class InventoryFullOverlay {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation("scpinventory", "textures/gui/inventoryfull.png");
 
-    private static boolean active = false;
-    private static long startTime = 0L;
+    private static final long TOTAL_DURATION = 5000L;
+    private static final long FADE_TIME = 500L;
 
-    private static final long TOTAL_DURATION = 5000L; // duração total em ms
-    private static final long FADE_TIME = 500L;       // fade in/out em ms
-
-    // Posição/padding na tela
     private static final int PADDING_X = 10;
     private static final int PADDING_Y = 10;
-
-    // Tamanho da imagem na tela (ajuste para deixar pequena)
     private static final int DISPLAY_WIDTH = 225;
     private static final int DISPLAY_HEIGHT = 52;
-
-    // Tamanho real da textura original
     private static final int TEXTURE_WIDTH = 1623;
     private static final int TEXTURE_HEIGHT = 376;
 
-    /**
-     * Mostra o overlay (uma vez por tentativa de pickup)
-     */
+    private static boolean active = false;
+    private static long startTime = 0L;
+
     public static void show() {
-        if (active) return;
         active = true;
         startTime = System.currentTimeMillis();
     }
 
-    /**
-     * Renderiza o overlay na tela
-     */
     public static void render(GuiGraphics guiGraphics) {
-        if (!active) return;
+        if (!active) {
+            return;
+        }
 
         long elapsed = System.currentTimeMillis() - startTime;
         if (elapsed >= TOTAL_DURATION) {
@@ -49,33 +39,37 @@ public class InventoryFullOverlay {
             return;
         }
 
-        // Calcula alpha para fade in/out
-        float alpha;
-        if (elapsed < FADE_TIME) {
-            alpha = (float) elapsed / FADE_TIME;
-        } else if (elapsed > TOTAL_DURATION - FADE_TIME) {
-            alpha = (float) (TOTAL_DURATION - elapsed) / FADE_TIME;
-        } else {
-            alpha = 1.0f;
-        }
+        float alpha = getAlpha(elapsed);
 
-        // Posição na tela
-        int x = PADDING_X;
-        int y = PADDING_Y;
-
-        // Configura blend e shader
-        RenderSystem.enableBlend();                  // ativa blending
-        RenderSystem.defaultBlendFunc();            // função de blend padrão (SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
         RenderSystem.setShaderTexture(0, TEXTURE);
-        RenderSystem.setShaderColor(1f, 1f, 1f, alpha); // alpha = 1f para opaco ou <1f para fade
+        RenderSystem.setShaderColor(1f, 1f, 1f, alpha);
         guiGraphics.blit(
                 TEXTURE,
-                x, y,
-                0f, 0f,
-                DISPLAY_WIDTH, DISPLAY_HEIGHT,
-                TEXTURE_WIDTH, TEXTURE_HEIGHT
+                PADDING_X,
+                PADDING_Y,
+                0f,
+                0f,
+                DISPLAY_WIDTH,
+                DISPLAY_HEIGHT,
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT
         );
-        RenderSystem.disableBlend();                // desativa blending
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+        RenderSystem.disableBlend();
+    }
+
+    private static float getAlpha(long elapsed) {
+        if (elapsed < FADE_TIME) {
+            return (float) elapsed / FADE_TIME;
+        }
+
+        if (elapsed > TOTAL_DURATION - FADE_TIME) {
+            return (float) (TOTAL_DURATION - elapsed) / FADE_TIME;
+        }
+
+        return 1.0f;
     }
 }
