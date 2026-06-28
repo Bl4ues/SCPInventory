@@ -10,8 +10,8 @@ public class InventoryFullOverlay {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation("scpinventory", "textures/gui/inventoryfull.png");
 
-    private static final long TOTAL_DURATION = 5000L;
-    private static final long FADE_TIME = 500L;
+    private static final long VISIBLE_DURATION = 2500L;
+    private static final long FADE_OUT_TIME = 500L;
 
     private static final int PADDING_X = 10;
     private static final int PADDING_Y = 10;
@@ -21,11 +21,11 @@ public class InventoryFullOverlay {
     private static final int TEXTURE_HEIGHT = 376;
 
     private static boolean active = false;
-    private static long startTime = 0L;
+    private static long visibleUntil = 0L;
 
     public static void show() {
         active = true;
-        startTime = System.currentTimeMillis();
+        visibleUntil = System.currentTimeMillis() + VISIBLE_DURATION;
     }
 
     public static void render(GuiGraphics guiGraphics) {
@@ -33,13 +33,13 @@ public class InventoryFullOverlay {
             return;
         }
 
-        long elapsed = System.currentTimeMillis() - startTime;
-        if (elapsed >= TOTAL_DURATION) {
+        long remaining = visibleUntil - System.currentTimeMillis();
+        if (remaining <= 0L) {
             active = false;
             return;
         }
 
-        float alpha = getAlpha(elapsed);
+        float alpha = getAlpha(remaining);
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -61,13 +61,9 @@ public class InventoryFullOverlay {
         RenderSystem.disableBlend();
     }
 
-    private static float getAlpha(long elapsed) {
-        if (elapsed < FADE_TIME) {
-            return (float) elapsed / FADE_TIME;
-        }
-
-        if (elapsed > TOTAL_DURATION - FADE_TIME) {
-            return (float) (TOTAL_DURATION - elapsed) / FADE_TIME;
+    private static float getAlpha(long remaining) {
+        if (remaining < FADE_OUT_TIME) {
+            return Math.max(0f, (float) remaining / FADE_OUT_TIME);
         }
 
         return 1.0f;
