@@ -28,6 +28,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int ROOT_TINT = 0x11000000;
     private static final int PANEL_BACKGROUND = 0x8F545D5F;
     private static final int FOOTER_BACKGROUND = 0x242B3133;
+    private static final long DOUBLE_RIGHT_CLICK_WINDOW_MS = 320L;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -65,6 +66,9 @@ public class ScpInventoryScreen extends Screen {
     private int equipmentPanelX, equipmentPanelY, equipmentPanelWidth, equipmentPanelHeight;
     private int listX, listY, listWidth;
     private int equipmentX, equipmentY, equipmentWidth;
+    private int lastRightClickIndex = -1;
+    private boolean lastRightClickWasKey = false;
+    private long lastRightClickTimeMs = 0L;
 
     public ScpInventoryScreen() {
         super(Component.literal("SCP Inventory"));
@@ -253,7 +257,7 @@ public class ScpInventoryScreen extends Screen {
         if (mode == ScreenMode.CODEX) return codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
         if (button == 0 && clickedTabs(mouseX, mouseY)) return true;
 
-        if (contextMenu != null && contextMenu.isOpen()) {
+        if (button == 0 && contextMenu != null && contextMenu.isOpen()) {
             int option = contextMenu.clicked(mouseX, mouseY);
             if (option != -1) {
                 handleAction(contextMenu.getOption(option));
@@ -306,6 +310,12 @@ public class ScpInventoryScreen extends Screen {
             return true;
         }
         if (button == 1) {
+            if (isDoubleRightClick(index, false) && performDefaultItemAction(index, stack)) {
+                resetRightClickMemory();
+                if (contextMenu != null) contextMenu.close();
+                return true;
+            }
+
             contextIndex = index;
             contextIsKey = false;
             contextMenu.open((int) mouseX, (int) mouseY, ScpItemClassifier.getEquipmentSlot(stack).isPresent() ? "Head" : inventory.getItemType(index));
@@ -325,12 +335,52 @@ public class ScpInventoryScreen extends Screen {
             return true;
         }
         if (button == 1) {
+            registerRightClick(index, true);
             contextIndex = index;
             contextIsKey = true;
             contextMenu.open((int) mouseX, (int) mouseY, "Key");
             return true;
         }
         return false;
+    }
+
+    private boolean performDefaultItemAction(int index, ItemStack stack) {
+        if (ScpItemClassifier.getEquipmentSlot(stack).isPresent()) {
+            ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_EQUIP);
+            return true;
+        }
+
+        if ("Consumable".equals(inventory.getItemType(index))) {
+            ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_USE);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isDoubleRightClick(int index, boolean keyList) {
+        long now = System.currentTimeMillis();
+        boolean result = index == lastRightClickIndex
+                && keyList == lastRightClickWasKey
+                && now - lastRightClickTimeMs <= DOUBLE_RIGHT_CLICK_WINDOW_MS;
+
+        lastRightClickIndex = index;
+        lastRightClickWasKey = keyList;
+        lastRightClickTimeMs = now;
+
+        return result;
+    }
+
+    private void registerRightClick(int index, boolean keyList) {
+        lastRightClickIndex = index;
+        lastRightClickWasKey = keyList;
+        lastRightClickTimeMs = System.currentTimeMillis();
+    }
+
+    private void resetRightClickMemory() {
+        lastRightClickIndex = -1;
+        lastRightClickWasKey = false;
+        lastRightClickTimeMs = 0L;
     }
 
     private boolean clickedTabs(double mouseX, double mouseY) {
