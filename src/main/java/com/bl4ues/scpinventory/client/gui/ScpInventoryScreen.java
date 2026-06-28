@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.client.gui;
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.client.ClientInventoryBridge;
+import com.bl4ues.scpinventory.client.gui.components.CodexPanel;
 import com.bl4ues.scpinventory.client.gui.components.ContextMenu;
 import com.bl4ues.scpinventory.client.gui.components.EquipmentPanel;
 import com.bl4ues.scpinventory.client.gui.components.ScrollableItemList;
@@ -20,8 +21,14 @@ public class ScpInventoryScreen extends Screen {
     private static final int TAB_ACTIVE = 0x44E0E0E0;
     private static final int TAB_INACTIVE = 0x22E0E0E0;
 
+    private enum ScreenMode {
+        INVENTORY,
+        CODEX
+    }
+
     private ScrollableItemList itemList;
     private EquipmentPanel equipmentPanel;
+    private CodexPanel codexPanel;
     private ContextMenu contextMenu;
     private IScpInventory inventory;
     private int contextIndex = -1;
@@ -32,7 +39,9 @@ public class ScpInventoryScreen extends Screen {
     private int listWidth;
     private int equipmentX;
     private int equipmentY;
+    private int navY;
     private boolean showingKeys = false;
+    private ScreenMode mode = ScreenMode.INVENTORY;
 
     public ScpInventoryScreen() {
         super(Component.literal("SCP Inventory"));
@@ -48,6 +57,7 @@ public class ScpInventoryScreen extends Screen {
         listWidth = 320;
         equipmentX = width / 2 + 20;
         equipmentY = listY + 24;
+        navY = height - 44;
 
         if (mc.player == null) {
             return;
@@ -57,6 +67,7 @@ public class ScpInventoryScreen extends Screen {
             inventory = inv;
             rebuildItemList();
             equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, listY - 48, inv);
+            codexPanel = new CodexPanel(listX, listY - 6, 320, equipmentX, 360, inv);
         });
     }
 
@@ -76,16 +87,24 @@ public class ScpInventoryScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
 
-        renderInventoryHeader(g);
-        renderTabs(g);
+        if (mode == ScreenMode.CODEX) {
+            if (codexPanel != null) {
+                codexPanel.render(g, mouseX, mouseY);
+            }
+        } else {
+            renderInventoryHeader(g);
+            renderTabs(g);
 
-        if (itemList != null) {
-            itemList.render(g, mouseX, mouseY);
+            if (itemList != null) {
+                itemList.render(g, mouseX, mouseY);
+            }
+
+            if (equipmentPanel != null) {
+                equipmentPanel.render(g, mouseX, mouseY);
+            }
         }
 
-        if (equipmentPanel != null) {
-            equipmentPanel.render(g, mouseX, mouseY);
-        }
+        renderBottomNavigation(g);
 
         if (contextMenu != null) {
             contextMenu.render(g, mouseX, mouseY);
@@ -110,6 +129,19 @@ public class ScpInventoryScreen extends Screen {
         drawTab(g, listX + 88, listY - 26, 76, "KEYS", showingKeys);
     }
 
+    private void renderBottomNavigation(GuiGraphics g) {
+        int inventoryX = width / 2 - 190;
+        int codexX = width / 2 + 110;
+        drawNavigationButton(g, inventoryX, navY, 120, "INVENTORY", mode == ScreenMode.INVENTORY);
+        drawNavigationButton(g, codexX, navY, 120, "CODEX", mode == ScreenMode.CODEX);
+    }
+
+    private void drawNavigationButton(GuiGraphics g, int x, int y, int w, String label, boolean active) {
+        g.fill(x, y, x + w, y + 22, active ? TAB_ACTIVE : 0x00000000);
+        int textX = x + (w - minecraft.font.width(label)) / 2;
+        g.drawString(minecraft.font, label, textX, y + 7, active ? TEXT_WHITE : TEXT_GRAY, false);
+    }
+
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
         g.fill(x, y, x + w, y + 20, active ? TAB_ACTIVE : TAB_INACTIVE);
         int textX = x + (w - minecraft.font.width(label)) / 2;
@@ -124,7 +156,13 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (itemList != null && itemList.isMouseOver(mouseX, mouseY)) {
+        if (mode == ScreenMode.CODEX && codexPanel != null) {
+            if (codexPanel.mouseScrolled(mouseX, mouseY, delta)) {
+                return true;
+            }
+        }
+
+        if (mode == ScreenMode.INVENTORY && itemList != null && itemList.isMouseOver(mouseX, mouseY)) {
             return itemList.mouseScrolled(delta);
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
@@ -132,6 +170,17 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && clickedBottomNavigation(mouseX, mouseY)) {
+            return true;
+        }
+
+        if (mode == ScreenMode.CODEX) {
+            if (codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
         if (button == 0 && clickedTabs(mouseX, mouseY)) {
             return true;
         }
@@ -245,6 +294,30 @@ public class ScpInventoryScreen extends Screen {
             showingKeys = true;
             contextIsKey = false;
             rebuildItemList();
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean clickedBottomNavigation(double mouseX, double mouseY) {
+        if (mouseY < navY || mouseY > navY + 22) {
+            return false;
+        }
+
+        int inventoryX = width / 2 - 190;
+        int codexX = width / 2 + 110;
+
+        if (mouseX >= inventoryX && mouseX <= inventoryX + 120) {
+            mode = ScreenMode.INVENTORY;
+            return true;
+        }
+
+        if (mouseX >= codexX && mouseX <= codexX + 120) {
+            mode = ScreenMode.CODEX;
+            if (contextMenu != null) {
+                contextMenu.close();
+            }
             return true;
         }
 
