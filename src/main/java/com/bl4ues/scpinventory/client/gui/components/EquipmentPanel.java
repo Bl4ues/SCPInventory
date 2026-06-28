@@ -4,6 +4,7 @@ import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 public class EquipmentPanel {
@@ -67,10 +68,12 @@ public class EquipmentPanel {
             g.renderItem(stack, iconX + 1, rowY + 1);
         }
 
+        Component itemName = stack.isEmpty() ? Component.literal("None") : stack.getHoverName();
+
         g.drawString(mc.font, slot.getDisplayName(), textX, rowY, 0xFFDDDDDD, false);
         g.drawString(
                 mc.font,
-                stack.isEmpty() ? "None" : stack.getHoverName(),
+                itemName,
                 textX,
                 rowY + 12,
                 stack.isEmpty() ? 0xFF888888 : 0xFFFFFFFF,
