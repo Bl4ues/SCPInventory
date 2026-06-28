@@ -54,6 +54,14 @@ public interface IScpInventory {
         return count;
     }
 
+    default int getFreeMainSlots() {
+        return MAIN_SLOT_COUNT - getInventoryCount();
+    }
+
+    default boolean hasFreeMainSlots(int amount) {
+        return amount > 0 && getFreeMainSlots() >= amount;
+    }
+
     default boolean isValidMainSlot(int slot) {
         return slot >= 0 && slot < MAIN_SLOT_COUNT;
     }
