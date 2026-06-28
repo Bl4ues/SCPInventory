@@ -6,7 +6,8 @@ SCP Inventory is a Forge 1.20.1 mod that replaces the normal pickup flow with a 
 Current architecture
 --------------------
 
-- Main inventory capability with 12 normal item slots.
+- Main inventory capability with 12 normal item slots by default.
+- The maximum main slot count is stored in the player capability and can be changed later by backpack/upgrades.
 - Each occupied main slot represents one real item.
 - Main inventory pickup splits ItemStack counts into individual one-count slots.
 - If the world item entity has count 1, it occupies 1 main slot.
@@ -69,6 +70,36 @@ Example for CameraCapture-style pictures:
 The UUID field may contain semicolons because the parser splits this format by pipes.
 
 A matching document does not consume one of the 12 main inventory slots. It is stored in the Codex as the original ItemStack, not as a plain string. This keeps creator/timestamp/uuid and any other NBT available for the future Codex GUI.
+
+Debug commands
+--------------
+
+These commands require permission level 2.
+
+Reset everything for yourself:
+
+    /scpinventory reset
+
+Reset everything for selected players:
+
+    /scpinventory reset <targets>
+
+Clear only the 12-slot main inventory, keeping keys, documents, equipment, and current max slots:
+
+    /scpinventory clearMain
+    /scpinventory clearMain <targets>
+
+Set max main slots for yourself:
+
+    /scpinventory setMax <slots>
+
+Set max main slots for selected players:
+
+    /scpinventory setMax <targets> <slots>
+
+Check your current occupied/max main slots:
+
+    /scpinventory getMax
 
 Development
 -----------
