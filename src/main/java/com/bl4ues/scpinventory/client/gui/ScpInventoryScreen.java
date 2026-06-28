@@ -28,7 +28,10 @@ public class ScpInventoryScreen extends Screen {
     private static final int ROOT_TINT = 0x11000000;
     private static final int PANEL_BACKGROUND = 0x8F545D5F;
     private static final int FOOTER_BACKGROUND = 0x242B3133;
-    private static final long DOUBLE_RIGHT_CLICK_WINDOW_MS = 320L;
+    private static final int DRAG_ICON_BOX = 0x99303638;
+    private static final int DRAG_ICON_CORNER = 0xCC6A6C6C;
+    private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
+    private static final double DRAG_THRESHOLD = 4.0D;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -47,8 +50,10 @@ public class ScpInventoryScreen extends Screen {
     private static final int INVENTORY_TAB_WIDTH = 90;
     private static final int KEYS_TAB_WIDTH = 76;
     private static final int HEALTH_ICON_SIZE = 24;
+    private static final int DRAG_ICON_FRAME_SIZE = 24;
 
     private enum ScreenMode { INVENTORY, CODEX }
+    private enum DragSourceKind { NONE, MAIN, EQUIPMENT }
 
     private ScrollableItemList itemList;
     private EquipmentPanel equipmentPanel;
@@ -66,9 +71,18 @@ public class ScpInventoryScreen extends Screen {
     private int equipmentPanelX, equipmentPanelY, equipmentPanelWidth, equipmentPanelHeight;
     private int listX, listY, listWidth;
     private int equipmentX, equipmentY, equipmentWidth;
-    private int lastRightClickIndex = -1;
-    private boolean lastRightClickWasKey = false;
-    private long lastRightClickTimeMs = 0L;
+
+    private int lastLeftClickIndex = -1;
+    private boolean lastLeftClickWasKey = false;
+    private long lastLeftClickTimeMs = 0L;
+
+    private DragSourceKind dragSourceKind = DragSourceKind.NONE;
+    private int dragSourceIndex = -1;
+    private ScpEquipmentSlot dragSourceEquipmentSlot = null;
+    private ItemStack draggedStack = ItemStack.EMPTY;
+    private double dragStartX = 0.0D;
+    private double dragStartY = 0.0D;
+    private boolean dragMoved = false;
 
     public ScpInventoryScreen() {
         super(Component.literal("SCP Inventory"));
@@ -158,6 +172,7 @@ public class ScpInventoryScreen extends Screen {
 
         renderBottomNavigation(g);
         if (contextMenu != null) contextMenu.render(g, mouseX, mouseY);
+        renderDraggedStack(g, mouseX, mouseY);
         super.render(g, mouseX, mouseY, partialTick);
     }
 
@@ -243,6 +258,33 @@ public class ScpInventoryScreen extends Screen {
         g.drawString(minecraft.font, suffix, x + minecraft.font.width(prefix), y, TEXT_WHITE, false);
     }
 
+    private void renderDraggedStack(GuiGraphics g, int mouseX, int mouseY) {
+        if (draggedStack.isEmpty() || !dragMoved) {
+            return;
+        }
+
+        int frameX = mouseX - (DRAG_ICON_FRAME_SIZE / 2);
+        int frameY = mouseY - (DRAG_ICON_FRAME_SIZE / 2);
+        drawDragIconFrame(g, frameX, frameY);
+        g.renderItem(draggedStack, frameX + 4, frameY + 4);
+    }
+
+    private void drawDragIconFrame(GuiGraphics g, int x, int y) {
+        int right = x + DRAG_ICON_FRAME_SIZE;
+        int bottom = y + DRAG_ICON_FRAME_SIZE;
+        int corner = 6;
+
+        g.fill(x, y, right, bottom, DRAG_ICON_BOX);
+        g.fill(x, y, x + corner, y + 1, DRAG_ICON_CORNER);
+        g.fill(x, y, x + 1, y + corner, DRAG_ICON_CORNER);
+        g.fill(right - corner, y, right, y + 1, DRAG_ICON_CORNER);
+        g.fill(right - 1, y, right, y + corner, DRAG_ICON_CORNER);
+        g.fill(x, bottom - 1, x + corner, bottom, DRAG_ICON_CORNER);
+        g.fill(x, bottom - corner, x + 1, bottom, DRAG_ICON_CORNER);
+        g.fill(right - corner, bottom - 1, right, bottom, DRAG_ICON_CORNER);
+        g.fill(right - 1, bottom - corner, right, bottom, DRAG_ICON_CORNER);
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseScrolled(mouseX, mouseY, delta)) return true;
@@ -273,7 +315,7 @@ public class ScpInventoryScreen extends Screen {
             ScpEquipmentSlot clickedEquipmentSlot = equipmentPanel.getClickedSlot(mouseX, mouseY);
             if (clickedEquipmentSlot != null && !inventory.getEquipment(clickedEquipmentSlot).isEmpty()) {
                 if (button == 0) {
-                    ClientInventoryBridge.performEquipment(clickedEquipmentSlot, EquipmentActionPacket.ACTION_UNEQUIP);
+                    startEquipmentDrag(clickedEquipmentSlot, mouseX, mouseY);
                     return true;
                 }
                 if (button == 1) {
@@ -290,12 +332,32 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseDraggedScrollbar(mouseY)) return true;
+
+        if (button == 0 && hasDragSource()) {
+            if (Math.abs(mouseX - dragStartX) > DRAG_THRESHOLD || Math.abs(mouseY - dragStartY) > DRAG_THRESHOLD) {
+                dragMoved = true;
+            }
+            return true;
+        }
+
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseReleasedScrollbar(button)) return true;
+
+        if (button == 0 && hasDragSource()) {
+            if (dragMoved) {
+                finishDrag(mouseX, mouseY);
+            } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
+                ClientInventoryBridge.performEquipment(dragSourceEquipmentSlot, EquipmentActionPacket.ACTION_UNEQUIP);
+            }
+
+            clearDragSource();
+            return true;
+        }
+
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -309,13 +371,17 @@ public class ScpInventoryScreen extends Screen {
             ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_DROP);
             return true;
         }
-        if (button == 1) {
-            if (isDoubleRightClick(index, false) && performDefaultItemAction(index, stack)) {
-                resetRightClickMemory();
+        if (button == 0) {
+            if (isDoubleLeftClick(index, false) && performDefaultItemAction(index, stack)) {
+                resetLeftClickMemory();
                 if (contextMenu != null) contextMenu.close();
                 return true;
             }
 
+            startMainDrag(index, stack, mouseX, mouseY);
+            return true;
+        }
+        if (button == 1) {
             contextIndex = index;
             contextIsKey = false;
             contextMenu.open((int) mouseX, (int) mouseY, ScpItemClassifier.getEquipmentSlot(stack).isPresent() ? "Head" : inventory.getItemType(index));
@@ -335,7 +401,6 @@ public class ScpInventoryScreen extends Screen {
             return true;
         }
         if (button == 1) {
-            registerRightClick(index, true);
             contextIndex = index;
             contextIsKey = true;
             contextMenu.open((int) mouseX, (int) mouseY, "Key");
@@ -358,29 +423,118 @@ public class ScpInventoryScreen extends Screen {
         return false;
     }
 
-    private boolean isDoubleRightClick(int index, boolean keyList) {
-        long now = System.currentTimeMillis();
-        boolean result = index == lastRightClickIndex
-                && keyList == lastRightClickWasKey
-                && now - lastRightClickTimeMs <= DOUBLE_RIGHT_CLICK_WINDOW_MS;
+    private void startMainDrag(int index, ItemStack stack, double mouseX, double mouseY) {
+        if (contextMenu != null) contextMenu.close();
+        dragSourceKind = DragSourceKind.MAIN;
+        dragSourceIndex = index;
+        dragSourceEquipmentSlot = null;
+        draggedStack = stack.copy();
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        dragMoved = false;
+    }
 
-        lastRightClickIndex = index;
-        lastRightClickWasKey = keyList;
-        lastRightClickTimeMs = now;
+    private void startEquipmentDrag(ScpEquipmentSlot slot, double mouseX, double mouseY) {
+        if (slot == null || inventory == null) return;
+        ItemStack stack = inventory.getEquipment(slot);
+        if (stack.isEmpty()) return;
+
+        if (contextMenu != null) contextMenu.close();
+        dragSourceKind = DragSourceKind.EQUIPMENT;
+        dragSourceIndex = -1;
+        dragSourceEquipmentSlot = slot;
+        draggedStack = stack.copy();
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        dragMoved = false;
+    }
+
+    private boolean hasDragSource() {
+        return dragSourceKind != DragSourceKind.NONE && !draggedStack.isEmpty();
+    }
+
+    private void clearDragSource() {
+        dragSourceKind = DragSourceKind.NONE;
+        dragSourceIndex = -1;
+        dragSourceEquipmentSlot = null;
+        draggedStack = ItemStack.EMPTY;
+        dragStartX = 0.0D;
+        dragStartY = 0.0D;
+        dragMoved = false;
+    }
+
+    private void finishDrag(double mouseX, double mouseY) {
+        if (!isInsideRoot(mouseX, mouseY)) {
+            dropDragSourceToWorld();
+            return;
+        }
+
+        ScpEquipmentSlot targetEquipmentSlot = equipmentPanel == null ? null : equipmentPanel.getClickedSlot(mouseX, mouseY);
+        if (targetEquipmentSlot != null) {
+            dropDragSourceToEquipment(targetEquipmentSlot);
+            return;
+        }
+
+        if (itemList != null && isInsideListPanel(mouseX, mouseY)) {
+            int targetIndex = itemList.getClickedIndex(mouseX, mouseY);
+            dropDragSourceToMain(targetIndex);
+        }
+    }
+
+    private void dropDragSourceToWorld() {
+        if (dragSourceKind == DragSourceKind.MAIN) {
+            ClientInventoryBridge.moveMainToWorld(dragSourceIndex);
+        } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
+            ClientInventoryBridge.moveEquipmentToWorld(dragSourceEquipmentSlot);
+        }
+    }
+
+    private void dropDragSourceToEquipment(ScpEquipmentSlot targetEquipmentSlot) {
+        if (dragSourceKind == DragSourceKind.MAIN) {
+            ClientInventoryBridge.moveMainToEquipment(dragSourceIndex, targetEquipmentSlot);
+        } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
+            ClientInventoryBridge.moveEquipmentToEquipment(dragSourceEquipmentSlot, targetEquipmentSlot);
+        }
+    }
+
+    private void dropDragSourceToMain(int targetIndex) {
+        if (dragSourceKind == DragSourceKind.MAIN) {
+            if (inventory != null && inventory.isValidMainSlot(targetIndex) && targetIndex != dragSourceIndex) {
+                ClientInventoryBridge.moveMainToMain(dragSourceIndex, targetIndex);
+            }
+        } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
+            ClientInventoryBridge.moveEquipmentToMain(dragSourceEquipmentSlot, targetIndex);
+        }
+    }
+
+    private boolean isInsideRoot(double mouseX, double mouseY) {
+        return mouseX >= rootX && mouseX <= rootX + rootWidth && mouseY >= rootY && mouseY <= rootY + rootHeight;
+    }
+
+    private boolean isInsideListPanel(double mouseX, double mouseY) {
+        return mouseX >= listPanelX
+                && mouseX <= listPanelX + listPanelWidth
+                && mouseY >= listPanelY
+                && mouseY <= listPanelY + listPanelHeight;
+    }
+
+    private boolean isDoubleLeftClick(int index, boolean keyList) {
+        long now = System.currentTimeMillis();
+        boolean result = index == lastLeftClickIndex
+                && keyList == lastLeftClickWasKey
+                && now - lastLeftClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
+
+        lastLeftClickIndex = index;
+        lastLeftClickWasKey = keyList;
+        lastLeftClickTimeMs = now;
 
         return result;
     }
 
-    private void registerRightClick(int index, boolean keyList) {
-        lastRightClickIndex = index;
-        lastRightClickWasKey = keyList;
-        lastRightClickTimeMs = System.currentTimeMillis();
-    }
-
-    private void resetRightClickMemory() {
-        lastRightClickIndex = -1;
-        lastRightClickWasKey = false;
-        lastRightClickTimeMs = 0L;
+    private void resetLeftClickMemory() {
+        lastLeftClickIndex = -1;
+        lastLeftClickWasKey = false;
+        lastLeftClickTimeMs = 0L;
     }
 
     private boolean clickedTabs(double mouseX, double mouseY) {
