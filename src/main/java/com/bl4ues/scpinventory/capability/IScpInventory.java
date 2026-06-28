@@ -18,6 +18,7 @@ public interface IScpInventory {
     boolean setInventoryItem(int index, ItemStack stack);
     boolean isInventoryFull();
     boolean addInventoryItem(ItemStack stack);
+    int addInventoryItems(ItemStack stack);
     ItemStack extractInventoryItem(int index);
     boolean removeInventoryItem(int index);
 
