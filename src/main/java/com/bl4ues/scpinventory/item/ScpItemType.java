@@ -9,9 +9,9 @@ public enum ScpItemType {
     KEY("Key"),
     CODEX("Document"),
     HEAD("Head"),
+    ACCESSORY("Accessory"),
     BODY("Body"),
-    LEGS("Legs"),
-    FEET("Feet");
+    WEAPON("Weapon");
 
     private final String displayName;
 
@@ -24,7 +24,17 @@ public enum ScpItemType {
     }
 
     public boolean isEquipment() {
-        return this == HEAD || this == BODY || this == LEGS || this == FEET;
+        return getEquipmentSlot().isPresent();
+    }
+
+    public Optional<ScpEquipmentSlot> getEquipmentSlot() {
+        return switch (this) {
+            case HEAD -> Optional.of(ScpEquipmentSlot.HEAD);
+            case ACCESSORY -> Optional.of(ScpEquipmentSlot.ACCESSORY);
+            case BODY -> Optional.of(ScpEquipmentSlot.BODY);
+            case WEAPON -> Optional.of(ScpEquipmentSlot.WEAPON);
+            default -> Optional.empty();
+        };
     }
 
     public static Optional<ScpItemType> fromConfigToken(String token) {
@@ -38,9 +48,9 @@ public enum ScpItemType {
             case "KEY", "KEYCARD", "KEYRING" -> Optional.of(KEY);
             case "CODEX", "DOCUMENT", "DOC" -> Optional.of(CODEX);
             case "HEAD", "HELMET", "MASK" -> Optional.of(HEAD);
+            case "ACCESSORY", "TRINKET", "RING", "AMULET" -> Optional.of(ACCESSORY);
             case "BODY", "CHEST", "CHESTPLATE", "TORSO" -> Optional.of(BODY);
-            case "LEGS", "LEGGINGS" -> Optional.of(LEGS);
-            case "FEET", "BOOTS" -> Optional.of(FEET);
+            case "WEAPON", "MAINHAND", "MAIN_HAND", "HAND" -> Optional.of(WEAPON);
             default -> Optional.empty();
         };
     }
