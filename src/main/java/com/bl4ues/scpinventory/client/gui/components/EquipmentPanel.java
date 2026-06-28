@@ -9,12 +9,22 @@ import net.minecraft.world.item.ItemStack;
 
 public class EquipmentPanel {
 
-    private static final int ROW_HEIGHT = 42;
-    private static final int ICON_BOX_SIZE = 22;
+    private static final ScpEquipmentSlot[] DISPLAY_SLOTS = {
+            ScpEquipmentSlot.HEAD,
+            ScpEquipmentSlot.ACCESSORY,
+            ScpEquipmentSlot.CHEST,
+            ScpEquipmentSlot.LEGS,
+            ScpEquipmentSlot.FEET,
+            ScpEquipmentSlot.WEAPON
+    };
+
+    private static final int ROW_HEIGHT = 37;
+    private static final int ICON_BOX_SIZE = 24;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int LINE_GRAY = 0x556A6C6C;
-    private static final int ICON_BOX = 0x553F4648;
+    private static final int ICON_BOX = 0x66303638;
+    private static final int ICON_CORNER = 0xAA6A6C6C;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final int x;
@@ -35,7 +45,7 @@ public class EquipmentPanel {
         drawSectionTitle(g, x, titleY, "EQUIPMENT");
 
         int rowY = y;
-        for (ScpEquipmentSlot slot : ScpEquipmentSlot.values()) {
+        for (ScpEquipmentSlot slot : DISPLAY_SLOTS) {
             renderSlot(g, slot, rowY);
             rowY += ROW_HEIGHT;
         }
@@ -52,40 +62,56 @@ public class EquipmentPanel {
         }
 
         int row = relativeY / ROW_HEIGHT;
-        ScpEquipmentSlot[] slots = ScpEquipmentSlot.values();
-        if (row < 0 || row >= slots.length) {
+        if (row < 0 || row >= DISPLAY_SLOTS.length) {
             return null;
         }
 
-        return slots[row];
+        return DISPLAY_SLOTS[row];
     }
 
     private void renderSlot(GuiGraphics g, ScpEquipmentSlot slot, int rowY) {
         ItemStack stack = inventory.getEquipment(slot);
 
         int iconX = x + 8;
-        int iconY = rowY + 8;
-        int textX = x + 40;
+        int iconY = rowY + 6;
+        int textX = x + 44;
 
         if (!stack.isEmpty()) {
-            g.fill(iconX, iconY, iconX + ICON_BOX_SIZE, iconY + ICON_BOX_SIZE, ICON_BOX);
-            g.renderItem(stack, iconX + 3, iconY + 3);
+            drawIconFrame(g, iconX, iconY);
+            g.renderItem(stack, iconX + 4, iconY + 4);
         }
 
         Component itemName = stack.isEmpty() ? Component.literal("None") : stack.getHoverName();
 
-        g.drawString(mc.font, slot.getDisplayName(), textX, rowY + 8, TEXT_WHITE, false);
+        g.drawString(mc.font, slot.getDisplayName(), textX, rowY + 7, TEXT_WHITE, false);
         g.drawString(
                 mc.font,
                 itemName,
                 textX,
-                rowY + 21,
+                rowY + 20,
                 stack.isEmpty() ? TEXT_GRAY : TEXT_WHITE,
                 false
         );
 
         int lineY = rowY + ROW_HEIGHT - 1;
         g.fill(x, lineY, x + width, lineY + 1, LINE_GRAY);
+    }
+
+    private void drawIconFrame(GuiGraphics g, int x, int y) {
+        int right = x + ICON_BOX_SIZE;
+        int bottom = y + ICON_BOX_SIZE;
+        int corner = 6;
+
+        g.fill(x, y, right, bottom, ICON_BOX);
+
+        g.fill(x, y, x + corner, y + 1, ICON_CORNER);
+        g.fill(x, y, x + 1, y + corner, ICON_CORNER);
+        g.fill(right - corner, y, right, y + 1, ICON_CORNER);
+        g.fill(right - 1, y, right, y + corner, ICON_CORNER);
+        g.fill(x, bottom - 1, x + corner, bottom, ICON_CORNER);
+        g.fill(x, bottom - corner, x + 1, bottom, ICON_CORNER);
+        g.fill(right - corner, bottom - 1, right, bottom, ICON_CORNER);
+        g.fill(right - 1, bottom - corner, right, bottom, ICON_CORNER);
     }
 
     private void drawSectionTitle(GuiGraphics g, int x, int y, String suffix) {
