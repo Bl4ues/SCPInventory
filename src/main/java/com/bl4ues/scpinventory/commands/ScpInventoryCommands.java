@@ -50,27 +50,31 @@ public class ScpInventoryCommands {
                                         ))
                                 )
                         )
-                        .then(Commands.literal("setmax")
-                                .then(Commands.argument("slots", IntegerArgumentType.integer(1, 128))
-                                        .executes(context -> setMaxSingle(
-                                                context.getSource().getPlayerOrException(),
-                                                IntegerArgumentType.getInteger(context, "slots")
-                                        ))
-                                )
-                                .then(Commands.argument("targets", EntityArgument.players())
-                                        .then(Commands.argument("slots", IntegerArgumentType.integer(1, 128))
-                                                .executes(context -> setMaxMany(
-                                                        context.getSource(),
-                                                        EntityArgument.getPlayers(context, "targets"),
-                                                        IntegerArgumentType.getInteger(context, "slots")
-                                                ))
-                                        )
-                                )
-                        )
+                        .then(createSetMaxNode("setmax"))
+                        .then(createSetMaxNode("maxslots"))
                         .then(Commands.literal("getmax")
                                 .executes(context -> getMax(context.getSource().getPlayerOrException()))
                         )
         );
+    }
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> createSetMaxNode(String name) {
+        return Commands.literal(name)
+                .then(Commands.argument("slots", IntegerArgumentType.integer(1, 128))
+                        .executes(context -> setMaxSingle(
+                                context.getSource().getPlayerOrException(),
+                                IntegerArgumentType.getInteger(context, "slots")
+                        ))
+                )
+                .then(Commands.argument("targets", EntityArgument.players())
+                        .then(Commands.argument("slots", IntegerArgumentType.integer(1, 128))
+                                .executes(context -> setMaxMany(
+                                        context.getSource(),
+                                        EntityArgument.getPlayers(context, "targets"),
+                                        IntegerArgumentType.getInteger(context, "slots")
+                                ))
+                        )
+                );
     }
 
     private static int resetSingle(ServerPlayer player) {
