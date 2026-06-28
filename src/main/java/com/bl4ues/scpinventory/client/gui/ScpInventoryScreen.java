@@ -117,8 +117,8 @@ public class ScpInventoryScreen extends Screen {
 
         listPanelY = tabY - 5;
         equipmentPanelY = listPanelY;
-        int panelBottom = navY - Math.round(rootHeight * 0.070F);
-        listPanelHeight = Math.max(270, panelBottom - listPanelY);
+        int panelBottom = navY - Math.round(rootHeight * 0.035F);
+        listPanelHeight = Math.max(300, panelBottom - listPanelY);
         equipmentPanelHeight = listPanelHeight;
 
         listX = listPanelX + 18;
@@ -158,7 +158,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderPanels(GuiGraphics g) {
-        g.blit(BACKGROUND, rootX, rootY, rootWidth, rootHeight, 0.0F, 0.0F, BACKGROUND_SOURCE_WIDTH, BACKGROUND_SOURCE_HEIGHT, BACKGROUND_SOURCE_WIDTH, BACKGROUND_SOURCE_HEIGHT);
+        blitSmoothTexture(g, BACKGROUND, rootX, rootY, rootWidth, rootHeight, BACKGROUND_SOURCE_WIDTH, BACKGROUND_SOURCE_HEIGHT);
         g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, ROOT_TINT);
         g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
 
@@ -214,7 +214,18 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void blitFullIcon(GuiGraphics g, ResourceLocation icon, int x, int y, int width, int height) {
-        g.blit(icon, x, y, width, height, 0.0F, 0.0F, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE);
+        blitSmoothTexture(g, icon, x, y, width, height, SOURCE_ICON_SIZE, SOURCE_ICON_SIZE);
+    }
+
+    private void blitSmoothTexture(GuiGraphics g, ResourceLocation texture, int x, int y, int width, int height, int sourceWidth, int sourceHeight) {
+        setTextureFiltering(texture, true);
+        g.blit(texture, x, y, width, height, 0.0F, 0.0F, sourceWidth, sourceHeight, sourceWidth, sourceHeight);
+        setTextureFiltering(texture, false);
+    }
+
+    private void setTextureFiltering(ResourceLocation texture, boolean blur) {
+        if (minecraft == null) return;
+        minecraft.getTextureManager().getTexture(texture).setFilter(blur, false);
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
