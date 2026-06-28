@@ -46,8 +46,8 @@ public class ScpInventoryScreen extends Screen {
         listX = width / 2 - 330;
         listY = height / 2 - 100;
         listWidth = 320;
-        equipmentX = width / 2 + 30;
-        equipmentY = listY;
+        equipmentX = width / 2 + 20;
+        equipmentY = listY + 24;
 
         if (mc.player == null) {
             return;
@@ -56,7 +56,7 @@ public class ScpInventoryScreen extends Screen {
         mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inv -> {
             inventory = inv;
             rebuildItemList();
-            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, inv);
+            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, listY - 48, inv);
         });
     }
 
@@ -99,8 +99,10 @@ public class ScpInventoryScreen extends Screen {
 
         String count = inventory == null
                 ? "0 of 12 items"
+                : showingKeys
+                ? inventory.getKeyCount() + " of " + IScpInventory.MAX_KEY_COUNT + " keys"
                 : inventory.getInventoryCount() + " of " + inventory.getMaxMainSlots() + " items";
-        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count) - 20, listY - 48, TEXT_WHITE, false);
+        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), listY - 48, TEXT_WHITE, false);
     }
 
     private void renderTabs(GuiGraphics g) {
