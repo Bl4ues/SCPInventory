@@ -40,6 +40,10 @@ public final class ScpItemClassifier {
         return ScpItemType.MISCELLANEOUS;
     }
 
+    public static Optional<ScpEquipmentSlot> getEquipmentSlot(ItemStack stack) {
+        return getType(stack).getEquipmentSlot();
+    }
+
     public static String getDisplayType(ItemStack stack) {
         return getType(stack).getDisplayName();
     }
@@ -96,8 +100,6 @@ public final class ScpItemClassifier {
         return switch (slot) {
             case HEAD -> ScpItemType.HEAD;
             case CHEST -> ScpItemType.BODY;
-            case LEGS -> ScpItemType.LEGS;
-            case FEET -> ScpItemType.FEET;
             default -> ScpItemType.MISCELLANEOUS;
         };
     }
