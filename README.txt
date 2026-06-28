@@ -94,10 +94,12 @@ Clear only the main inventory, keeping keys, documents, equipment, and current m
 Set max main slots for yourself:
 
     /scpinventory setmax <slots>
+    /scpinventory maxslots <slots>
 
 Set max main slots for selected players:
 
     /scpinventory setmax <targets> <slots>
+    /scpinventory maxslots <targets> <slots>
 
 Check your current occupied/max main slots:
 
