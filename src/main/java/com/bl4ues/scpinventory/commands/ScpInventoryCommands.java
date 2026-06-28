@@ -154,5 +154,7 @@ public class ScpInventoryCommands {
     private static void clearMirroredVanillaEquipment(ServerPlayer player) {
         player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
         player.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+        player.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+        player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
     }
 }
