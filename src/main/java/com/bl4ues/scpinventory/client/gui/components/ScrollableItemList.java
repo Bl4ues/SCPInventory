@@ -207,7 +207,7 @@ public class ScrollableItemList {
     }
 
     private int getScrollbarX() {
-        return x + width - 2;
+        return x + width + 4;
     }
 
     private int getScrollbarHeight() {
