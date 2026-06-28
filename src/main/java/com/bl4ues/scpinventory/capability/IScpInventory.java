@@ -1,5 +1,6 @@
 package com.bl4ues.scpinventory.capability;
 
+import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -40,14 +41,10 @@ public interface IScpInventory {
     ItemStack extractDocumentItem(int index);
     boolean removeDocumentItem(int index);
 
-    ItemStack getHead();
-    void setHead(ItemStack stack);
-    ItemStack getChest();
-    void setChest(ItemStack stack);
-    ItemStack getLegs();
-    void setLegs(ItemStack stack);
-    ItemStack getFeet();
-    void setFeet(ItemStack stack);
+    ItemStack getEquipment(ScpEquipmentSlot slot);
+    void setEquipment(ScpEquipmentSlot slot, ItemStack stack);
+    ItemStack extractEquipment(ScpEquipmentSlot slot);
+    boolean clearEquipment(ScpEquipmentSlot slot);
 
     CompoundTag serializeNBT();
     void deserializeNBT(CompoundTag tag);
