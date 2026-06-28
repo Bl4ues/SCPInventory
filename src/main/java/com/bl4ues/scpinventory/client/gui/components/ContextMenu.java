@@ -8,6 +8,9 @@ import java.util.List;
 
 public class ContextMenu {
 
+    private static final int TEXT_WHITE = 0xFFB2B3B3;
+    private static final int MENU_BACKGROUND = 0xDD222222;
+
     private final Minecraft mc = Minecraft.getInstance();
 
     private int x;
@@ -51,7 +54,7 @@ public class ContextMenu {
 
         int height = options.size() * 14 + 4;
 
-        g.fill(x, y, x + 70, y + height, 0xFF222222);
+        g.fill(x, y, x + 70, y + height, MENU_BACKGROUND);
 
         for (int i = 0; i < options.size(); i++) {
 
@@ -60,7 +63,7 @@ public class ContextMenu {
                     options.get(i),
                     x + 4,
                     y + 4 + (i * 14),
-                    0xFFFFFF,
+                    TEXT_WHITE,
                     false
             );
         }
