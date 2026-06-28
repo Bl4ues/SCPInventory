@@ -20,7 +20,7 @@ Current architecture
 - Separate Codex storage for document ItemStacks, preserving their NBT for image/document rendering.
 - Equipment storage uses custom SCP slots: Head, Accessory, Body, and Weapon.
 - Head and Body equipment are mirrored into the player's vanilla armor slots and synchronized both ways.
-- Custom TAB screen with a scrollable item list, context menu, key tab, and functional equipment panel.
+- Custom TAB screen with a scrollable item list, context menu, key tab, equipment panel, bottom navigation, and initial Codex page.
 - Server-authoritative item actions: the GUI requests actions, and the server mutates the capability.
 - Server-to-client sync packet so the GUI sees the real inventory state.
 - Inventory Full overlay is triggered through networking instead of client code being called from server events.
@@ -110,6 +110,8 @@ Example for CameraCapture-style pictures:
 The UUID field may contain semicolons because the parser splits this format by pipes.
 
 A matching document does not consume one of the 12 main inventory slots. It is stored in the Codex as the original ItemStack, not as a plain string. This keeps creator/timestamp/uuid and any other NBT available for the future Codex GUI.
+
+The current Codex page is opened from the bottom CODEX navigation button. It shows a scrollable document list on the left and a first-pass details panel on the right with the document icon, display name, item id, and stored NBT metadata.
 
 Debug commands
 --------------
