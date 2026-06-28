@@ -30,13 +30,19 @@ public class ScrollableItemList {
 
     private final List<ItemStack> items;
     private final IScpInventory inventory;
+    private final String fixedTypeLabel;
 
     public ScrollableItemList(int x, int y, int width, List<ItemStack> items, IScpInventory inventory) {
+        this(x, y, width, items, inventory, null);
+    }
+
+    public ScrollableItemList(int x, int y, int width, List<ItemStack> items, IScpInventory inventory, String fixedTypeLabel) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.items = items;
         this.inventory = inventory;
+        this.fixedTypeLabel = fixedTypeLabel;
     }
 
     private List<Integer> getNonEmptySlots() {
@@ -82,10 +88,14 @@ public class ScrollableItemList {
         }
 
         g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, TEXT_WHITE, false);
-        g.drawString(mc.font, inventory.getItemType(slotIndex), textX, rowY + 21, TEXT_GRAY, false);
+        g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, TEXT_GRAY, false);
 
         int lineY = rowY + ROW_HEIGHT - 1;
         g.fill(x + 18, lineY, x + width - 18, lineY + 1, LINE_GRAY);
+    }
+
+    private String getTypeLabel(int slotIndex) {
+        return fixedTypeLabel != null ? fixedTypeLabel : inventory.getItemType(slotIndex);
     }
 
     private void renderScrollbar(GuiGraphics g, int totalItems) {
