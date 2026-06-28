@@ -1,26 +1,26 @@
 package com.bl4ues.scpinventory.capability;
 
+import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public class ScpInventory implements IScpInventory {
 
     private final List<ItemStack> inventory = new ArrayList<>();
     private final List<ItemStack> keys = new ArrayList<>();
     private final List<ItemStack> documents = new ArrayList<>();
+    private final Map<ScpEquipmentSlot, ItemStack> equipment = new EnumMap<>(ScpEquipmentSlot.class);
 
     private int maxMainSlots = DEFAULT_MAIN_SLOT_COUNT;
 
-    private ItemStack head = ItemStack.EMPTY;
-    private ItemStack chest = ItemStack.EMPTY;
-    private ItemStack legs = ItemStack.EMPTY;
-    private ItemStack feet = ItemStack.EMPTY;
-
     public ScpInventory() {
+        resetEquipmentSlots();
         normalizeMainInventorySize();
     }
 
@@ -126,10 +126,7 @@ public class ScpInventory implements IScpInventory {
         resetMainInventory();
         keys.clear();
         documents.clear();
-        head = ItemStack.EMPTY;
-        chest = ItemStack.EMPTY;
-        legs = ItemStack.EMPTY;
-        feet = ItemStack.EMPTY;
+        resetEquipmentSlots();
     }
 
     @Override
@@ -196,14 +193,32 @@ public class ScpInventory implements IScpInventory {
         return true;
     }
 
-    @Override public ItemStack getHead() { return head; }
-    @Override public void setHead(ItemStack stack) { head = copyOrEmpty(stack); }
-    @Override public ItemStack getChest() { return chest; }
-    @Override public void setChest(ItemStack stack) { chest = copyOrEmpty(stack); }
-    @Override public ItemStack getLegs() { return legs; }
-    @Override public void setLegs(ItemStack stack) { legs = copyOrEmpty(stack); }
-    @Override public ItemStack getFeet() { return feet; }
-    @Override public void setFeet(ItemStack stack) { feet = copyOrEmpty(stack); }
+    @Override
+    public ItemStack getEquipment(ScpEquipmentSlot slot) {
+        if (slot == null) return ItemStack.EMPTY;
+        return equipment.getOrDefault(slot, ItemStack.EMPTY);
+    }
+
+    @Override
+    public void setEquipment(ScpEquipmentSlot slot, ItemStack stack) {
+        if (slot == null) return;
+        equipment.put(slot, copyOrEmpty(stack));
+    }
+
+    @Override
+    public ItemStack extractEquipment(ScpEquipmentSlot slot) {
+        if (slot == null) return ItemStack.EMPTY;
+        ItemStack stack = equipment.getOrDefault(slot, ItemStack.EMPTY);
+        equipment.put(slot, ItemStack.EMPTY);
+        return stack;
+    }
+
+    @Override
+    public boolean clearEquipment(ScpEquipmentSlot slot) {
+        if (slot == null) return false;
+        equipment.put(slot, ItemStack.EMPTY);
+        return true;
+    }
 
     @Override
     public CompoundTag serializeNBT() {
@@ -215,10 +230,9 @@ public class ScpInventory implements IScpInventory {
         tag.put("Documents", saveStackList(documents, false));
 
         CompoundTag equipTag = new CompoundTag();
-        saveEquipment(equipTag, "Head", head);
-        saveEquipment(equipTag, "Chest", chest);
-        saveEquipment(equipTag, "Legs", legs);
-        saveEquipment(equipTag, "Feet", feet);
+        for (ScpEquipmentSlot slot : ScpEquipmentSlot.values()) {
+            saveEquipment(equipTag, slot.getTagName(), getEquipment(slot));
+        }
         tag.put("Equipment", equipTag);
 
         return tag;
@@ -244,11 +258,13 @@ public class ScpInventory implements IScpInventory {
         documents.clear();
         loadStackList(documents, tag.getList("Documents", 10));
 
+        resetEquipmentSlots();
         CompoundTag equipTag = tag.getCompound("Equipment");
-        head = equipTag.contains("Head") ? ItemStack.of(equipTag.getCompound("Head")) : ItemStack.EMPTY;
-        chest = equipTag.contains("Chest") ? ItemStack.of(equipTag.getCompound("Chest")) : ItemStack.EMPTY;
-        legs = equipTag.contains("Legs") ? ItemStack.of(equipTag.getCompound("Legs")) : ItemStack.EMPTY;
-        feet = equipTag.contains("Feet") ? ItemStack.of(equipTag.getCompound("Feet")) : ItemStack.EMPTY;
+        for (ScpEquipmentSlot slot : ScpEquipmentSlot.values()) {
+            equipment.put(slot, loadEquipment(equipTag, slot.getTagName()));
+        }
+
+        migrateLegacyEquipment(equipTag);
     }
 
     private int firstEmptyMainSlot() {
@@ -266,6 +282,35 @@ public class ScpInventory implements IScpInventory {
 
         while (inventory.size() > maxMainSlots) {
             inventory.remove(inventory.size() - 1);
+        }
+    }
+
+    private void resetEquipmentSlots() {
+        equipment.clear();
+        for (ScpEquipmentSlot slot : ScpEquipmentSlot.values()) {
+            equipment.put(slot, ItemStack.EMPTY);
+        }
+    }
+
+    private void migrateLegacyEquipment(CompoundTag equipTag) {
+        if (getEquipment(ScpEquipmentSlot.HEAD).isEmpty()) {
+            equipment.put(ScpEquipmentSlot.HEAD, loadEquipment(equipTag, "Head"));
+        }
+
+        if (getEquipment(ScpEquipmentSlot.BODY).isEmpty()) {
+            equipment.put(ScpEquipmentSlot.BODY, loadEquipment(equipTag, "Chest"));
+        }
+
+        if (getEquipment(ScpEquipmentSlot.ACCESSORY).isEmpty()) {
+            ItemStack legacyAccessory = loadEquipment(equipTag, "Accessory");
+            if (legacyAccessory.isEmpty()) {
+                legacyAccessory = loadEquipment(equipTag, "Trinket");
+            }
+            equipment.put(ScpEquipmentSlot.ACCESSORY, legacyAccessory);
+        }
+
+        if (getEquipment(ScpEquipmentSlot.WEAPON).isEmpty()) {
+            equipment.put(ScpEquipmentSlot.WEAPON, loadEquipment(equipTag, "Weapon"));
         }
     }
 
@@ -319,5 +364,9 @@ public class ScpInventory implements IScpInventory {
             stack.save(stackTag);
             parent.put(key, stackTag);
         }
+    }
+
+    private static ItemStack loadEquipment(CompoundTag parent, String key) {
+        return parent.contains(key) ? ItemStack.of(parent.getCompound(key)) : ItemStack.EMPTY;
     }
 }
