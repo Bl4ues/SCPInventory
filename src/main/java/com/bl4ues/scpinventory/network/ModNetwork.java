@@ -55,11 +55,19 @@ public class ModNetwork {
         );
 
         CHANNEL.registerMessage(
-                id,
+                id++,
                 EquipmentActionPacket.class,
                 EquipmentActionPacket::encode,
                 EquipmentActionPacket::decode,
                 EquipmentActionPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id,
+                KeyActionPacket.class,
+                KeyActionPacket::encode,
+                KeyActionPacket::decode,
+                KeyActionPacket::handle
         );
     }
 
