@@ -2,7 +2,6 @@ package com.bl4ues.scpinventory.capability;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ public class ScpInventory implements IScpInventory {
 
     private final List<ItemStack> inventory = new ArrayList<>();
     private final List<ItemStack> keys = new ArrayList<>();
-    private final List<String> unlockedDocuments = new ArrayList<>();
+    private final List<ItemStack> documents = new ArrayList<>();
 
     private ItemStack head = ItemStack.EMPTY;
     private ItemStack chest = ItemStack.EMPTY;
@@ -91,11 +90,7 @@ public class ScpInventory implements IScpInventory {
     @Override
     public void setKeys(List<ItemStack> list) {
         keys.clear();
-        if (list != null) {
-            for (ItemStack stack : list) {
-                if (stack != null && !stack.isEmpty()) keys.add(stack.copy());
-            }
-        }
+        addAllStacks(keys, list);
     }
 
     @Override
@@ -118,6 +113,41 @@ public class ScpInventory implements IScpInventory {
         return true;
     }
 
+    @Override
+    public List<ItemStack> getDocuments() { return documents; }
+
+    @Override
+    public void setDocuments(List<ItemStack> list) {
+        documents.clear();
+        addAllStacks(documents, list);
+    }
+
+    @Override
+    public boolean addDocumentItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        documents.add(stack.copy());
+        return true;
+    }
+
+    @Override
+    public ItemStack getDocumentItem(int index) {
+        if (index < 0 || index >= documents.size()) return ItemStack.EMPTY;
+        return documents.get(index);
+    }
+
+    @Override
+    public ItemStack extractDocumentItem(int index) {
+        if (index < 0 || index >= documents.size()) return ItemStack.EMPTY;
+        return documents.remove(index);
+    }
+
+    @Override
+    public boolean removeDocumentItem(int index) {
+        if (index < 0 || index >= documents.size()) return false;
+        documents.remove(index);
+        return true;
+    }
+
     @Override public ItemStack getHead() { return head; }
     @Override public void setHead(ItemStack stack) { head = copyOrEmpty(stack); }
     @Override public ItemStack getChest() { return chest; }
@@ -127,60 +157,20 @@ public class ScpInventory implements IScpInventory {
     @Override public ItemStack getFeet() { return feet; }
     @Override public void setFeet(ItemStack stack) { feet = copyOrEmpty(stack); }
 
-    @Override public List<String> getUnlockedDocuments() { return unlockedDocuments; }
-    @Override public void unlockDocument(String id) {
-        if (id != null && !id.isBlank() && !unlockedDocuments.contains(id)) unlockedDocuments.add(id);
-    }
-    @Override public boolean hasDocument(String id) { return unlockedDocuments.contains(id); }
-
     @Override
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
 
-        ListTag invList = new ListTag();
-        for (ItemStack stack : inventory) {
-            CompoundTag stackTag = new CompoundTag();
-            if (!stack.isEmpty()) stack.save(stackTag);
-            invList.add(stackTag);
-        }
-        tag.put("Inventory", invList);
-
-        ListTag keyList = new ListTag();
-        for (ItemStack stack : keys) {
-            CompoundTag stackTag = new CompoundTag();
-            if (!stack.isEmpty()) stack.save(stackTag);
-            keyList.add(stackTag);
-        }
-        tag.put("Keys", keyList);
+        tag.put("Inventory", saveStackList(inventory, true));
+        tag.put("Keys", saveStackList(keys, false));
+        tag.put("Documents", saveStackList(documents, false));
 
         CompoundTag equipTag = new CompoundTag();
-        if (!head.isEmpty()) {
-            CompoundTag headTag = new CompoundTag();
-            head.save(headTag);
-            equipTag.put("Head", headTag);
-        }
-        if (!chest.isEmpty()) {
-            CompoundTag chestTag = new CompoundTag();
-            chest.save(chestTag);
-            equipTag.put("Chest", chestTag);
-        }
-        if (!legs.isEmpty()) {
-            CompoundTag legsTag = new CompoundTag();
-            legs.save(legsTag);
-            equipTag.put("Legs", legsTag);
-        }
-        if (!feet.isEmpty()) {
-            CompoundTag feetTag = new CompoundTag();
-            feet.save(feetTag);
-            equipTag.put("Feet", feetTag);
-        }
+        saveEquipment(equipTag, "Head", head);
+        saveEquipment(equipTag, "Chest", chest);
+        saveEquipment(equipTag, "Legs", legs);
+        saveEquipment(equipTag, "Feet", feet);
         tag.put("Equipment", equipTag);
-
-        ListTag docList = new ListTag();
-        for (String doc : unlockedDocuments) {
-            docList.add(StringTag.valueOf(doc));
-        }
-        tag.put("Documents", docList);
 
         return tag;
     }
@@ -195,21 +185,52 @@ public class ScpInventory implements IScpInventory {
         }
 
         keys.clear();
-        ListTag keyList = tag.getList("Keys", 10);
-        for (int i = 0; i < keyList.size(); i++) keys.add(ItemStack.of(keyList.getCompound(i)));
+        loadStackList(keys, tag.getList("Keys", 10));
+
+        documents.clear();
+        loadStackList(documents, tag.getList("Documents", 10));
 
         CompoundTag equipTag = tag.getCompound("Equipment");
         head = equipTag.contains("Head") ? ItemStack.of(equipTag.getCompound("Head")) : ItemStack.EMPTY;
         chest = equipTag.contains("Chest") ? ItemStack.of(equipTag.getCompound("Chest")) : ItemStack.EMPTY;
         legs = equipTag.contains("Legs") ? ItemStack.of(equipTag.getCompound("Legs")) : ItemStack.EMPTY;
         feet = equipTag.contains("Feet") ? ItemStack.of(equipTag.getCompound("Feet")) : ItemStack.EMPTY;
-
-        unlockedDocuments.clear();
-        ListTag docList = tag.getList("Documents", 8);
-        for (int i = 0; i < docList.size(); i++) unlockedDocuments.add(docList.getString(i));
     }
 
     private static ItemStack copyOrEmpty(ItemStack stack) {
         return stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+    }
+
+    private static void addAllStacks(List<ItemStack> target, List<ItemStack> source) {
+        if (source == null) return;
+        for (ItemStack stack : source) {
+            if (stack != null && !stack.isEmpty()) target.add(stack.copy());
+        }
+    }
+
+    private static ListTag saveStackList(List<ItemStack> stacks, boolean keepEmptySlots) {
+        ListTag list = new ListTag();
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty() && !keepEmptySlots) continue;
+            CompoundTag stackTag = new CompoundTag();
+            if (!stack.isEmpty()) stack.save(stackTag);
+            list.add(stackTag);
+        }
+        return list;
+    }
+
+    private static void loadStackList(List<ItemStack> target, ListTag list) {
+        for (int i = 0; i < list.size(); i++) {
+            ItemStack stack = ItemStack.of(list.getCompound(i));
+            if (!stack.isEmpty()) target.add(stack);
+        }
+    }
+
+    private static void saveEquipment(CompoundTag parent, String key, ItemStack stack) {
+        if (!stack.isEmpty()) {
+            CompoundTag stackTag = new CompoundTag();
+            stack.save(stackTag);
+            parent.put(key, stackTag);
+        }
     }
 }
