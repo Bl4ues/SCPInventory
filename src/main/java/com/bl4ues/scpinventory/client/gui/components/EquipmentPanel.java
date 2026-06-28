@@ -20,17 +20,19 @@ public class EquipmentPanel {
     private final int x;
     private final int y;
     private final int width;
+    private final int titleY;
     private final IScpInventory inventory;
 
-    public EquipmentPanel(int x, int y, int width, IScpInventory inventory) {
+    public EquipmentPanel(int x, int y, int width, int titleY, IScpInventory inventory) {
         this.x = x;
         this.y = y;
         this.width = width;
+        this.titleY = titleY;
         this.inventory = inventory;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        drawSectionTitle(g, x, y - 18, "EQUIPMENT");
+        drawSectionTitle(g, x, titleY, "EQUIPMENT");
 
         int rowY = y;
         for (ScpEquipmentSlot slot : ScpEquipmentSlot.values()) {
