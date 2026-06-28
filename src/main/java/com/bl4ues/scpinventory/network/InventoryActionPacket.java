@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.network;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
 import net.minecraft.network.FriendlyByteBuf;
@@ -9,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class InventoryActionPacket {
@@ -88,35 +90,16 @@ public class InventoryActionPacket {
             return;
         }
 
-        ScpItemType type = ScpItemClassifier.getType(stack);
-        if (!type.isEquipment()) {
+        Optional<ScpEquipmentSlot> equipmentSlot = ScpItemClassifier.getEquipmentSlot(stack);
+        if (equipmentSlot.isEmpty()) {
             return;
         }
 
+        ScpEquipmentSlot targetSlot = equipmentSlot.get();
         ItemStack newEquipment = inventory.extractInventoryItem(slot);
-        ItemStack previousEquipment = switch (type) {
-            case HEAD -> {
-                ItemStack previous = inventory.getHead();
-                inventory.setHead(newEquipment);
-                yield previous;
-            }
-            case BODY -> {
-                ItemStack previous = inventory.getChest();
-                inventory.setChest(newEquipment);
-                yield previous;
-            }
-            case LEGS -> {
-                ItemStack previous = inventory.getLegs();
-                inventory.setLegs(newEquipment);
-                yield previous;
-            }
-            case FEET -> {
-                ItemStack previous = inventory.getFeet();
-                inventory.setFeet(newEquipment);
-                yield previous;
-            }
-            default -> ItemStack.EMPTY;
-        };
+        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+
+        inventory.setEquipment(targetSlot, newEquipment);
 
         if (!previousEquipment.isEmpty()) {
             inventory.setInventoryItem(slot, previousEquipment);
