@@ -108,14 +108,14 @@ public class InventoryActionPacket {
         }
     }
 
-    static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
+    public static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
         EquipmentSlot vanillaSlot = getVanillaEquipmentSlot(slot);
         if (vanillaSlot != null) {
             player.setItemSlot(vanillaSlot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
         }
     }
 
-    static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
+    public static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
         if (slot == ScpEquipmentSlot.HEAD) {
             return EquipmentSlot.HEAD;
         }
