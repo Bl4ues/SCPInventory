@@ -59,6 +59,8 @@ public class ScpInventoryScreen extends Screen {
         equipmentY = listY + 24;
         navY = height - 44;
 
+        int titleY = listY - 48;
+
         if (mc.player == null) {
             return;
         }
@@ -66,8 +68,8 @@ public class ScpInventoryScreen extends Screen {
         mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inv -> {
             inventory = inv;
             rebuildItemList();
-            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, listY - 48, inv);
-            codexPanel = new CodexPanel(listX, listY - 6, 320, equipmentX, 360, inv);
+            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, titleY, inv);
+            codexPanel = new CodexPanel(listX, listY - 6, 320, equipmentX, 360, titleY, inv);
         });
     }
 
