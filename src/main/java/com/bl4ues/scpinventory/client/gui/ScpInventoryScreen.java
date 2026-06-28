@@ -25,6 +25,7 @@ public class ScpInventoryScreen extends Screen {
     private ContextMenu contextMenu;
     private IScpInventory inventory;
     private int contextIndex = -1;
+    private boolean contextIsKey = false;
 
     private int listX;
     private int listY;
@@ -162,10 +163,18 @@ public class ScpInventoryScreen extends Screen {
             }
         }
 
-        if (itemList == null || showingKeys) {
+        if (itemList == null) {
             return false;
         }
 
+        if (showingKeys) {
+            return handleKeyClick(mouseX, mouseY, button);
+        }
+
+        return handleMainInventoryClick(mouseX, mouseY, button);
+    }
+
+    private boolean handleMainInventoryClick(double mouseX, double mouseY, int button) {
         int index = itemList.getClickedIndex(mouseX, mouseY);
         if (!inventory.isValidMainSlot(index)) {
             return false;
@@ -183,11 +192,38 @@ public class ScpInventoryScreen extends Screen {
 
         if (button == 1) {
             contextIndex = index;
+            contextIsKey = false;
             contextMenu.open((int) mouseX, (int) mouseY, inventory.getItemType(index));
             return true;
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
+    }
+
+    private boolean handleKeyClick(double mouseX, double mouseY, int button) {
+        int index = itemList.getClickedIndex(mouseX, mouseY);
+        if (index < 0 || index >= inventory.getKeys().size()) {
+            return false;
+        }
+
+        ItemStack key = inventory.getKeys().get(index);
+        if (key.isEmpty()) {
+            return false;
+        }
+
+        if (button == 0 && itemList.clickedDrop(mouseX)) {
+            ClientInventoryBridge.performKey(index, "DROP");
+            return true;
+        }
+
+        if (button == 1) {
+            contextIndex = index;
+            contextIsKey = true;
+            contextMenu.open((int) mouseX, (int) mouseY, "Key");
+            return true;
+        }
+
+        return false;
     }
 
     private boolean clickedTabs(double mouseX, double mouseY) {
@@ -198,12 +234,14 @@ public class ScpInventoryScreen extends Screen {
 
         if (mouseX >= listX && mouseX <= listX + 76) {
             showingKeys = false;
+            contextIsKey = false;
             rebuildItemList();
             return true;
         }
 
         if (mouseX >= listX + 88 && mouseX <= listX + 164) {
             showingKeys = true;
+            contextIsKey = false;
             rebuildItemList();
             return true;
         }
@@ -212,7 +250,13 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void handleAction(String action) {
-        if (contextIndex >= 0) {
+        if (contextIndex < 0) {
+            return;
+        }
+
+        if (contextIsKey) {
+            ClientInventoryBridge.performKey(contextIndex, action);
+        } else {
             ClientInventoryBridge.perform(contextIndex, action);
         }
     }
