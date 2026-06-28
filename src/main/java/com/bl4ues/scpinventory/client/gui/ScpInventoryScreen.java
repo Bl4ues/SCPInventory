@@ -1,5 +1,6 @@
 package com.bl4ues.scpinventory.client.gui;
 
+import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.client.ClientInventoryBridge;
@@ -12,14 +13,26 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class ScpInventoryScreen extends Screen {
 
-    private static final int TEXT_WHITE = 0xFFEAEAEA;
-    private static final int TEXT_GRAY = 0xFF9F9F9F;
-    private static final int TAB_ACTIVE = 0x44E0E0E0;
-    private static final int TAB_INACTIVE = 0x22E0E0E0;
+    private static final int TEXT_WHITE = 0xFFB2B3B3;
+    private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int TAB_ACTIVE = 0x44B2B3B3;
+    private static final int TAB_INACTIVE = 0x226A6C6C;
+
+    private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
+    private static final ResourceLocation INVENTORY_ICON_SELECTED = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon_selected.png");
+    private static final ResourceLocation CODEX_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/codexicon.png");
+    private static final ResourceLocation CODEX_ICON_SELECTED = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/codexicon_selected.png");
+    private static final ResourceLocation HEALTH_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/health.png");
+
+    private static final int NAV_ICON_SIZE = 24;
+    private static final int NAV_BUTTON_WIDTH = 120;
+    private static final int NAV_BUTTON_HEIGHT = 42;
+    private static final int HEALTH_ICON_SIZE = 24;
 
     private enum ScreenMode {
         INVENTORY,
@@ -57,7 +70,7 @@ public class ScpInventoryScreen extends Screen {
         listWidth = 320;
         equipmentX = width / 2 + 20;
         equipmentY = listY + 24;
-        navY = height - 44;
+        navY = height - 76;
 
         int titleY = listY - 48;
 
@@ -88,6 +101,7 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
+        renderHealthStatus(g);
 
         if (mode == ScreenMode.CODEX) {
             if (codexPanel != null) {
@@ -115,6 +129,24 @@ public class ScpInventoryScreen extends Screen {
         super.render(g, mouseX, mouseY, partialTick);
     }
 
+    private void renderHealthStatus(GuiGraphics g) {
+        if (minecraft == null || minecraft.player == null) {
+            return;
+        }
+
+        int healthX = Math.max(18, listX - 170);
+        int healthY = Math.max(18, listY - 92);
+        int textX = healthX + HEALTH_ICON_SIZE + 8;
+
+        g.blit(HEALTH_ICON, healthX, healthY + 3, 0, 0, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE, 128, 128);
+
+        int health = Math.round(minecraft.player.getHealth());
+        int maxHealth = Math.round(minecraft.player.getMaxHealth());
+
+        g.drawString(minecraft.font, "VIDA", textX, healthY, TEXT_WHITE, false);
+        g.drawString(minecraft.font, health + "/" + maxHealth, textX, healthY + 13, TEXT_WHITE, false);
+    }
+
     private void renderInventoryHeader(GuiGraphics g) {
         drawSectionTitle(g, listX, listY - 48, "BACKPACK");
 
@@ -132,16 +164,33 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderBottomNavigation(GuiGraphics g) {
-        int inventoryX = width / 2 - 190;
-        int codexX = width / 2 + 110;
-        drawNavigationButton(g, inventoryX, navY, 120, "INVENTORY", mode == ScreenMode.INVENTORY);
-        drawNavigationButton(g, codexX, navY, 120, "CODEX", mode == ScreenMode.CODEX);
+        int inventoryX = width / 2 - 270;
+        int codexX = width / 2 + 190;
+        drawNavigationButton(
+                g,
+                inventoryX,
+                navY,
+                "INVENTORY",
+                mode == ScreenMode.INVENTORY ? INVENTORY_ICON_SELECTED : INVENTORY_ICON,
+                mode == ScreenMode.INVENTORY
+        );
+        drawNavigationButton(
+                g,
+                codexX,
+                navY,
+                "CODEX",
+                mode == ScreenMode.CODEX ? CODEX_ICON_SELECTED : CODEX_ICON,
+                mode == ScreenMode.CODEX
+        );
     }
 
-    private void drawNavigationButton(GuiGraphics g, int x, int y, int w, String label, boolean active) {
-        g.fill(x, y, x + w, y + 22, active ? TAB_ACTIVE : 0x00000000);
-        int textX = x + (w - minecraft.font.width(label)) / 2;
-        g.drawString(minecraft.font, label, textX, y + 7, active ? TEXT_WHITE : TEXT_GRAY, false);
+    private void drawNavigationButton(GuiGraphics g, int x, int y, String label, ResourceLocation icon, boolean active) {
+        int iconX = x + (NAV_BUTTON_WIDTH - NAV_ICON_SIZE) / 2;
+        int textX = x + (NAV_BUTTON_WIDTH - minecraft.font.width(label)) / 2;
+        int color = active ? TEXT_WHITE : TEXT_GRAY;
+
+        g.blit(icon, iconX, y, 0, 0, NAV_ICON_SIZE, NAV_ICON_SIZE, 128, 128);
+        g.drawString(minecraft.font, label, textX, y + NAV_ICON_SIZE + 6, color, false);
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
@@ -303,19 +352,19 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private boolean clickedBottomNavigation(double mouseX, double mouseY) {
-        if (mouseY < navY || mouseY > navY + 22) {
+        if (mouseY < navY || mouseY > navY + NAV_BUTTON_HEIGHT) {
             return false;
         }
 
-        int inventoryX = width / 2 - 190;
-        int codexX = width / 2 + 110;
+        int inventoryX = width / 2 - 270;
+        int codexX = width / 2 + 190;
 
-        if (mouseX >= inventoryX && mouseX <= inventoryX + 120) {
+        if (mouseX >= inventoryX && mouseX <= inventoryX + NAV_BUTTON_WIDTH) {
             mode = ScreenMode.INVENTORY;
             return true;
         }
 
-        if (mouseX >= codexX && mouseX <= codexX + 120) {
+        if (mouseX >= codexX && mouseX <= codexX + NAV_BUTTON_WIDTH) {
             mode = ScreenMode.CODEX;
             if (contextMenu != null) {
                 contextMenu.close();
