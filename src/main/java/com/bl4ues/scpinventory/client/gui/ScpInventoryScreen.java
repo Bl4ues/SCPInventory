@@ -104,7 +104,7 @@ public class ScpInventoryScreen extends Screen {
 
         titleY = rootY + Math.round(rootHeight * 0.105F);
         tabY = titleY + Math.round(rootHeight * 0.043F);
-        navY = rootY + rootHeight - Math.round(rootHeight * 0.105F);
+        navY = rootY + rootHeight - Math.round(rootHeight * 0.078F);
 
         listPanelX = rootX + Math.round(rootWidth * 0.038F);
         listPanelY = tabY - 5;
@@ -176,7 +176,7 @@ public class ScpInventoryScreen extends Screen {
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
         int percent = maxHealth <= 0 ? 0 : Math.round((health / (float) maxHealth) * 100.0F);
-        g.drawString(minecraft.font, "VIDA", textX, healthY, TEXT_WHITE, false);
+        g.drawString(minecraft.font, "LIFE", textX, healthY, TEXT_WHITE, false);
         g.drawString(minecraft.font, percent + "/100", textX, healthY + 13, TEXT_WHITE, false);
     }
 
@@ -191,12 +191,12 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderTabs(GuiGraphics g) {
-        drawTab(g, listX, tabY, INVENTORY_TAB_WIDTH, "INVENTÁRIO", !showingKeys);
+        drawTab(g, listX, tabY, INVENTORY_TAB_WIDTH, "INVENTORY", !showingKeys);
         drawTab(g, listX + INVENTORY_TAB_WIDTH + 14, tabY, KEYS_TAB_WIDTH, "KEYS", showingKeys);
     }
 
     private void renderBottomNavigation(GuiGraphics g) {
-        drawNavigationButton(g, getInventoryNavX(), navY, "INVENTÁRIO", mode == ScreenMode.INVENTORY ? INVENTORY_ICON_SELECTED : INVENTORY_ICON, mode == ScreenMode.INVENTORY);
+        drawNavigationButton(g, getInventoryNavX(), navY, "INVENTORY", mode == ScreenMode.INVENTORY ? INVENTORY_ICON_SELECTED : INVENTORY_ICON, mode == ScreenMode.INVENTORY);
         drawNavigationButton(g, getCodexNavX(), navY, "CODEX", mode == ScreenMode.CODEX ? CODEX_ICON_SELECTED : CODEX_ICON, mode == ScreenMode.CODEX);
     }
 
@@ -351,11 +351,11 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private int getInventoryNavX() {
-        return rootX + (rootWidth / 2) - 225;
+        return rootX + (rootWidth / 2) - 185;
     }
 
     private int getCodexNavX() {
-        return rootX + (rootWidth / 2) + 105;
+        return rootX + (rootWidth / 2) + 65;
     }
 
     private void handleAction(String action) {
