@@ -9,6 +9,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -80,6 +82,7 @@ public class ScpInventoryCommands {
     private static int resetSingle(ServerPlayer player) {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
             inventory.resetAll();
+            clearMirroredVanillaEquipment(player);
             ModNetwork.syncTo(player, inventory);
         });
 
@@ -142,5 +145,10 @@ public class ScpInventoryCommands {
         );
 
         return 1;
+    }
+
+    private static void clearMirroredVanillaEquipment(ServerPlayer player) {
+        player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+        player.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
     }
 }
