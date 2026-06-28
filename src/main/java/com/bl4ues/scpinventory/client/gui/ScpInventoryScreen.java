@@ -22,6 +22,9 @@ public class ScpInventoryScreen extends Screen {
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int TAB_ACTIVE = 0x44B2B3B3;
     private static final int TAB_INACTIVE = 0x226A6C6C;
+    private static final int ROOT_BACKGROUND = 0xCC3B4446;
+    private static final int PANEL_BACKGROUND = 0x664B5557;
+    private static final int FOOTER_BACKGROUND = 0x332B3133;
 
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
     private static final ResourceLocation INVENTORY_ICON_SELECTED = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon_selected.png");
@@ -29,11 +32,14 @@ public class ScpInventoryScreen extends Screen {
     private static final ResourceLocation CODEX_ICON_SELECTED = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/codexicon_selected.png");
     private static final ResourceLocation HEALTH_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/health.png");
 
+    private static final int SOURCE_ICON_SIZE = 128;
     private static final int NAV_ICON_SIZE = 24;
     private static final int NAV_BUTTON_WIDTH = 120;
-    private static final int NAV_BUTTON_HEIGHT = 42;
+    private static final int NAV_BUTTON_HEIGHT = 46;
     private static final int HEALTH_ICON_SIZE = 24;
-    private static final int SOURCE_ICON_SIZE = 128;
+    private static final int INVENTORY_TAB_WIDTH = 90;
+    private static final int KEYS_TAB_WIDTH = 76;
+    private static final int TAB_HEIGHT = 20;
 
     private enum ScreenMode {
         INVENTORY,
@@ -48,11 +54,26 @@ public class ScpInventoryScreen extends Screen {
     private int contextIndex = -1;
     private boolean contextIsKey = false;
 
+    private int rootX;
+    private int rootY;
+    private int rootWidth;
+    private int rootHeight;
+    private int titleY;
+    private int tabY;
+    private int listPanelX;
+    private int listPanelY;
+    private int listPanelWidth;
+    private int listPanelHeight;
+    private int equipmentPanelX;
+    private int equipmentPanelY;
+    private int equipmentPanelWidth;
+    private int equipmentPanelHeight;
     private int listX;
     private int listY;
     private int listWidth;
     private int equipmentX;
     private int equipmentY;
+    private int equipmentWidth;
     private int navY;
     private boolean showingKeys = false;
     private ScreenMode mode = ScreenMode.INVENTORY;
@@ -66,14 +87,33 @@ public class ScpInventoryScreen extends Screen {
         Minecraft mc = Minecraft.getInstance();
         contextMenu = new ContextMenu();
 
-        listX = width / 2 - 330;
-        listY = height / 2 - 100;
-        listWidth = 320;
-        equipmentX = width / 2 + 20;
-        equipmentY = listY + 24;
-        navY = height - 76;
+        rootX = 8;
+        rootY = 8;
+        rootWidth = width - 16;
+        rootHeight = height - 16;
 
-        int titleY = listY - 48;
+        titleY = rootY + 52;
+        tabY = titleY + 35;
+
+        listPanelX = rootX + 28;
+        listPanelY = tabY - 5;
+        listPanelWidth = Math.max(300, (int) (rootWidth * 0.46F));
+        listPanelHeight = Math.max(280, rootY + rootHeight - 92 - listPanelY);
+
+        listX = listPanelX + 8;
+        listY = tabY + 34;
+        listWidth = listPanelWidth - 16;
+
+        equipmentPanelX = rootX + (int) (rootWidth * 0.52F);
+        equipmentPanelY = titleY + 18;
+        equipmentPanelWidth = Math.max(280, rootX + rootWidth - equipmentPanelX - 28);
+        equipmentPanelHeight = Math.max(280, rootY + rootHeight - 92 - equipmentPanelY);
+
+        equipmentX = equipmentPanelX + 22;
+        equipmentY = equipmentPanelY + 58;
+        equipmentWidth = equipmentPanelWidth - 44;
+
+        navY = rootY + rootHeight - 72;
 
         if (mc.player == null) {
             return;
@@ -82,8 +122,16 @@ public class ScpInventoryScreen extends Screen {
         mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inv -> {
             inventory = inv;
             rebuildItemList();
-            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, 300, titleY, inv);
-            codexPanel = new CodexPanel(listX, listY - 6, 320, equipmentX, 360, titleY, inv);
+            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, inv);
+            codexPanel = new CodexPanel(
+                    listX,
+                    listPanelY + 26,
+                    listWidth,
+                    equipmentX,
+                    equipmentWidth,
+                    titleY,
+                    inv
+            );
         });
     }
 
@@ -102,6 +150,7 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
+        renderScpBackgroundPanels(g);
         renderHealthStatus(g);
 
         if (mode == ScreenMode.CODEX) {
@@ -130,54 +179,66 @@ public class ScpInventoryScreen extends Screen {
         super.render(g, mouseX, mouseY, partialTick);
     }
 
+    private void renderScpBackgroundPanels(GuiGraphics g) {
+        g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, ROOT_BACKGROUND);
+        g.fill(rootX, navY - 16, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
+
+        if (mode == ScreenMode.CODEX) {
+            g.fill(listPanelX, titleY + 20, listPanelX + listPanelWidth, rootY + rootHeight - 86, PANEL_BACKGROUND);
+            g.fill(equipmentPanelX, titleY + 20, equipmentPanelX + equipmentPanelWidth, rootY + rootHeight - 86, PANEL_BACKGROUND);
+        } else {
+            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, listPanelY + listPanelHeight, PANEL_BACKGROUND);
+            g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
+        }
+    }
+
     private void renderHealthStatus(GuiGraphics g) {
         if (minecraft == null || minecraft.player == null) {
             return;
         }
 
-        int healthX = Math.max(18, listX - 170);
-        int healthY = Math.max(18, listY - 92);
+        int healthX = rootX + 26;
+        int healthY = rootY + 24;
         int textX = healthX + HEALTH_ICON_SIZE + 8;
 
         blitFullIcon(g, HEALTH_ICON, healthX, healthY + 3, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
 
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
+        int healthPercent = maxHealth <= 0 ? 0 : Math.round((health / (float) maxHealth) * 100.0F);
 
         g.drawString(minecraft.font, "VIDA", textX, healthY, TEXT_WHITE, false);
-        g.drawString(minecraft.font, health + "/" + maxHealth, textX, healthY + 13, TEXT_WHITE, false);
+        g.drawString(minecraft.font, healthPercent + "/100", textX, healthY + 13, TEXT_WHITE, false);
     }
 
     private void renderInventoryHeader(GuiGraphics g) {
-        drawSectionTitle(g, listX, listY - 48, "BACKPACK");
+        drawSectionTitle(g, listX, titleY, "BACKPACK");
 
         String count = inventory == null
                 ? "0 of 12 items"
                 : showingKeys
                 ? inventory.getKeyCount() + " of " + IScpInventory.MAX_KEY_COUNT + " keys"
                 : inventory.getInventoryCount() + " of " + inventory.getMaxMainSlots() + " items";
-        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), listY - 48, TEXT_WHITE, false);
+        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), titleY, TEXT_WHITE, false);
     }
 
     private void renderTabs(GuiGraphics g) {
-        drawTab(g, listX, listY - 26, 76, "INVENTORY", !showingKeys);
-        drawTab(g, listX + 88, listY - 26, 76, "KEYS", showingKeys);
+        drawTab(g, listX, tabY, INVENTORY_TAB_WIDTH, "INVENTÁRIO", !showingKeys);
+        drawTab(g, listX + INVENTORY_TAB_WIDTH + 14, tabY, KEYS_TAB_WIDTH, "KEYS", showingKeys);
     }
 
     private void renderBottomNavigation(GuiGraphics g) {
-        int inventoryX = width / 2 - 270;
-        int codexX = width / 2 + 190;
         drawNavigationButton(
                 g,
-                inventoryX,
+                getInventoryNavX(),
                 navY,
-                "INVENTORY",
+                "INVENTÁRIO",
                 mode == ScreenMode.INVENTORY ? INVENTORY_ICON_SELECTED : INVENTORY_ICON,
                 mode == ScreenMode.INVENTORY
         );
         drawNavigationButton(
                 g,
-                codexX,
+                getCodexNavX(),
                 navY,
                 "CODEX",
                 mode == ScreenMode.CODEX ? CODEX_ICON_SELECTED : CODEX_ICON,
@@ -199,7 +260,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
-        g.fill(x, y, x + w, y + 20, active ? TAB_ACTIVE : TAB_INACTIVE);
+        g.fill(x, y, x + w, y + TAB_HEIGHT, active ? TAB_ACTIVE : TAB_INACTIVE);
         int textX = x + (w - minecraft.font.width(label)) / 2;
         g.drawString(minecraft.font, label, textX, y + 6, active ? TEXT_WHITE : TEXT_GRAY, false);
     }
@@ -334,19 +395,19 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private boolean clickedTabs(double mouseX, double mouseY) {
-        int tabY = listY - 26;
-        if (mouseY < tabY || mouseY > tabY + 20) {
+        if (mouseY < tabY || mouseY > tabY + TAB_HEIGHT) {
             return false;
         }
 
-        if (mouseX >= listX && mouseX <= listX + 76) {
+        if (mouseX >= listX && mouseX <= listX + INVENTORY_TAB_WIDTH) {
             showingKeys = false;
             contextIsKey = false;
             rebuildItemList();
             return true;
         }
 
-        if (mouseX >= listX + 88 && mouseX <= listX + 164) {
+        int keysX = listX + INVENTORY_TAB_WIDTH + 14;
+        if (mouseX >= keysX && mouseX <= keysX + KEYS_TAB_WIDTH) {
             showingKeys = true;
             contextIsKey = false;
             rebuildItemList();
@@ -361,8 +422,8 @@ public class ScpInventoryScreen extends Screen {
             return false;
         }
 
-        int inventoryX = width / 2 - 270;
-        int codexX = width / 2 + 190;
+        int inventoryX = getInventoryNavX();
+        int codexX = getCodexNavX();
 
         if (mouseX >= inventoryX && mouseX <= inventoryX + NAV_BUTTON_WIDTH) {
             mode = ScreenMode.INVENTORY;
@@ -378,6 +439,14 @@ public class ScpInventoryScreen extends Screen {
         }
 
         return false;
+    }
+
+    private int getInventoryNavX() {
+        return rootX + Math.max(50, (int) (rootWidth * 0.10F));
+    }
+
+    private int getCodexNavX() {
+        return rootX + rootWidth - Math.max(50, (int) (rootWidth * 0.10F)) - NAV_BUTTON_WIDTH;
     }
 
     private void handleAction(String action) {
