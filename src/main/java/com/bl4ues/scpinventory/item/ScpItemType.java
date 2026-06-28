@@ -10,7 +10,9 @@ public enum ScpItemType {
     CODEX("Document"),
     HEAD("Head"),
     ACCESSORY("Accessory"),
-    BODY("Body"),
+    CHEST("Chest"),
+    LEGS("Legs"),
+    FEET("Feet"),
     WEAPON("Weapon");
 
     private final String displayName;
@@ -31,7 +33,9 @@ public enum ScpItemType {
         return switch (this) {
             case HEAD -> Optional.of(ScpEquipmentSlot.HEAD);
             case ACCESSORY -> Optional.of(ScpEquipmentSlot.ACCESSORY);
-            case BODY -> Optional.of(ScpEquipmentSlot.BODY);
+            case CHEST -> Optional.of(ScpEquipmentSlot.CHEST);
+            case LEGS -> Optional.of(ScpEquipmentSlot.LEGS);
+            case FEET -> Optional.of(ScpEquipmentSlot.FEET);
             case WEAPON -> Optional.of(ScpEquipmentSlot.WEAPON);
             default -> Optional.empty();
         };
@@ -49,7 +53,9 @@ public enum ScpItemType {
             case "CODEX", "DOCUMENT", "DOC" -> Optional.of(CODEX);
             case "HEAD", "HELMET", "MASK" -> Optional.of(HEAD);
             case "ACCESSORY", "TRINKET", "RING", "AMULET" -> Optional.of(ACCESSORY);
-            case "BODY", "CHEST", "CHESTPLATE", "TORSO" -> Optional.of(BODY);
+            case "BODY", "CHEST", "CHESTPLATE", "TORSO" -> Optional.of(CHEST);
+            case "LEGS", "LEGGINGS", "PANTS" -> Optional.of(LEGS);
+            case "FEET", "BOOTS", "SHOES" -> Optional.of(FEET);
             case "WEAPON", "MAINHAND", "MAIN_HAND", "HAND" -> Optional.of(WEAPON);
             default -> Optional.empty();
         };
