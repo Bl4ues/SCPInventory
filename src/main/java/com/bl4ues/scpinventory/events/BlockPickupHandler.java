@@ -36,7 +36,7 @@ public class BlockPickupHandler {
 
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
             int originalCount = stack.getCount();
-            int acceptedCount = ScpPickupRouter.accept(inventory, stack);
+            int acceptedCount = ScpPickupRouter.accept(inventory, serverPlayer, stack);
             event.setCanceled(true);
 
             if (acceptedCount <= 0) {
