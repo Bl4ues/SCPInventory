@@ -1,6 +1,7 @@
 package com.bl4ues.scpinventory.network;
 
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.ScpKeyringMirror;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -40,6 +41,7 @@ public class KeyActionPacket {
                 if (ACTION_DROP.equals(msg.action)) {
                     ItemStack key = inventory.extractKeyItem(msg.index);
                     if (!key.isEmpty()) {
+                        ScpKeyringMirror.removeMirroredKey(player, key);
                         player.drop(key, false);
                     }
                 }
