@@ -20,11 +20,12 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Item classification rules used by the SCP inventory.",
                         "Format: modid:item|TYPE",
-                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, BODY, LEGS, FEET.",
-                        "Items not listed here fall back to vanilla detection: food becomes Consumable, armor becomes its equipment slot, everything else becomes Miscellaneous.",
+                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, ACCESSORY, BODY, WEAPON.",
+                        "Items not listed here fall back to vanilla detection: food becomes Consumable, helmets become Head, chestplates become Body, everything else becomes Miscellaneous.",
                         "Examples:",
                         "  scp_additions:level_2_keycard|KEY",
                         "  scp_additions:gas_mask|HEAD",
+                        "  scp_additions:scp_714|ACCESSORY",
                         "  minecraft:golden_apple|CONSUMABLE"
                 )
                 .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
