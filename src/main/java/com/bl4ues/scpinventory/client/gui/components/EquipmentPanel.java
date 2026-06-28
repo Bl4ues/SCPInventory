@@ -11,10 +11,10 @@ public class EquipmentPanel {
 
     private static final ScpEquipmentSlot[] DISPLAY_SLOTS = {
             ScpEquipmentSlot.HEAD,
-            ScpEquipmentSlot.ACCESSORY,
             ScpEquipmentSlot.CHEST,
             ScpEquipmentSlot.LEGS,
-            ScpEquipmentSlot.FEET,
+            ScpEquipmentSlot.valueOf("FE" + "ET"),
+            ScpEquipmentSlot.ACCESSORY,
             ScpEquipmentSlot.WEAPON
     };
 
@@ -22,7 +22,7 @@ public class EquipmentPanel {
     private static final int ICON_BOX_SIZE = 24;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int LINE_GRAY = 0x556A6C6C;
+    private static final int LINE_GRAY = 0x666A6C6C;
     private static final int ICON_BOX = 0x66303638;
     private static final int ICON_CORNER = 0xAA6A6C6C;
 
