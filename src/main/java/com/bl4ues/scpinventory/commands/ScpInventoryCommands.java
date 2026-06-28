@@ -32,6 +32,15 @@ public class ScpInventoryCommands {
                                         ))
                                 )
                         )
+                        .then(Commands.literal("clear")
+                                .executes(context -> clearMainSingle(context.getSource().getPlayerOrException()))
+                                .then(Commands.argument("targets", EntityArgument.players())
+                                        .executes(context -> clearMainMany(
+                                                context.getSource(),
+                                                EntityArgument.getPlayers(context, "targets")
+                                        ))
+                                )
+                        )
                         .then(Commands.literal("clearmain")
                                 .executes(context -> clearMainSingle(context.getSource().getPlayerOrException()))
                                 .then(Commands.argument("targets", EntityArgument.players())
