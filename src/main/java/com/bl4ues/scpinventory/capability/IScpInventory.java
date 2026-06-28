@@ -12,6 +12,7 @@ public interface IScpInventory {
     int DEFAULT_MAIN_SLOT_COUNT = 12;
     int MIN_MAIN_SLOT_COUNT = 1;
     int MAX_MAIN_SLOT_COUNT = 128;
+    int MAX_KEY_COUNT = 12;
 
     List<ItemStack> getInventory();
     void setInventory(List<ItemStack> list);
@@ -65,6 +66,24 @@ public interface IScpInventory {
 
     default boolean hasFreeMainSlots(int amount) {
         return amount > 0 && getFreeMainSlots() >= amount;
+    }
+
+    default int getKeyCount() {
+        int count = 0;
+        for (ItemStack stack : getKeys()) {
+            if (!stack.isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    default int getFreeKeySlots() {
+        return MAX_KEY_COUNT - getKeyCount();
+    }
+
+    default boolean hasFreeKeySlots(int amount) {
+        return amount > 0 && getFreeKeySlots() >= amount;
     }
 
     default boolean isValidMainSlot(int slot) {
