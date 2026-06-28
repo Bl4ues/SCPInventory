@@ -27,7 +27,7 @@ public final class ScpInventoryConfig {
                         "  scp_additions:gas_mask|HEAD",
                         "  minecraft:golden_apple|CONSUMABLE"
                 )
-                .defineList("item_rules", List.of(), ScpInventoryConfig::isString);
+                .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
 
         CODEX_DOCUMENTS = builder
                 .comment(
@@ -39,7 +39,7 @@ public final class ScpInventoryConfig {
                         "  camerapture:picture|SCP-330 Containment Protocol|Bl4ues|1772756289088L|I; 1717201316, -226147414, -127193371, 1090671268",
                         "Also accepted: id=camerapture:picture;name=SCP-330 Containment Protocol;creator=Bl4ues;timestamp=1772756289088L;uuid=I; 1717201316, -226147414, -127193371, 1090671268"
                 )
-                .defineList("codex_documents", List.of(), ScpInventoryConfig::isString);
+                .defineList("codex_documents", List.<String>of(), ScpInventoryConfig::isString);
 
         builder.pop();
 
