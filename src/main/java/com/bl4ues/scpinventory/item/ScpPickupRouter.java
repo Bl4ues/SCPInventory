@@ -8,21 +8,21 @@ public final class ScpPickupRouter {
     private ScpPickupRouter() {
     }
 
-    public static boolean accept(IScpInventory inventory, ItemStack stack) {
+    public static int accept(IScpInventory inventory, ItemStack stack) {
         if (inventory == null || stack == null || stack.isEmpty()) {
-            return false;
+            return 0;
         }
 
         ScpItemType type = ScpItemClassifier.getType(stack);
 
         if (type == ScpItemType.KEY) {
-            return inventory.addKeyItem(stack);
+            return inventory.addKeyItem(stack) ? stack.getCount() : 0;
         }
 
         if (type == ScpItemType.CODEX) {
-            return inventory.addDocumentItem(stack);
+            return inventory.addDocumentItem(stack) ? stack.getCount() : 0;
         }
 
-        return inventory.addInventoryItem(stack);
+        return inventory.addInventoryItems(stack);
     }
 }
