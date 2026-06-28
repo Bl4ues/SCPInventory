@@ -26,8 +26,8 @@ public class ScpInventoryScreen extends Screen {
     private static final int TAB_ACTIVE = 0x55B2B3B3;
     private static final int TAB_INACTIVE = 0x336A6C6C;
     private static final int ROOT_TINT = 0x11000000;
-    private static final int PANEL_BACKGROUND = 0x88545D5F;
-    private static final int FOOTER_BACKGROUND = 0x2A2B3133;
+    private static final int PANEL_BACKGROUND = 0x8F545D5F;
+    private static final int FOOTER_BACKGROUND = 0x242B3133;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -104,21 +104,26 @@ public class ScpInventoryScreen extends Screen {
 
         titleY = rootY + Math.round(rootHeight * 0.105F);
         tabY = titleY + Math.round(rootHeight * 0.043F);
-        navY = rootY + rootHeight - Math.round(rootHeight * 0.078F);
+        navY = rootY + rootHeight - Math.round(rootHeight * 0.120F);
 
-        listPanelX = rootX + Math.round(rootWidth * 0.038F);
+        int sideMargin = Math.round(rootWidth * 0.055F);
+        int panelGap = Math.round(rootWidth * 0.040F);
+        int sharedPanelWidth = (rootWidth - (sideMargin * 2) - panelGap) / 2;
+
+        listPanelX = rootX + sideMargin;
+        equipmentPanelX = listPanelX + sharedPanelWidth + panelGap;
+        listPanelWidth = sharedPanelWidth;
+        equipmentPanelWidth = sharedPanelWidth;
+
         listPanelY = tabY - 5;
-        listPanelWidth = Math.round(rootWidth * 0.455F);
-        listPanelHeight = Math.round(rootHeight * 0.590F);
+        equipmentPanelY = listPanelY;
+        int panelBottom = navY - Math.round(rootHeight * 0.070F);
+        listPanelHeight = Math.max(270, panelBottom - listPanelY);
+        equipmentPanelHeight = listPanelHeight;
 
         listX = listPanelX + 18;
         listY = tabY + 34;
         listWidth = listPanelWidth - 36;
-
-        equipmentPanelX = rootX + Math.round(rootWidth * 0.530F);
-        equipmentPanelY = titleY + Math.round(rootHeight * 0.045F);
-        equipmentPanelWidth = rootX + rootWidth - equipmentPanelX - Math.round(rootWidth * 0.038F);
-        equipmentPanelHeight = Math.round(rootHeight * 0.595F);
 
         equipmentX = equipmentPanelX + 28;
         equipmentY = equipmentPanelY + 56;
@@ -157,11 +162,12 @@ public class ScpInventoryScreen extends Screen {
         g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, ROOT_TINT);
         g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
 
+        int panelBottom = listPanelY + listPanelHeight;
         if (mode == ScreenMode.CODEX) {
-            g.fill(listPanelX, titleY + 24, listPanelX + listPanelWidth, rootY + rootHeight - 112, PANEL_BACKGROUND);
-            g.fill(equipmentPanelX, titleY + 24, equipmentPanelX + equipmentPanelWidth, rootY + rootHeight - 112, PANEL_BACKGROUND);
+            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
+            g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
         } else {
-            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, listPanelY + listPanelHeight, PANEL_BACKGROUND);
+            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
             g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
         }
     }
@@ -176,7 +182,7 @@ public class ScpInventoryScreen extends Screen {
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
         int percent = maxHealth <= 0 ? 0 : Math.round((health / (float) maxHealth) * 100.0F);
-        g.drawString(minecraft.font, "LIFE", textX, healthY, TEXT_WHITE, false);
+        g.drawString(minecraft.font, "HEALTH", textX, healthY, TEXT_WHITE, false);
         g.drawString(minecraft.font, percent + "/100", textX, healthY + 13, TEXT_WHITE, false);
     }
 
@@ -351,11 +357,11 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private int getInventoryNavX() {
-        return rootX + (rootWidth / 2) - 185;
+        return rootX + (rootWidth / 2) - 170;
     }
 
     private int getCodexNavX() {
-        return rootX + (rootWidth / 2) + 65;
+        return rootX + (rootWidth / 2) + 50;
     }
 
     private void handleAction(String action) {
