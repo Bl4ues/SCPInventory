@@ -7,11 +7,12 @@ Current architecture
 --------------------
 
 - Main inventory capability with 12 normal item slots.
-- Each occupied slot stores exactly one ItemStack entry.
-- ItemStacks are never merged inside the custom inventory.
-- If the world item entity has count 1, that slot contains count 1.
-- If the world item entity has count 2 because two drops merged on the ground, that slot contains count 2.
-- Removing that slot returns the whole stack at once.
+- Each occupied main slot represents one real item.
+- Main inventory pickup splits ItemStack counts into individual one-count slots.
+- If the world item entity has count 1, it occupies 1 main slot.
+- If the world item entity has count 2, it occupies 2 main slots.
+- If a stack count is larger than the available free main slots, it is not picked up.
+- Same items are never merged inside the custom main inventory.
 - Separate keyring storage for key/keycard ItemStacks.
 - Separate Codex storage for document ItemStacks, preserving their NBT for image/document rendering.
 - Equipment storage for Head, Body, Legs, and Feet.
