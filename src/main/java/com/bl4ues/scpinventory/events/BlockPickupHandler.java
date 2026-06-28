@@ -28,15 +28,25 @@ public class BlockPickupHandler {
         }
 
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            boolean added = ScpPickupRouter.accept(inventory, stack);
+            int originalCount = stack.getCount();
+            int acceptedCount = ScpPickupRouter.accept(inventory, stack);
             event.setCanceled(true);
 
-            if (added) {
+            if (acceptedCount <= 0) {
+                ModNetwork.showInventoryFull(serverPlayer);
+                return;
+            }
+
+            if (acceptedCount >= originalCount) {
                 itemEntity.discard();
-                ModNetwork.syncTo(serverPlayer, inventory);
             } else {
+                stack.shrink(acceptedCount);
+                itemEntity.setItem(stack);
+                itemEntity.setPickUpDelay(10);
                 ModNetwork.showInventoryFull(serverPlayer);
             }
+
+            ModNetwork.syncTo(serverPlayer, inventory);
         });
     }
 }
