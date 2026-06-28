@@ -12,12 +12,14 @@ Current architecture
 - Main inventory pickup splits ItemStack counts into individual one-count slots.
 - If the world item entity has count 1, it occupies 1 main slot.
 - If the world item entity has count 2, it occupies 2 main slots.
-- If a stack count is larger than the available free main slots, it is not picked up.
+- If a stack count is larger than the available free main slots, only the amount that fits is picked up.
 - Same items are never merged inside the custom main inventory.
-- Separate keyring storage for key/keycard ItemStacks.
+- Separate keyring storage for up to 12 key/keycard ItemStacks.
+- Keyring items are mirrored into the player's vanilla inventory main area, never the hotbar, for compatibility with keycard/door mods that scan vanilla inventory contents.
 - Separate Codex storage for document ItemStacks, preserving their NBT for image/document rendering.
 - Equipment storage uses custom SCP slots: Head, Accessory, Body, and Weapon.
-- Custom TAB screen with a scrollable item list, context menu, and functional equipment panel.
+- Head and Body equipment are mirrored into the player's vanilla armor slots.
+- Custom TAB screen with a scrollable item list, context menu, key tab, and functional equipment panel.
 - Server-authoritative item actions: the GUI requests actions, and the server mutates the capability.
 - Server-to-client sync packet so the GUI sees the real inventory state.
 - Inventory Full overlay is triggered through networking instead of client code being called from server events.
@@ -59,6 +61,20 @@ Items not listed in the config fall back to automatic detection:
 - vanilla helmets become Head;
 - vanilla chestplates become Body;
 - everything else becomes Miscellaneous.
+
+Keyring
+-------
+
+Keyring capacity is currently fixed at 12 items.
+
+A key item is stored in two places:
+
+- the SCP keyring capability, used by the custom GUI;
+- a mirrored copy inside vanilla inventory slots 9-35, used for compatibility with other mods.
+
+Hotbar slots 0-8 are intentionally avoided.
+
+Dropping a key from the KEYS tab removes the custom keyring entry and its mirrored vanilla inventory copy.
 
 Equipment
 ---------
@@ -120,7 +136,7 @@ Set max main slots for selected players:
     /scpinventory setmax <targets> <slots>
     /scpinventory maxslots <targets> <slots>
 
-Check your current occupied/max main slots:
+Check your current occupied/max main slots and key count:
 
     /scpinventory getmax
 
