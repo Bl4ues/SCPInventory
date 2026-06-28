@@ -20,12 +20,7 @@ public final class ScpPickupRouter {
         }
 
         if (type == ScpItemType.CODEX) {
-            var document = ScpItemClassifier.getCodexDocument(stack);
-            if (document.isEmpty()) {
-                return false;
-            }
-            inventory.unlockDocument(document.get().getUnlockId());
-            return true;
+            return inventory.addDocumentItem(stack);
         }
 
         return inventory.addInventoryItem(stack);
