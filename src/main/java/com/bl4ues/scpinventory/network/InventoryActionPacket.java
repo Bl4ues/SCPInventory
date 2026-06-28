@@ -119,7 +119,7 @@ public class InventoryActionPacket {
         };
 
         if (!previousEquipment.isEmpty()) {
-            inventory.addInventoryItem(previousEquipment);
+            inventory.setInventoryItem(slot, previousEquipment);
         }
     }
 }
