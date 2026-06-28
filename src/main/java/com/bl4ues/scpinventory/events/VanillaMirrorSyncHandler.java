@@ -43,7 +43,9 @@ public class VanillaMirrorSyncHandler {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
             boolean changed = false;
             changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.HEAD, EquipmentSlot.HEAD);
-            changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.BODY, EquipmentSlot.CHEST);
+            changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.CHEST, EquipmentSlot.CHEST);
+            changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.LEGS, EquipmentSlot.LEGS);
+            changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.FEET, EquipmentSlot.FEET);
             changed |= syncKeys(player, inventory);
 
             if (changed) {
