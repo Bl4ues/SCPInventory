@@ -1,6 +1,5 @@
 package com.bl4ues.scpinventory.client;
 
-import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraftforge.client.settings.KeyConflictContext;
