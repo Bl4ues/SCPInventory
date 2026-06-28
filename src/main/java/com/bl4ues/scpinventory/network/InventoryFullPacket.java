@@ -1,7 +1,9 @@
 package com.bl4ues.scpinventory.network;
 
-import com.bl4ues.scpinventory.client.InventoryFullOverlay;
+import com.bl4ues.scpinventory.client.ClientPacketHandlers;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -12,7 +14,6 @@ public class InventoryFullPacket {
     }
 
     public static void encode(InventoryFullPacket msg, FriendlyByteBuf buf) {
-        // Sem dados para enviar
     }
 
     public static InventoryFullPacket decode(FriendlyByteBuf buf) {
@@ -20,9 +21,11 @@ public class InventoryFullPacket {
     }
 
     public static void handle(InventoryFullPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            InventoryFullOverlay.show();
-        });
+        ctx.get().enqueueWork(() ->
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                        ClientPacketHandlers.showInventoryFullOverlay()
+                )
+        );
         ctx.get().setPacketHandled(true);
     }
 }
