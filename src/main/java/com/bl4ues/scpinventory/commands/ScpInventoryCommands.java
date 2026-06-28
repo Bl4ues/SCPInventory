@@ -1,6 +1,7 @@
 package com.bl4ues.scpinventory.commands;
 
 import com.bl4ues.scpinventory.ScpInventoryMod;
+import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpKeyringMirror;
 import com.bl4ues.scpinventory.network.ModNetwork;
@@ -143,7 +144,7 @@ public class ScpInventoryCommands {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory ->
                 player.sendSystemMessage(Component.literal(
                         "SCP main slots: " + inventory.getInventoryCount() + "/" + inventory.getMaxMainSlots()
-                                + ", keys: " + inventory.getKeyCount() + "/" + inventory.MAX_KEY_COUNT
+                                + ", keys: " + inventory.getKeyCount() + "/" + IScpInventory.MAX_KEY_COUNT
                 ))
         );
 
