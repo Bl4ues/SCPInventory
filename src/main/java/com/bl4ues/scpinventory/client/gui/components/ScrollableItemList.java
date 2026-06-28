@@ -13,12 +13,12 @@ public class ScrollableItemList {
     private static final int ROW_HEIGHT = 40;
     private static final int MAX_VISIBLE = 7;
     private static final int ICON_BOX_SIZE = 22;
-    private static final int TEXT_WHITE = 0xFFEAEAEA;
-    private static final int TEXT_GRAY = 0xFF9F9F9F;
-    private static final int LINE_GRAY = 0x559A9A9A;
+    private static final int TEXT_WHITE = 0xFFB2B3B3;
+    private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int LINE_GRAY = 0x556A6C6C;
     private static final int ICON_BOX = 0x553F4648;
     private static final int SCROLL_TRACK = 0x33000000;
-    private static final int SCROLL_THUMB = 0x884F5658;
+    private static final int SCROLL_THUMB = 0x886A6C6C;
 
     private final Minecraft mc = Minecraft.getInstance();
 
