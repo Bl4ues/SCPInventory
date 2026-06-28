@@ -32,7 +32,7 @@ public class ScpInventoryCommands {
                                         ))
                                 )
                         )
-                        .then(Commands.literal("clearMain")
+                        .then(Commands.literal("clearmain")
                                 .executes(context -> clearMainSingle(context.getSource().getPlayerOrException()))
                                 .then(Commands.argument("targets", EntityArgument.players())
                                         .executes(context -> clearMainMany(
@@ -41,7 +41,7 @@ public class ScpInventoryCommands {
                                         ))
                                 )
                         )
-                        .then(Commands.literal("setMax")
+                        .then(Commands.literal("setmax")
                                 .then(Commands.argument("slots", IntegerArgumentType.integer(1, 128))
                                         .executes(context -> setMaxSingle(
                                                 context.getSource().getPlayerOrException(),
@@ -58,7 +58,7 @@ public class ScpInventoryCommands {
                                         )
                                 )
                         )
-                        .then(Commands.literal("getMax")
+                        .then(Commands.literal("getmax")
                                 .executes(context -> getMax(context.getSource().getPlayerOrException()))
                         )
         );
