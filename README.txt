@@ -16,9 +16,10 @@ Current architecture
 - Same items are never merged inside the custom main inventory.
 - Separate keyring storage for up to 12 key/keycard ItemStacks.
 - Keyring items are mirrored into the player's vanilla inventory main area, never the hotbar, for compatibility with keycard/door mods that scan vanilla inventory contents.
+- Keyring entries and vanilla mirrored keys are synchronized both ways.
 - Separate Codex storage for document ItemStacks, preserving their NBT for image/document rendering.
 - Equipment storage uses custom SCP slots: Head, Accessory, Body, and Weapon.
-- Head and Body equipment are mirrored into the player's vanilla armor slots.
+- Head and Body equipment are mirrored into the player's vanilla armor slots and synchronized both ways.
 - Custom TAB screen with a scrollable item list, context menu, key tab, and functional equipment panel.
 - Server-authoritative item actions: the GUI requests actions, and the server mutates the capability.
 - Server-to-client sync packet so the GUI sees the real inventory state.
@@ -76,6 +77,8 @@ Hotbar slots 0-8 are intentionally avoided.
 
 Dropping a key from the KEYS tab removes the custom keyring entry and its mirrored vanilla inventory copy.
 
+If a mirrored key is removed from vanilla inventory slots 9-35, the SCP keyring entry is also removed. If a configured key appears in vanilla inventory slots 9-35, it is registered into the SCP keyring, up to the 12-key limit.
+
 Equipment
 ---------
 
@@ -88,6 +91,8 @@ Planned/custom equipment slots:
 
 Left-click an occupied equipment slot in the current test GUI to unequip it back into the main inventory.
 Right-click an occupied equipment slot to drop it into the world.
+
+Head and Body are mirrored into vanilla armor slots. If the vanilla Head or Chest armor slot changes, the corresponding SCP equipment slot is updated. If the vanilla slot is emptied, the SCP slot is cleared.
 
 Weapon is currently stored as custom equipment only. It is not yet force-synced into the vanilla hand/hotbar.
 
