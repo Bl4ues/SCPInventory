@@ -1,6 +1,7 @@
 package com.bl4ues.scpinventory.events;
 
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -27,7 +28,7 @@ public class BlockPickupHandler {
         }
 
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            boolean added = inventory.addInventoryItem(stack);
+            boolean added = ScpPickupRouter.accept(inventory, stack);
             event.setCanceled(true);
 
             if (added) {
