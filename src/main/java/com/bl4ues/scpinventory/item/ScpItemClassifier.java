@@ -99,7 +99,9 @@ public final class ScpItemClassifier {
     private static ScpItemType fromVanillaEquipmentSlot(EquipmentSlot slot) {
         return switch (slot) {
             case HEAD -> ScpItemType.HEAD;
-            case CHEST -> ScpItemType.BODY;
+            case CHEST -> ScpItemType.CHEST;
+            case LEGS -> ScpItemType.LEGS;
+            case FEET -> ScpItemType.FEET;
             default -> ScpItemType.MISCELLANEOUS;
         };
     }
