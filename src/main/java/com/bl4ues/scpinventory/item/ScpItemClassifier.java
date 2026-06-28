@@ -44,6 +44,12 @@ public final class ScpItemClassifier {
         return getType(stack).getDisplayName();
     }
 
+    public static String getCodexDisplayName(ItemStack stack) {
+        return getCodexDocument(stack)
+                .map(document -> document.getDisplayName(stack))
+                .orElseGet(() -> stack == null || stack.isEmpty() ? "Unknown Document" : stack.getHoverName().getString());
+    }
+
     public static Optional<CodexDocumentDefinition> getCodexDocument(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
