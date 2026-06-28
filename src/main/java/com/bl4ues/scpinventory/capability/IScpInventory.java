@@ -25,6 +25,13 @@ public interface IScpInventory {
     ItemStack extractKeyItem(int index);
     boolean removeKeyItem(int index);
 
+    List<ItemStack> getDocuments();
+    void setDocuments(List<ItemStack> list);
+    boolean addDocumentItem(ItemStack stack);
+    ItemStack getDocumentItem(int index);
+    ItemStack extractDocumentItem(int index);
+    boolean removeDocumentItem(int index);
+
     ItemStack getHead();
     void setHead(ItemStack stack);
     ItemStack getChest();
@@ -33,10 +40,6 @@ public interface IScpInventory {
     void setLegs(ItemStack stack);
     ItemStack getFeet();
     void setFeet(ItemStack stack);
-
-    List<String> getUnlockedDocuments();
-    void unlockDocument(String id);
-    boolean hasDocument(String id);
 
     CompoundTag serializeNBT();
     void deserializeNBT(CompoundTag tag);
