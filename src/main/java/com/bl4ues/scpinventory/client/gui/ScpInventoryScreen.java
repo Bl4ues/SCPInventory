@@ -30,9 +30,13 @@ public class ScpInventoryScreen extends Screen {
     private static final int FOOTER_BACKGROUND = 0x242B3133;
     private static final int DRAG_ICON_BOX = 0x99303638;
     private static final int DRAG_ICON_CORNER = 0xCC6A6C6C;
+    private static final int EQUIPMENT_LINE_GRAY = 0x666A6C6C;
+    private static final int EQUIPMENT_ICON_BOX = 0x66303638;
+    private static final int EQUIPMENT_ICON_CORNER = 0xAA6A6C6C;
     private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
     private static final double DRAG_THRESHOLD = 4.0D;
-    private static final float DROP_PREVIEW_UI_ALPHA = 0.18F;
+    private static final float DROP_PREVIEW_UI_ALPHA = 0.08F;
+    private static final float DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD = 0.72F;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -52,10 +56,21 @@ public class ScpInventoryScreen extends Screen {
     private static final int KEYS_TAB_WIDTH = 76;
     private static final int HEALTH_ICON_SIZE = 20;
     private static final int DRAG_ICON_FRAME_SIZE = 24;
+    private static final int EQUIPMENT_ROW_HEIGHT = 37;
+    private static final int EQUIPMENT_ICON_BOX_SIZE = 24;
     private static final float HEALTH_TEXT_SCALE = 0.86F;
 
     private enum ScreenMode { INVENTORY, CODEX }
     private enum DragSourceKind { NONE, MAIN, EQUIPMENT }
+
+    private static final ScpEquipmentSlot[] DROP_PREVIEW_EQUIPMENT_SLOTS = {
+            ScpEquipmentSlot.HEAD,
+            ScpEquipmentSlot.CHEST,
+            ScpEquipmentSlot.LEGS,
+            ScpEquipmentSlot.valueOf("FE" + "ET"),
+            ScpEquipmentSlot.ACCESSORY,
+            ScpEquipmentSlot.WEAPON
+    };
 
     private ScrollableItemList itemList;
     private EquipmentPanel equipmentPanel;
@@ -211,7 +226,7 @@ public class ScpInventoryScreen extends Screen {
 
     private void updateDropPreviewFade(boolean targetVisible) {
         float target = targetVisible ? 1.0F : 0.0F;
-        float speed = targetVisible ? 0.35F : 0.28F;
+        float speed = targetVisible ? 0.16F : 0.12F;
         dropPreviewFade += (target - dropPreviewFade) * speed;
 
         if (Math.abs(dropPreviewFade - target) < 0.015F) {
@@ -224,6 +239,8 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderTransparentDropPreview(GuiGraphics g, int mouseX, int mouseY) {
+        renderPreviewBackgroundDim(g);
+
         dropPreviewTransparentRender = true;
         dropPreviewRenderAlpha = getDropPreviewUiAlpha();
         g.setColor(1.0F, 1.0F, 1.0F, dropPreviewRenderAlpha);
@@ -237,7 +254,7 @@ public class ScpInventoryScreen extends Screen {
             renderInventoryHeader(g);
             renderTabs(g);
             if (itemList != null) itemList.render(g, mouseX, mouseY, dropPreviewRenderAlpha);
-            if (equipmentPanel != null) equipmentPanel.render(g, mouseX, mouseY);
+            renderDropPreviewEquipmentPanel(g);
         }
 
         renderBottomNavigation(g);
@@ -246,6 +263,16 @@ public class ScpInventoryScreen extends Screen {
         dropPreviewTransparentRender = false;
         dropPreviewRenderAlpha = 1.0F;
         renderDraggedStack(g, mouseX, mouseY);
+    }
+
+    private void renderPreviewBackgroundDim(GuiGraphics g) {
+        float dimAlpha = 0.45F * (1.0F - dropPreviewFade);
+        if (dimAlpha <= 0.01F) {
+            return;
+        }
+
+        int alpha = Math.max(1, Math.min(255, Math.round(255.0F * dimAlpha)));
+        g.fill(0, 0, width, height, alpha << 24);
     }
 
     private void renderPanels(GuiGraphics g) {
@@ -285,6 +312,58 @@ public class ScpInventoryScreen extends Screen {
     private void renderTabs(GuiGraphics g) {
         drawTab(g, listX, tabY, INVENTORY_TAB_WIDTH, "INVENTORY", !showingKeys);
         drawTab(g, listX + INVENTORY_TAB_WIDTH + 14, tabY, KEYS_TAB_WIDTH, "KEYS", showingKeys);
+    }
+
+    private void renderDropPreviewEquipmentPanel(GuiGraphics g) {
+        if (inventory == null) {
+            return;
+        }
+
+        drawSectionTitle(g, equipmentPanelX, titleY, "EQUIPMENT");
+
+        int rowY = equipmentY;
+        for (ScpEquipmentSlot slot : DROP_PREVIEW_EQUIPMENT_SLOTS) {
+            renderDropPreviewEquipmentSlot(g, slot, rowY);
+            rowY += EQUIPMENT_ROW_HEIGHT;
+        }
+    }
+
+    private void renderDropPreviewEquipmentSlot(GuiGraphics g, ScpEquipmentSlot slot, int rowY) {
+        ItemStack stack = inventory.getEquipment(slot);
+
+        int iconX = equipmentX + 8;
+        int iconY = rowY + 6;
+        int textX = equipmentX + 44;
+
+        if (!stack.isEmpty()) {
+            drawDropPreviewIconFrame(g, iconX, iconY);
+            if (dropPreviewRenderAlpha >= DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD) {
+                g.renderItem(stack, iconX + 4, iconY + 4);
+            }
+        }
+
+        Component itemName = stack.isEmpty() ? Component.literal("None") : stack.getHoverName();
+        g.drawString(minecraft.font, slot.getDisplayName(), textX, rowY + 7, uiColor(TEXT_WHITE), false);
+        g.drawString(minecraft.font, itemName, textX, rowY + 20, uiColor(stack.isEmpty() ? TEXT_GRAY : TEXT_WHITE), false);
+
+        int lineY = rowY + EQUIPMENT_ROW_HEIGHT - 1;
+        g.fill(equipmentX, lineY, equipmentX + equipmentWidth, lineY + 1, uiColor(EQUIPMENT_LINE_GRAY));
+    }
+
+    private void drawDropPreviewIconFrame(GuiGraphics g, int x, int y) {
+        int right = x + EQUIPMENT_ICON_BOX_SIZE;
+        int bottom = y + EQUIPMENT_ICON_BOX_SIZE;
+        int corner = 6;
+
+        g.fill(x, y, right, bottom, uiColor(EQUIPMENT_ICON_BOX));
+        g.fill(x, y, x + corner, y + 1, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(x, y, x + 1, y + corner, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(right - corner, y, right, y + 1, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(right - 1, y, right, y + corner, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(x, bottom - 1, x + corner, bottom, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(x, bottom - corner, x + 1, bottom, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(right - corner, bottom - 1, right, bottom, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(right - 1, bottom - corner, right, bottom, uiColor(EQUIPMENT_ICON_CORNER));
     }
 
     private void renderBottomNavigation(GuiGraphics g) {
