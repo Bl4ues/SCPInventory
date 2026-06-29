@@ -23,23 +23,24 @@ import java.util.TreeMap;
 public class CodexPanel {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
-    private static final int TEXT_BODY = 0xF0B2B3B3;
+    private static final int TEXT_BODY = 0xF2B2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int CATEGORY_BACKGROUND = 0x446A6C6C;
+    private static final int TEXT_SELECTED = 0xFF202020;
+    private static final int CATEGORY_BACKGROUND = 0x3E6A6C6C;
     private static final int SELECTED_BACKGROUND = 0x889FC8C8;
     private static final int BUTTON_BACKGROUND = 0x446A6C6C;
     private static final int BUTTON_BACKGROUND_HOVERED = 0x667A7C7C;
     private static final int SCROLL_TRACK = 0x33000000;
     private static final int SCROLL_THUMB = 0x886A6C6C;
-    private static final int OVERLAY_BACKGROUND = 0xB8000000;
+    private static final int OVERLAY_BACKGROUND = 0xCC000000;
     private static final int DEBUG_PAGE = 0xE8D7D8D5;
     private static final int DEBUG_PAGE_DARK = 0xFF202020;
     private static final int DEBUG_PAGE_FAINT = 0x66303030;
     private static final int DEBUG_HIGHLIGHT = 0x99D8D24A;
 
-    private static final int ROW_HEIGHT = 34;
-    private static final int BUTTON_HEIGHT = 18;
-    private static final int ZOOM_BUTTON_SIZE = 18;
+    private static final int ROW_HEIGHT = 28;
+    private static final int BUTTON_HEIGHT = 16;
+    private static final int ZOOM_BUTTON_SIZE = 16;
     private static final int SCROLL_WIDTH = 5;
 
     private final Minecraft mc = Minecraft.getInstance();
@@ -94,6 +95,10 @@ public class CodexPanel {
         this.listTitleX = listTitleX;
         this.detailTitleX = detailTitleX;
         this.documents = documents == null ? List.of() : documents;
+    }
+
+    public boolean isExpandedImage() {
+        return expandedImage;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -217,16 +222,17 @@ public class CodexPanel {
 
     private void renderCategoryRow(GuiGraphics g, DisplayRow row, int rowY) {
         g.fill(x, rowY, x + listWidth - 10, rowY + ROW_HEIGHT, CATEGORY_BACKGROUND);
-        g.drawString(mc.font, row.category, x + 12, rowY + 12, TEXT_WHITE, false);
-        g.drawString(mc.font, collapsedCategories.contains(row.category) ? ">" : "v", x + listWidth - 34, rowY + 12, TEXT_GRAY, false);
+        g.drawString(mc.font, row.category, x + 12, rowY + 9, TEXT_WHITE, false);
+        g.drawString(mc.font, collapsedCategories.contains(row.category) ? ">" : "v", x + listWidth - 34, rowY + 9, TEXT_GRAY, false);
     }
 
     private void renderDocumentRow(GuiGraphics g, DisplayRow row, int rowY) {
-        if (row.documentIndex == selectedIndex) {
+        boolean selected = row.documentIndex == selectedIndex;
+        if (selected) {
             g.fill(x + 6, rowY, x + listWidth - 26, rowY + ROW_HEIGHT, SELECTED_BACKGROUND);
         }
 
-        g.drawString(mc.font, row.name, x + 28, rowY + 12, TEXT_WHITE, false);
+        g.drawString(mc.font, row.name, x + 28, rowY + 9, selected ? TEXT_SELECTED : TEXT_WHITE, false);
     }
 
     private void renderDocumentDetails(GuiGraphics g, int mouseX, int mouseY) {
@@ -277,10 +283,10 @@ public class CodexPanel {
     private void renderDocumentText(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
         drawTopControls(g, mouseX, mouseY, definition.getDisplayName(document));
 
-        int textX = detailX + 26;
-        int textY = detailY + 40;
-        int textWidth = detailWidth - 58;
-        int textHeight = detailHeight - 52;
+        int textX = detailX + 14;
+        int textY = detailY + 34;
+        int textWidth = detailWidth - 36;
+        int textHeight = detailHeight - 44;
         float scale = getTextScale();
         int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
         int lineHeight = Math.max(8, Math.round(12 * scale));
@@ -302,7 +308,7 @@ public class CodexPanel {
         }
         g.disableScissor();
 
-        renderTextScrollbar(g, lines.size(), visibleLines, textX + textWidth + 6, textY, textHeight);
+        renderTextScrollbar(g, lines.size(), visibleLines, textX + textWidth + 5, textY, textHeight);
     }
 
     private void drawDocumentImage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight) {
@@ -363,16 +369,21 @@ public class CodexPanel {
     }
 
     private void drawTopControls(GuiGraphics g, int mouseX, int mouseY, String title) {
-        drawButton(g, detailX + 8, detailY + 8, 64, BUTTON_HEIGHT, "Return", clickedReturnButton(mouseX, mouseY));
-        drawButton(g, detailX + detailWidth - 48, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "+", clickedZoomInButton(mouseX, mouseY));
-        drawButton(g, detailX + detailWidth - 26, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "-", clickedZoomOutButton(mouseX, mouseY));
+        int returnX = detailX + 8;
+        int returnW = 58;
+        int zoomMinusX = detailX + detailWidth - 24;
+        int zoomPlusX = detailX + detailWidth - 44;
 
-        int titleX = detailX + 80;
-        int titleRight = detailX + detailWidth - 56;
+        drawButton(g, returnX, detailY + 8, returnW, BUTTON_HEIGHT, "Return", clickedReturnButton(mouseX, mouseY));
+        drawButton(g, zoomPlusX, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "+", clickedZoomInButton(mouseX, mouseY));
+        drawButton(g, zoomMinusX, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "-", clickedZoomOutButton(mouseX, mouseY));
+
+        int titleX = returnX + returnW + 8;
+        int titleRight = zoomPlusX - 8;
         int titleWidth = Math.max(20, titleRight - titleX);
         int drawX = titleX + Math.max(0, (titleWidth - mc.font.width(title)) / 2);
         g.enableScissor(titleX, detailY + 6, titleRight, detailY + 28);
-        g.drawString(mc.font, title, drawX, detailY + 13, TEXT_WHITE, false);
+        g.drawString(mc.font, title, drawX, detailY + 12, TEXT_WHITE, false);
         g.disableScissor();
     }
 
@@ -391,7 +402,7 @@ public class CodexPanel {
         }
 
         String[] words = line.text.trim().split("\\s+");
-        if (words.length <= 1) {
+        if (words.length <= 2) {
             drawScaledString(g, line.text, x, y, color, scale);
             return;
         }
@@ -404,7 +415,7 @@ public class CodexPanel {
         int gaps = words.length - 1;
         int baseSpace = mc.font.width(" ");
         int extra = targetWidth - wordWidth - (baseSpace * gaps);
-        if (extra <= 0 || extra > targetWidth / 3) {
+        if (extra <= 0 || extra > targetWidth / 5) {
             drawScaledString(g, line.text, x, y, color, scale);
             return;
         }
@@ -440,7 +451,7 @@ public class CodexPanel {
 
     private void drawButton(GuiGraphics g, int x, int y, int width, int height, String label, boolean hovered) {
         g.fill(x, y, x + width, y + height, hovered ? BUTTON_BACKGROUND_HOVERED : BUTTON_BACKGROUND);
-        g.drawString(mc.font, label, x + (width - mc.font.width(label)) / 2, y + 6, TEXT_WHITE, false);
+        g.drawString(mc.font, label, x + (width - mc.font.width(label)) / 2, y + 4, TEXT_WHITE, false);
     }
 
     private List<DisplayRow> buildRows() {
@@ -566,9 +577,9 @@ public class CodexPanel {
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(documents.get(selectedIndex));
         String body = readText(definition).orElseGet(() -> buildFallbackText(documents.get(selectedIndex), definition));
         float scale = getTextScale();
-        int textWidth = detailWidth - 58;
+        int textWidth = detailWidth - 36;
         int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
-        int visibleLines = Math.max(1, (detailHeight - 52) / Math.max(8, Math.round(12 * scale)));
+        int visibleLines = Math.max(1, (detailHeight - 44) / Math.max(8, Math.round(12 * scale)));
         clampTextScroll(wrapJustifiedText(body, scaledTextWidth).size(), visibleLines);
     }
 
@@ -673,15 +684,15 @@ public class CodexPanel {
     }
 
     private boolean clickedReturnButton(double mouseX, double mouseY) {
-        return isMouseInside(mouseX, mouseY, detailX + 8, detailY + 8, 64, BUTTON_HEIGHT);
+        return isMouseInside(mouseX, mouseY, detailX + 8, detailY + 8, 58, BUTTON_HEIGHT);
     }
 
     private boolean clickedZoomInButton(double mouseX, double mouseY) {
-        return isMouseInside(mouseX, mouseY, detailX + detailWidth - 48, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT);
+        return isMouseInside(mouseX, mouseY, detailX + detailWidth - 44, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT);
     }
 
     private boolean clickedZoomOutButton(double mouseX, double mouseY) {
-        return isMouseInside(mouseX, mouseY, detailX + detailWidth - 26, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT);
+        return isMouseInside(mouseX, mouseY, detailX + detailWidth - 24, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT);
     }
 
     private boolean isMouseInside(double mouseX, double mouseY, int x, int y, int width, int height) {
