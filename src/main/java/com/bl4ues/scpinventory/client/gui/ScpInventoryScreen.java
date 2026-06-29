@@ -12,7 +12,6 @@ import com.bl4ues.scpinventory.client.gui.components.StatusPanel;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
-import com.bl4ues.scpinventory.network.KeyActionPacket;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -252,9 +251,7 @@ public class ScpInventoryScreen extends Screen {
         float target = targetVisible ? 1.0F : 0.0F;
         float speed = targetVisible ? 0.055F : 0.070F;
         dropPreviewFade += (target - dropPreviewFade) * speed;
-        if (Math.abs(dropPreviewFade - target) < 0.008F) {
-            dropPreviewFade = target;
-        }
+        if (Math.abs(dropPreviewFade - target) < 0.008F) dropPreviewFade = target;
     }
 
     private float getDropPreviewUiAlpha() {
@@ -263,14 +260,12 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderTransparentDropPreview(GuiGraphics g, int mouseX, int mouseY) {
         renderPreviewBackgroundDim(g);
-
         dropPreviewTransparentRender = true;
         dropPreviewRenderAlpha = getDropPreviewUiAlpha();
         g.setColor(1.0F, 1.0F, 1.0F, dropPreviewRenderAlpha);
 
         renderPanels(g);
         renderHealthStatus(g);
-
         if (mode == ScreenMode.CODEX) {
             if (codexPanel != null) codexPanel.render(g, mouseX, mouseY);
         } else if (mode == ScreenMode.STATUS) {
@@ -281,7 +276,6 @@ public class ScpInventoryScreen extends Screen {
             if (itemList != null) itemList.render(g, mouseX, mouseY, dropPreviewRenderAlpha);
             renderDropPreviewEquipmentPanel(g);
         }
-
         renderBottomNavigation(g);
 
         g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -301,7 +295,6 @@ public class ScpInventoryScreen extends Screen {
         blitSmoothTexture(g, BACKGROUND, rootX, rootY, rootWidth, rootHeight, BACKGROUND_SOURCE_WIDTH, BACKGROUND_SOURCE_HEIGHT);
         g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, uiColor(ROOT_TINT));
         g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, uiColor(FOOTER_BACKGROUND));
-
         int panelBottom = listPanelY + listPanelHeight;
         g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, uiColor(PANEL_BACKGROUND));
         g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, uiColor(PANEL_BACKGROUND));
@@ -327,12 +320,8 @@ public class ScpInventoryScreen extends Screen {
             drawRightAlignedCount(g, 0, " of 12 items");
             return;
         }
-
-        if (showingKeys) {
-            drawRightAlignedCount(g, inventory.getKeyCount(), " key(s) in inventory");
-        } else {
-            drawRightAlignedCount(g, inventory.getInventoryCount(), " of " + inventory.getMaxMainSlots() + " items");
-        }
+        if (showingKeys) drawRightAlignedCount(g, inventory.getKeyCount(), " key(s) in inventory");
+        else drawRightAlignedCount(g, inventory.getInventoryCount(), " of " + inventory.getMaxMainSlots() + " items");
     }
 
     private void drawRightAlignedCount(GuiGraphics g, int current, String suffix) {
@@ -363,20 +352,15 @@ public class ScpInventoryScreen extends Screen {
         int iconX = equipmentX + 8;
         int iconY = rowY + 6;
         int textX = equipmentX + 44;
-
         if (stack.isEmpty()) {
             drawDropPreviewEmptyCorners(g, iconX, iconY);
         } else {
             drawDropPreviewFilledFrame(g, iconX, iconY);
-            if (dropPreviewRenderAlpha >= DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD) {
-                g.renderItem(stack, iconX + 4, iconY + 4);
-            }
+            if (dropPreviewRenderAlpha >= DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD) g.renderItem(stack, iconX + 4, iconY + 4);
         }
-
         Component itemName = stack.isEmpty() ? Component.literal("None") : stack.getHoverName();
         g.drawString(minecraft.font, slot.getDisplayName(), textX, rowY + 7, uiColor(TEXT_WHITE), false);
         g.drawString(minecraft.font, itemName, textX, rowY + 20, uiColor(stack.isEmpty() ? TEXT_GRAY : TEXT_WHITE), false);
-
         int lineY = rowY + EQUIPMENT_ROW_HEIGHT - 1;
         g.fill(equipmentX, lineY, equipmentX + equipmentWidth, lineY + 1, uiColor(EQUIPMENT_LINE_GRAY));
     }
@@ -490,17 +474,16 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseScrolled(mouseX, mouseY, delta)) return true;
+        if (mode == ScreenMode.STATUS && statusPanel != null && statusPanel.mouseScrolled(mouseX, mouseY, delta)) return true;
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.isMouseOver(mouseX, mouseY)) return itemList.mouseScrolled(delta);
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.isExpandedImage()) {
-            return codexPanel.mouseClicked(mouseX, mouseY, button);
-        }
-
+        if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.isExpandedImage()) return codexPanel.mouseClicked(mouseX, mouseY, button);
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
+        if (mode == ScreenMode.STATUS && statusPanel != null && statusPanel.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
         if (button == 0 && clickedBottomNavigation(mouseX, mouseY)) return true;
         if (mode == ScreenMode.STATUS) return super.mouseClicked(mouseX, mouseY, button);
         if (mode == ScreenMode.CODEX) return codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
@@ -517,7 +500,6 @@ public class ScpInventoryScreen extends Screen {
         }
 
         if (inventory == null) return false;
-
         if (equipmentPanel != null) {
             ScpEquipmentSlot clickedEquipmentSlot = equipmentPanel.getClickedSlot(mouseX, mouseY);
             if (clickedEquipmentSlot != null && !inventory.getEquipment(clickedEquipmentSlot).isEmpty()) {
@@ -543,29 +525,25 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
+        if (mode == ScreenMode.STATUS && statusPanel != null && statusPanel.mouseDraggedScrollbar(mouseY)) return true;
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseDraggedScrollbar(mouseY)) return true;
-
         if (button == 0 && hasDragSource()) {
-            if (Math.abs(mouseX - dragStartX) > DRAG_THRESHOLD || Math.abs(mouseY - dragStartY) > DRAG_THRESHOLD) {
-                dragMoved = true;
-            }
+            if (Math.abs(mouseX - dragStartX) > DRAG_THRESHOLD || Math.abs(mouseY - dragStartY) > DRAG_THRESHOLD) dragMoved = true;
             return true;
         }
-
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseReleased(button)) return true;
+        if (mode == ScreenMode.STATUS && statusPanel != null && statusPanel.mouseReleasedScrollbar(button)) return true;
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseReleasedScrollbar(button)) return true;
-
         if (button == 0 && hasDragSource()) {
             if (dragMoved) finishDrag(mouseX, mouseY);
             clearDragSource();
             return true;
         }
-
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -574,7 +552,6 @@ public class ScpInventoryScreen extends Screen {
         if (!inventory.isValidMainSlot(index)) return false;
         ItemStack stack = inventory.getInventoryItem(index);
         if (stack.isEmpty()) return false;
-
         if (button == 0 && itemList.clickedDrop(mouseX)) {
             ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_DROP);
             return true;
@@ -602,7 +579,6 @@ public class ScpInventoryScreen extends Screen {
         if (index < 0 || index >= inventory.getKeys().size()) return false;
         ItemStack key = inventory.getKeys().get(index);
         if (key.isEmpty()) return false;
-
         if (button == 1) {
             contextIndex = index;
             contextIsKey = true;
@@ -639,7 +615,6 @@ public class ScpInventoryScreen extends Screen {
         if (slot == null || inventory == null) return;
         ItemStack stack = inventory.getEquipment(slot);
         if (stack.isEmpty()) return;
-
         if (contextMenu != null) contextMenu.close();
         dragSourceKind = DragSourceKind.EQUIPMENT;
         dragSourceIndex = -1;
@@ -673,13 +648,11 @@ public class ScpInventoryScreen extends Screen {
             dropDragSourceToWorld();
             return;
         }
-
         ScpEquipmentSlot targetEquipmentSlot = equipmentPanel == null ? null : equipmentPanel.getClickedSlot(mouseX, mouseY);
         if (targetEquipmentSlot != null) {
             dropDragSourceToEquipment(targetEquipmentSlot);
             return;
         }
-
         if (itemList != null && isInsideListPanel(mouseX, mouseY)) {
             int targetIndex = itemList.getClickedIndex(mouseX, mouseY);
             dropDragSourceToMain(targetIndex);
@@ -687,26 +660,18 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void dropDragSourceToWorld() {
-        if (dragSourceKind == DragSourceKind.MAIN) {
-            ClientInventoryBridge.moveMainToWorld(dragSourceIndex);
-        } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
-            ClientInventoryBridge.moveEquipmentToWorld(dragSourceEquipmentSlot);
-        }
+        if (dragSourceKind == DragSourceKind.MAIN) ClientInventoryBridge.moveMainToWorld(dragSourceIndex);
+        else if (dragSourceKind == DragSourceKind.EQUIPMENT) ClientInventoryBridge.moveEquipmentToWorld(dragSourceEquipmentSlot);
     }
 
     private void dropDragSourceToEquipment(ScpEquipmentSlot targetEquipmentSlot) {
-        if (dragSourceKind == DragSourceKind.MAIN) {
-            ClientInventoryBridge.moveMainToEquipment(dragSourceIndex, targetEquipmentSlot);
-        } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
-            ClientInventoryBridge.moveEquipmentToEquipment(dragSourceEquipmentSlot, targetEquipmentSlot);
-        }
+        if (dragSourceKind == DragSourceKind.MAIN) ClientInventoryBridge.moveMainToEquipment(dragSourceIndex, targetEquipmentSlot);
+        else if (dragSourceKind == DragSourceKind.EQUIPMENT) ClientInventoryBridge.moveEquipmentToEquipment(dragSourceEquipmentSlot, targetEquipmentSlot);
     }
 
     private void dropDragSourceToMain(int targetIndex) {
         if (dragSourceKind == DragSourceKind.MAIN) {
-            if (inventory != null && inventory.isValidMainSlot(targetIndex) && targetIndex != dragSourceIndex) {
-                ClientInventoryBridge.moveMainToMain(dragSourceIndex, targetIndex);
-            }
+            if (inventory != null && inventory.isValidMainSlot(targetIndex) && targetIndex != dragSourceIndex) ClientInventoryBridge.moveMainToMain(dragSourceIndex, targetIndex);
         } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
             ClientInventoryBridge.moveEquipmentToMain(dragSourceEquipmentSlot, targetIndex);
         }
@@ -717,17 +682,12 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private boolean isInsideListPanel(double mouseX, double mouseY) {
-        return mouseX >= listPanelX
-                && mouseX <= listPanelX + listPanelWidth
-                && mouseY >= listPanelY
-                && mouseY <= listPanelY + listPanelHeight;
+        return mouseX >= listPanelX && mouseX <= listPanelX + listPanelWidth && mouseY >= listPanelY && mouseY <= listPanelY + listPanelHeight;
     }
 
     private boolean isDoubleLeftClick(int index, boolean keyList) {
         long now = System.currentTimeMillis();
-        boolean result = index == lastLeftClickIndex
-                && keyList == lastLeftClickWasKey
-                && now - lastLeftClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
+        boolean result = index == lastLeftClickIndex && keyList == lastLeftClickWasKey && now - lastLeftClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
         lastLeftClickIndex = index;
         lastLeftClickWasKey = keyList;
         lastLeftClickTimeMs = now;
@@ -736,8 +696,7 @@ public class ScpInventoryScreen extends Screen {
 
     private boolean isDoubleEquipmentClick(ScpEquipmentSlot slot) {
         long now = System.currentTimeMillis();
-        boolean result = slot == lastEquipmentClickSlot
-                && now - lastEquipmentClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
+        boolean result = slot == lastEquipmentClickSlot && now - lastEquipmentClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
         lastEquipmentClickSlot = slot;
         lastEquipmentClickTimeMs = now;
         return result;
@@ -795,7 +754,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private int getInventoryNavX() {
-        return rootX + (rootWidth / 2) - 280;
+        return rootX + (rootWidth / 2) - 240;
     }
 
     private int getStatusNavX() {
@@ -803,7 +762,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private int getCodexNavX() {
-        return rootX + (rootWidth / 2) + 160;
+        return rootX + (rootWidth / 2) + 120;
     }
 
     private void handleAction(String action) {
