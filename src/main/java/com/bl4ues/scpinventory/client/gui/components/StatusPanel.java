@@ -50,6 +50,7 @@ public class StatusPanel {
     private final int parametersTitleX;
 
     private int conditionsScroll = 0;
+    private boolean conditionsScrollbarDragging = false;
 
     public StatusPanel(int conditionsX, int conditionsY, int conditionsWidth, int conditionsHeight,
                        int parametersX, int parametersY, int parametersWidth, int parametersHeight,
@@ -81,6 +82,25 @@ public class StatusPanel {
         int maxScroll = Math.max(0, totalRows - visibleRows);
         if (maxScroll <= 0) return false;
         conditionsScroll = Math.max(0, Math.min(maxScroll, conditionsScroll - (int) Math.signum(delta)));
+        return true;
+    }
+
+    public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
+        if (button != 0 || !hasScrollableConditions() || !isMouseOverConditionScrollbar(mouseX, mouseY)) return false;
+        conditionsScrollbarDragging = true;
+        updateConditionsScrollFromMouse(mouseY);
+        return true;
+    }
+
+    public boolean mouseDraggedScrollbar(double mouseY) {
+        if (!conditionsScrollbarDragging) return false;
+        updateConditionsScrollFromMouse(mouseY);
+        return true;
+    }
+
+    public boolean mouseReleasedScrollbar(int button) {
+        if (button != 0 || !conditionsScrollbarDragging) return false;
+        conditionsScrollbarDragging = false;
         return true;
     }
 
@@ -117,15 +137,13 @@ public class StatusPanel {
     }
 
     private void renderConditionScrollbar(GuiGraphics g, int totalRows, int visibleRows) {
-        int trackX = conditionsX + conditionsWidth - 12;
-        int trackY = conditionsY + 10;
-        int trackH = conditionsHeight - 20;
+        int trackX = getConditionScrollbarX();
+        int trackY = getConditionScrollbarY();
+        int trackH = getConditionScrollbarHeight();
         g.fill(trackX, trackY, trackX + 4, trackY + trackH, SCROLL_TRACK);
 
-        int thumbH = Math.max(24, Math.round(trackH * (visibleRows / (float) totalRows)));
-        int maxScroll = Math.max(1, totalRows - visibleRows);
-        int travel = Math.max(1, trackH - thumbH);
-        int thumbY = trackY + Math.round(travel * (conditionsScroll / (float) maxScroll));
+        int thumbH = getConditionScrollbarThumbHeight(totalRows, visibleRows);
+        int thumbY = getConditionScrollbarThumbY(totalRows, visibleRows, thumbH);
         g.fill(trackX, thumbY, trackX + 4, thumbY + thumbH, SCROLL_THUMB);
     }
 
@@ -180,7 +198,7 @@ public class StatusPanel {
         int groupGap = 40;
         int groupW = avatarW + groupGap + parameterW;
         int groupX = contentX + Math.max(0, ((contentRight - contentX) - groupW) / 2);
-        int groupY = contentY + Math.max(0, (parametersHeight - PARAMETERS_PAD_TOP - avatarH) / 2 - 6);
+        int groupY = contentY + Math.max(0, (parametersHeight - PARAMETERS_PAD_TOP - avatarH) / 2 - 22);
 
         int previewLeft = groupX;
         int previewTop = groupY;
@@ -189,14 +207,14 @@ public class StatusPanel {
         drawPreviewBox(g, previewLeft, previewTop, previewRight, previewBottom);
 
         int previewCenterX = previewLeft + (avatarW / 2);
-        int previewBottomY = previewBottom - 18;
+        int previewBottomY = previewBottom - 38;
         int previewScale = Math.max(34, Math.min(56, avatarH / 4));
         InventoryScreen.renderEntityInInventoryFollowsMouse(g, previewCenterX, previewBottomY, previewScale,
-                previewCenterX - mouseX, previewTop + 58 - mouseY, mc.player);
+                previewCenterX - mouseX, previewTop + 52 - mouseY, mc.player);
 
         int parameterX = previewRight + groupGap;
         int parameterRight = Math.min(contentRight, parameterX + parameterW);
-        int rowY = previewTop + 10;
+        int rowY = previewTop + 20;
         int rowGap = 33;
 
         drawParameterLine(g, parameterX, rowY, parameterRight, "Max Health", formatValue(getAttributeValue(Attributes.MAX_HEALTH)));
@@ -232,9 +250,59 @@ public class StatusPanel {
         g.drawString(mc.font, suffix, x + mc.font.width(prefix), y, TEXT_WHITE, false);
     }
 
+    private boolean hasScrollableConditions() {
+        return mc.player != null && mc.player.getActiveEffects().size() > getVisibleConditionRows();
+    }
+
     private boolean isMouseOverConditions(double mouseX, double mouseY) {
         return mouseX >= conditionsX && mouseX <= conditionsX + conditionsWidth
                 && mouseY >= conditionsY && mouseY <= conditionsY + conditionsHeight;
+    }
+
+    private boolean isMouseOverConditionScrollbar(double mouseX, double mouseY) {
+        int trackX = getConditionScrollbarX();
+        int trackY = getConditionScrollbarY();
+        int trackH = getConditionScrollbarHeight();
+        return mouseX >= trackX - 4 && mouseX <= trackX + 8
+                && mouseY >= trackY && mouseY <= trackY + trackH;
+    }
+
+    private int getConditionScrollbarX() {
+        return conditionsX + conditionsWidth - 12;
+    }
+
+    private int getConditionScrollbarY() {
+        return conditionsY + 10;
+    }
+
+    private int getConditionScrollbarHeight() {
+        return conditionsHeight - 20;
+    }
+
+    private int getConditionScrollbarThumbHeight(int totalRows, int visibleRows) {
+        return Math.max(24, Math.round(getConditionScrollbarHeight() * (visibleRows / (float) totalRows)));
+    }
+
+    private int getConditionScrollbarThumbY(int totalRows, int visibleRows, int thumbH) {
+        int maxScroll = Math.max(1, totalRows - visibleRows);
+        int travel = Math.max(1, getConditionScrollbarHeight() - thumbH);
+        return getConditionScrollbarY() + Math.round(travel * (conditionsScroll / (float) maxScroll));
+    }
+
+    private void updateConditionsScrollFromMouse(double mouseY) {
+        if (mc.player == null) return;
+        int totalRows = mc.player.getActiveEffects().size();
+        int visibleRows = getVisibleConditionRows();
+        int maxScroll = Math.max(0, totalRows - visibleRows);
+        if (maxScroll <= 0) {
+            conditionsScroll = 0;
+            return;
+        }
+
+        int thumbH = getConditionScrollbarThumbHeight(totalRows, visibleRows);
+        int travel = Math.max(1, getConditionScrollbarHeight() - thumbH);
+        double normalized = (mouseY - getConditionScrollbarY() - (thumbH / 2.0D)) / travel;
+        conditionsScroll = Math.max(0, Math.min(maxScroll, (int) Math.round(normalized * maxScroll)));
     }
 
     private double getAttributeValue(Attribute attribute) {
