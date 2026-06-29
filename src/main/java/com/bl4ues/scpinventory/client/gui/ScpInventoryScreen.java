@@ -12,6 +12,7 @@ import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.KeyActionPacket;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -35,7 +36,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int EQUIPMENT_ICON_CORNER = 0xAA6A6C6C;
     private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
     private static final double DRAG_THRESHOLD = 4.0D;
-    private static final float DROP_PREVIEW_UI_ALPHA = 0.08F;
+    private static final float DROP_PREVIEW_UI_ALPHA = 0.25F;
     private static final float DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD = 0.72F;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
@@ -226,10 +227,10 @@ public class ScpInventoryScreen extends Screen {
 
     private void updateDropPreviewFade(boolean targetVisible) {
         float target = targetVisible ? 1.0F : 0.0F;
-        float speed = targetVisible ? 0.16F : 0.12F;
+        float speed = targetVisible ? 0.055F : 0.070F;
         dropPreviewFade += (target - dropPreviewFade) * speed;
 
-        if (Math.abs(dropPreviewFade - target) < 0.015F) {
+        if (Math.abs(dropPreviewFade - target) < 0.008F) {
             dropPreviewFade = target;
         }
     }
@@ -266,7 +267,7 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderPreviewBackgroundDim(GuiGraphics g) {
-        float dimAlpha = 0.45F * (1.0F - dropPreviewFade);
+        float dimAlpha = 0.35F * (1.0F - dropPreviewFade);
         if (dimAlpha <= 0.01F) {
             return;
         }
@@ -384,7 +385,12 @@ public class ScpInventoryScreen extends Screen {
 
     private void blitSmoothTexture(GuiGraphics g, ResourceLocation texture, int x, int y, int width, int height, int sourceWidth, int sourceHeight) {
         setTextureFiltering(texture, true);
+        float alpha = dropPreviewTransparentRender ? dropPreviewRenderAlpha : 1.0F;
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
         g.blit(texture, x, y, width, height, 0.0F, 0.0F, sourceWidth, sourceHeight, sourceWidth, sourceHeight);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         setTextureFiltering(texture, false);
     }
 
