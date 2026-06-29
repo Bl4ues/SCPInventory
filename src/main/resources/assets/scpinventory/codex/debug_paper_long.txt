@@ -1,15 +1,13 @@
-Debug Paper Document
-
 This is a long temporary transcript for testing the Codex text reader.
 
 Paragraph 01:
-The goal of this file is to make the text area overflow so the scroll behavior can be tested inside the right document panel.
+The goal of this file is to make the text area overflow so the scroll behavior can be tested inside the right document panel while preserving a clean title area above the body text.
 
 Paragraph 02:
-The title should appear close to the top of the document panel. The text should use a brighter color and more of the horizontal space than the earlier version.
+The selected document title is drawn by the Codex UI itself. The transcript body should begin below the Return button and should not collide with the top controls.
 
 Paragraph 03:
-The Return button should appear in the upper-left corner when reading the text or viewing an expanded image. The plus and minus buttons should appear in the upper-right corner.
+The text renderer now attempts to justify wrapped lines. This should make paragraphs look more like an actual formal document instead of a narrow column of uneven text.
 
 Paragraph 04:
 The mouse wheel should move the text while the pointer is over the document panel. The text should not leave the panel boundaries.
@@ -18,10 +16,10 @@ Paragraph 05:
 The image view should keep the original image aspect ratio and should fit the document as large as possible inside the available area.
 
 Paragraph 06:
-If the configured image does not appear, check the image path, the config entry, the branch being tested, and whether the file exists inside the resources folder used by the current run.
+The expanded image view should place the document in the center of the screen at a larger size. Clicking anywhere should return to the normal Codex panel.
 
 Paragraph 07:
-This line exists to make the document longer.
+If the configured image does not appear, check the image path, the config entry, the branch being tested, and whether the file exists inside the resources folder used by the current run.
 
 Paragraph 08:
 This line exists to make the document longer.
