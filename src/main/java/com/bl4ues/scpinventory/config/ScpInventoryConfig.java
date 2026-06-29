@@ -20,28 +20,28 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Item classification rules used by the SCP inventory.",
                         "Format: modid:item|TYPE",
-                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, CHEST, LEGS, FEET, ACCESSORY, WEAPON.",
+                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, BODY, CHEST, LEGS, FEET, ACCESSORY, WEAPON.",
                         "Items not listed here fall back to vanilla detection: food becomes Consumable, vanilla armor goes to its matching equipment slot, everything else becomes Miscellaneous.",
                         "Examples:",
-                        "  scp_additions:level_2_keycard|KEY",
-                        "  scp_additions:gas_mask|HEAD",
-                        "  scp_additions:scp_714|ACCESSORY",
-                        "  minecraft:golden_apple|CONSUMABLE"
+                        "  item_rules = [\"scp_additions:level_2_keycard|KEY\", \"scp_additions:gas_mask|HEAD\", \"scp_additions:scp_714|ACCESSORY\", \"minecraft:golden_apple|CONSUMABLE\"]"
                 )
                 .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
 
         CODEX_DOCUMENTS = builder
                 .comment(
                         "Codex document rules. Matching documents are unlocked into the Codex and do not consume main inventory slots.",
-                        "Recommended key-value format:",
-                        "  id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=512;image_height=724",
+                        "IMPORTANT: this is a TOML string list. Each whole document rule must be wrapped in quotes.",
+                        "Correct example:",
+                        "  codex_documents = [\"id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=1279;image_height=1920\"]",
+                        "Wrong example:",
+                        "  codex_documents = [id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol]",
                         "Fields:",
                         "  id: required item id.",
                         "  category/type/section: left-panel group/tab name.",
                         "  name/display_name/title: document title shown inside the category.",
                         "  image/texture/photo: ResourceLocation for a static document image.",
                         "  text/transcript/transcription: ResourceLocation for a .txt transcription asset.",
-                        "  image_width/image_height: source texture dimensions. Defaults to 512x724.",
+                        "  image_width/image_height: source texture dimensions. Defaults to 1279x1920.",
                         "  creator/timestamp/uuid: optional Camerapture-style NBT filters kept for later integration.",
                         "  nbt_key/nbt_value: optional generic NBT filter for custom debug or special documents.",
                         "Legacy pipe format is still accepted:",
