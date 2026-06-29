@@ -55,8 +55,8 @@ public class VanillaMirrorSyncHandler {
             changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.LEGS, EquipmentSlot.LEGS);
             changed |= syncEquipmentSlot(player, inventory, ScpEquipmentSlot.FEET, EquipmentSlot.FEET);
             changed |= routeVanillaInventoryToCustom(player, inventory);
-            changed |= ensureEquippedMainMirror(player, inventory, ScpEquipmentSlot.WEAPON, true);
-            changed |= ensureEquippedMainMirror(player, inventory, ScpEquipmentSlot.ACCESSORY, false);
+            changed |= syncEquippedMainMirror(player, inventory, ScpEquipmentSlot.WEAPON);
+            changed |= syncEquippedMainMirror(player, inventory, ScpEquipmentSlot.ACCESSORY);
             changed |= syncKeys(player, inventory);
 
             if (changed) {
@@ -175,7 +175,9 @@ public class VanillaMirrorSyncHandler {
 
     private static boolean isPreservedEquipmentMirror(IScpInventory inventory, ScpEquipmentSlot slot, ItemStack vanillaStack) {
         ItemStack equipped = inventory.getEquipment(slot);
-        return !equipped.isEmpty() && vanillaStack.is(equipped.getItem());
+        ItemStack normalized = vanillaStack.copy();
+        normalized.setCount(1);
+        return !equipped.isEmpty() && ItemStack.isSameItemSameTags(equipped, normalized);
     }
 
     private static boolean syncEquipmentFromMirror(IScpInventory inventory, ScpEquipmentSlot slot, ItemStack vanillaStack) {
@@ -191,7 +193,7 @@ public class VanillaMirrorSyncHandler {
         return false;
     }
 
-    private static boolean ensureEquippedMainMirror(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot slot, boolean preferHotbar) {
+    private static boolean syncEquippedMainMirror(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot slot) {
         ItemStack equipped = inventory.getEquipment(slot);
         if (equipped.isEmpty()) {
             return false;
@@ -202,30 +204,23 @@ public class VanillaMirrorSyncHandler {
             return false;
         }
 
-        int targetSlot = preferHotbar
-                ? findFirstEmpty(vanillaInventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE)
-                : findFirstEmpty(vanillaInventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE);
-
-        if (targetSlot == -1) {
-            targetSlot = preferHotbar
-                    ? findFirstEmpty(vanillaInventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE)
-                    : findFirstEmpty(vanillaInventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE);
-        }
-
-        if (targetSlot == -1) {
-            return false;
-        }
-
-        ItemStack mirror = equipped.copy();
-        mirror.setCount(1);
-        vanillaInventory.items.set(targetSlot, mirror);
+        inventory.clearEquipment(slot);
         return true;
     }
 
     private static int findSameItem(Inventory inventory, ItemStack stack) {
+        ItemStack normalizedExpected = stack.copy();
+        normalizedExpected.setCount(1);
+
         for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
             ItemStack candidate = inventory.items.get(i);
-            if (!candidate.isEmpty() && candidate.is(stack.getItem())) {
+            if (candidate.isEmpty()) {
+                continue;
+            }
+
+            ItemStack normalizedCandidate = candidate.copy();
+            normalizedCandidate.setCount(1);
+            if (ItemStack.isSameItemSameTags(normalizedCandidate, normalizedExpected)) {
                 return i;
             }
         }
