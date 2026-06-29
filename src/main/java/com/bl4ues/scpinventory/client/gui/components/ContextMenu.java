@@ -1,7 +1,9 @@
 package com.bl4ues.scpinventory.client.gui.components;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,16 +11,17 @@ import java.util.List;
 public class ContextMenu {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
-    private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int TEXT_SELECTED = 0xFF202020;
     private static final int MENU_BACKGROUND = 0xBB303638;
     private static final int OPTION_HOVER = 0x55B2B3B3;
     private static final int LINE_GRAY = 0x666A6C6C;
+    private static final int HINT_BACKGROUND = 0x44303638;
     private static final int MENU_WIDTH = 118;
     private static final int OPTION_HEIGHT = 22;
     private static final int OPTION_TOP = 4;
     private static final int OPTION_GAP = 6;
-    private static final int HINT_TOP_GAP = 14;
+    private static final int HINT_TOP_GAP = 19;
+    private static final float HINT_TEXT_SCALE = 0.76F;
 
     private final Minecraft mc = Minecraft.getInstance();
 
@@ -90,9 +93,10 @@ public class ContextMenu {
 
         if (!hintVerb.isBlank()) {
             int hintY = getOptionY(options.size() - 1) + OPTION_HEIGHT + HINT_TOP_GAP;
-            g.fill(x + 8, hintY - 5, x + MENU_WIDTH - 8, hintY + 24, 0x55303638);
-            g.drawString(mc.font, "Hint: You can double click to", x + 12, hintY, TEXT_WHITE, false);
-            g.drawString(mc.font, hintVerb + " this item", x + 12, hintY + 10, TEXT_WHITE, false);
+            g.fill(x + 8, hintY - 4, x + MENU_WIDTH - 8, hintY + 27, HINT_BACKGROUND);
+            g.drawString(mc.font, Component.literal("Hint:").withStyle(ChatFormatting.BOLD), x + 12, hintY, TEXT_WHITE, false);
+            drawScaledString(g, "You can double click to", x + 12, hintY + 13, TEXT_WHITE, HINT_TEXT_SCALE);
+            drawScaledString(g, hintVerb + " this item", x + 12, hintY + 23, TEXT_WHITE, HINT_TEXT_SCALE);
         }
     }
 
@@ -119,7 +123,7 @@ public class ContextMenu {
 
     private int getMenuHeight() {
         int base = OPTION_TOP + options.size() * OPTION_HEIGHT + Math.max(0, options.size() - 1) * OPTION_GAP + OPTION_TOP;
-        return hintVerb.isBlank() ? base : base + HINT_TOP_GAP + 28;
+        return hintVerb.isBlank() ? base : base + HINT_TOP_GAP + 32;
     }
 
     private boolean isEquipmentType(String type) {
@@ -134,6 +138,14 @@ public class ContextMenu {
 
     private boolean isInside(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    }
+
+    private void drawScaledString(GuiGraphics g, String text, int x, int y, int color, float scale) {
+        g.pose().pushPose();
+        g.pose().translate(x, y, 0.0F);
+        g.pose().scale(scale, scale, 1.0F);
+        g.drawString(mc.font, text, 0, 0, color, false);
+        g.pose().popPose();
     }
 
     private static class MenuOption {
