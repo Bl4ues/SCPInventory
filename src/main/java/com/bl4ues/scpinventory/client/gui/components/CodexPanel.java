@@ -451,7 +451,7 @@ public class CodexPanel {
         int buttonWidth = (detailWidth + 20 - gap) / 2;
 
         drawButton(g, buttonX, buttonY, buttonWidth, BUTTON_HEIGHT, "Show Document as Text", clickedTextButton(mouseX, mouseY));
-        drawButton(g, buttonX + buttonWidth + gap, buttonY, buttonWidth, BUTTON_HEIGHT, "Expand Image", clickedExpandButton(mouseX, mouseY));
+        drawButton(g, buttonX + buttonWidth + gap, buttonY, buttonWidth, BUTTON_HEIGHT, "Expand Document", clickedExpandButton(mouseX, mouseY));
     }
 
     private void drawButton(GuiGraphics g, int x, int y, int width, int height, String label, boolean hovered) {
