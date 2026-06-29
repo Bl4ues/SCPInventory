@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.commands;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.CodexDocumentDefinition;
 import com.bl4ues.scpinventory.item.ScpKeyringMirror;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -13,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -53,6 +55,9 @@ public class ScpInventoryCommands {
                                                 EntityArgument.getPlayers(context, "targets")
                                         ))
                                 )
+                        )
+                        .then(Commands.literal("debugcodex")
+                                .executes(context -> addDebugCodexDocument(context.getSource().getPlayerOrException()))
                         )
                         .then(createSetMaxNode("setmax"))
                         .then(createSetMaxNode("maxslots"))
@@ -119,6 +124,20 @@ public class ScpInventoryCommands {
 
         source.sendSuccess(() -> Component.literal("Cleared SCP main inventory for " + players.size() + " player(s)."), true);
         return players.size();
+    }
+
+    private static int addDebugCodexDocument(ServerPlayer player) {
+        ItemStack debugDocument = new ItemStack(Items.PAPER);
+        debugDocument.setHoverName(Component.literal("Debug Paper Document"));
+        debugDocument.getOrCreateTag().putBoolean(CodexDocumentDefinition.DEBUG_TAG, true);
+
+        player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
+            inventory.addDocumentItem(debugDocument);
+            ModNetwork.syncTo(player, inventory);
+        });
+
+        player.sendSystemMessage(Component.literal("Debug Codex document added."));
+        return 1;
     }
 
     private static int setMaxSingle(ServerPlayer player, int slots) {
