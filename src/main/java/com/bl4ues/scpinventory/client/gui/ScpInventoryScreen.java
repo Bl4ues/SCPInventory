@@ -328,7 +328,6 @@ public class ScpInventoryScreen extends Screen {
                     return true;
                 }
                 if (button == 1) {
-                    ClientInventoryBridge.performEquipment(clickedEquipmentSlot, EquipmentActionPacket.ACTION_DROP);
                     return true;
                 }
             }
