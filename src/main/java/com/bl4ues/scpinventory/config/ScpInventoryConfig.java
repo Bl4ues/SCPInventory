@@ -24,12 +24,10 @@ public final class ScpInventoryConfig {
                         "Items not listed here fall back to vanilla detection: food becomes Consumable, vanilla armor goes to its matching equipment slot, everything else becomes Miscellaneous.",
                         "Readable example:",
                         "  item_rules = [",
-                        "      \"minecraft:leather_helmet|HEAD\",",
-                        "      \"minecraft:leather_chestplate|BODY\",",
-                        "      \"minecraft:clock|ACCESSORY\",",
-                        "      \"minecraft:stick|WEAPON\",",
-                        "      \"minecraft:golden_apple|CONSUMABLE\",",
-                        "      \"minecraft:tripwire_hook|KEY\"",
+                        "      \"scp_additions:level_2_keycard|KEY\",",
+                        "      \"scp_additions:gas_mask|HEAD\",",
+                        "      \"scp_additions:scp_714|ACCESSORY\",",
+                        "      \"minecraft:golden_apple|CONSUMABLE\"",
                         "  ]"
                 )
                 .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
@@ -43,27 +41,24 @@ public final class ScpInventoryConfig {
                         "Readable multiline example supported by the parser:",
                         "  codex_documents = [",
                         "      \"\"\"",
-                        "      id=minecraft:paper",
+                        "      id=modid:item",
                         "      category=SCP Documents",
-                        "      name=Debug Image Document",
-                        "      image=scpinventory:textures/gui/documents/debug_document.png",
-                        "      text=scpinventory:codex/debug_paper.txt",
+                        "      name=SCP-330 Containment Protocol",
+                        "      image=scpinventory:textures/gui/documents/scp_330.png",
+                        "      text=scpinventory:codex/scp_330.txt",
                         "      image_width=1279",
                         "      image_height=1920",
-                        "      nbt_key=ScpCodexDebug",
-                        "      nbt_value=true",
                         "      \"\"\"",
                         "  ]",
                         "Fields:",
                         "  id: required item id.",
                         "  category/type/section: left-panel group/tab name.",
                         "  name/display_name/title: document title shown inside the category.",
-                        "  image/texture/photo: ResourceLocation for a static document image.",
+                        "  image/texture/photo: ResourceLocation for a static document image. Default document page size is 1279x1920.",
                         "  text/transcript/transcription: ResourceLocation for a .txt transcription asset.",
                         "  image_width/image_height: source texture dimensions. Defaults to 1279x1920.",
                         "  creator/timestamp/uuid: optional Camerapture-style NBT filters kept for later integration.",
-                        "  nbt_key/nbt_value: optional generic NBT filter for custom debug or special documents.",
-                        "Debug note: /scpinventory debugcodex adds a built-in paper document for UI testing."
+                        "  nbt_key/nbt_value: optional generic NBT filter for custom documents."
                 )
                 .defineList("codex_documents", List.<String>of(), ScpInventoryConfig::isString);
 
