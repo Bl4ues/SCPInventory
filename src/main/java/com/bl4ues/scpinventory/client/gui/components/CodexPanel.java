@@ -5,9 +5,7 @@ import com.bl4ues.scpinventory.item.CodexDocumentDefinition;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 
 import java.io.BufferedReader;
@@ -25,7 +23,7 @@ import java.util.TreeMap;
 public class CodexPanel {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
-    private static final int TEXT_BODY = 0xE8B2B3B3;
+    private static final int TEXT_BODY = 0xF0B2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int CATEGORY_BACKGROUND = 0x446A6C6C;
     private static final int SELECTED_BACKGROUND = 0x889FC8C8;
@@ -33,6 +31,7 @@ public class CodexPanel {
     private static final int BUTTON_BACKGROUND_HOVERED = 0x667A7C7C;
     private static final int SCROLL_TRACK = 0x33000000;
     private static final int SCROLL_THUMB = 0x886A6C6C;
+    private static final int OVERLAY_BACKGROUND = 0xB8000000;
     private static final int DEBUG_PAGE = 0xE8D7D8D5;
     private static final int DEBUG_PAGE_DARK = 0xFF202020;
     private static final int DEBUG_PAGE_FAINT = 0x66303030;
@@ -63,7 +62,6 @@ public class CodexPanel {
     private int scrollOffset = 0;
     private int textScrollOffset = 0;
     private int textZoomLevel = 0;
-    private int imageZoomLevel = 0;
     private boolean showingText = false;
     private boolean expandedImage = false;
 
@@ -106,46 +104,46 @@ public class CodexPanel {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (expandedImage) {
+            expandedImage = false;
+            return true;
+        }
+
         if (button != 0) {
             return false;
         }
 
         if (isValidSelectedDocument()) {
-            if (showingText || expandedImage) {
+            if (showingText) {
                 if (clickedReturnButton(mouseX, mouseY)) {
                     showingText = false;
-                    expandedImage = false;
                     textScrollOffset = 0;
-                    imageZoomLevel = 0;
                     return true;
                 }
 
                 if (clickedZoomInButton(mouseX, mouseY)) {
-                    if (showingText) textZoomLevel = Math.min(5, textZoomLevel + 1);
-                    if (expandedImage) imageZoomLevel = Math.min(5, imageZoomLevel + 1);
+                    textZoomLevel = Math.min(5, textZoomLevel + 1);
                     textScrollOffset = 0;
                     return true;
                 }
 
                 if (clickedZoomOutButton(mouseX, mouseY)) {
-                    if (showingText) textZoomLevel = Math.max(-2, textZoomLevel - 1);
-                    if (expandedImage) imageZoomLevel = Math.max(0, imageZoomLevel - 1);
+                    textZoomLevel = Math.max(-2, textZoomLevel - 1);
                     textScrollOffset = 0;
                     return true;
                 }
             }
 
-            if (!expandedImage && !showingText && clickedTextButton(mouseX, mouseY)) {
+            if (!showingText && clickedTextButton(mouseX, mouseY)) {
                 showingText = true;
                 expandedImage = false;
                 textScrollOffset = 0;
                 return true;
             }
 
-            if (!expandedImage && !showingText && clickedExpandButton(mouseX, mouseY)) {
+            if (!showingText && clickedExpandButton(mouseX, mouseY)) {
                 expandedImage = true;
                 showingText = false;
-                imageZoomLevel = 0;
                 return true;
             }
         }
@@ -169,7 +167,6 @@ public class CodexPanel {
         showingText = false;
         expandedImage = false;
         textScrollOffset = 0;
-        imageZoomLevel = 0;
         return true;
     }
 
@@ -240,17 +237,15 @@ public class CodexPanel {
         ItemStack document = documents.get(selectedIndex);
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(document);
 
-        if (expandedImage) {
-            renderExpandedImage(g, mouseX, mouseY, document, definition);
-            return;
-        }
-
         if (showingText) {
             renderDocumentText(g, mouseX, mouseY, document, definition);
-            return;
+        } else {
+            renderDocumentImagePreview(g, mouseX, mouseY, document, definition);
         }
 
-        renderDocumentImagePreview(g, mouseX, mouseY, document, definition);
+        if (expandedImage) {
+            renderExpandedImage(g, document, definition);
+        }
     }
 
     private void renderDocumentImagePreview(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
@@ -260,34 +255,38 @@ public class CodexPanel {
         int imageAreaWidth = detailWidth - 24;
         int imageAreaHeight = Math.max(40, buttonY - imageAreaY - 6);
 
-        drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, false);
+        drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight);
         drawDetailButtons(g, mouseX, mouseY);
     }
 
-    private void renderExpandedImage(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
-        drawTopControls(g, mouseX, mouseY, definition.getDisplayName(document));
+    private void renderExpandedImage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition) {
+        int screenWidth = mc.getWindow().getGuiScaledWidth();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
+        g.fill(0, 0, screenWidth, screenHeight, OVERLAY_BACKGROUND);
 
-        int imageAreaX = detailX + 8;
-        int imageAreaY = detailY + 32;
-        int imageAreaWidth = detailWidth - 16;
-        int imageAreaHeight = detailHeight - 40;
+        int marginX = Math.max(24, screenWidth / 12);
+        int marginY = Math.max(18, screenHeight / 18);
+        int imageAreaX = marginX;
+        int imageAreaY = marginY;
+        int imageAreaWidth = screenWidth - marginX * 2;
+        int imageAreaHeight = screenHeight - marginY * 2;
 
-        drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight, true);
+        drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight);
     }
 
     private void renderDocumentText(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
         drawTopControls(g, mouseX, mouseY, definition.getDisplayName(document));
 
-        int textX = detailX + 14;
-        int textY = detailY + 36;
-        int textWidth = detailWidth - 32;
-        int textHeight = detailHeight - 48;
+        int textX = detailX + 26;
+        int textY = detailY + 40;
+        int textWidth = detailWidth - 58;
+        int textHeight = detailHeight - 52;
         float scale = getTextScale();
         int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
         int lineHeight = Math.max(8, Math.round(12 * scale));
 
         String body = readText(definition).orElseGet(() -> buildFallbackText(document, definition));
-        List<FormattedCharSequence> lines = wrapText(body, scaledTextWidth);
+        List<TextLine> lines = wrapJustifiedText(body, scaledTextWidth);
         int visibleLines = Math.max(1, textHeight / lineHeight);
         clampTextScroll(lines.size(), visibleLines);
 
@@ -298,21 +297,20 @@ public class CodexPanel {
             if (index >= lines.size()) {
                 break;
             }
-            drawScaledString(g, lines.get(index), textX, drawY, TEXT_BODY, scale);
+            drawTextLine(g, lines.get(index), textX, drawY, TEXT_BODY, scale, scaledTextWidth);
             drawY += lineHeight;
         }
         g.disableScissor();
 
-        renderTextScrollbar(g, lines.size(), visibleLines, textX + textWidth + 4, textY, textHeight);
+        renderTextScrollbar(g, lines.size(), visibleLines, textX + textWidth + 6, textY, textHeight);
     }
 
-    private void drawDocumentImage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight, boolean allowZoom) {
+    private void drawDocumentImage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight) {
         ResourceLocation image = definition.getImageLocation().orElse(null);
         if (image != null) {
             int[] fitted = fitRect(definition.getImageWidth(), definition.getImageHeight(), areaWidth, areaHeight);
-            float zoom = allowZoom ? getImageZoomScale() : 1.0F;
-            int width = Math.max(1, Math.round(fitted[0] * zoom));
-            int height = Math.max(1, Math.round(fitted[1] * zoom));
+            int width = Math.max(1, fitted[0]);
+            int height = Math.max(1, fitted[1]);
             int imageX = areaX + (areaWidth - width) / 2;
             int imageY = areaY + (areaHeight - height) / 2;
 
@@ -324,14 +322,13 @@ public class CodexPanel {
             return;
         }
 
-        renderDebugDocumentPage(g, document, definition, areaX, areaY, areaWidth, areaHeight, allowZoom);
+        renderDebugDocumentPage(g, document, definition, areaX, areaY, areaWidth, areaHeight);
     }
 
-    private void renderDebugDocumentPage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight, boolean allowZoom) {
+    private void renderDebugDocumentPage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight) {
         int[] fitted = fitRect(1279, 1920, areaWidth, areaHeight);
-        float zoom = allowZoom ? getImageZoomScale() : 1.0F;
-        int pageW = Math.max(1, Math.round(fitted[0] * zoom));
-        int pageH = Math.max(1, Math.round(fitted[1] * zoom));
+        int pageW = Math.max(1, fitted[0]);
+        int pageH = Math.max(1, fitted[1]);
         int pageX = areaX + (areaWidth - pageW) / 2;
         int pageY = areaY + (areaHeight - pageH) / 2;
 
@@ -367,9 +364,16 @@ public class CodexPanel {
 
     private void drawTopControls(GuiGraphics g, int mouseX, int mouseY, String title) {
         drawButton(g, detailX + 8, detailY + 8, 64, BUTTON_HEIGHT, "Return", clickedReturnButton(mouseX, mouseY));
-        g.drawString(mc.font, title, detailX + (detailWidth - mc.font.width(title)) / 2, detailY + 12, TEXT_WHITE, false);
         drawButton(g, detailX + detailWidth - 48, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "+", clickedZoomInButton(mouseX, mouseY));
         drawButton(g, detailX + detailWidth - 26, detailY + 8, ZOOM_BUTTON_SIZE, BUTTON_HEIGHT, "-", clickedZoomOutButton(mouseX, mouseY));
+
+        int titleX = detailX + 80;
+        int titleRight = detailX + detailWidth - 56;
+        int titleWidth = Math.max(20, titleRight - titleX);
+        int drawX = titleX + Math.max(0, (titleWidth - mc.font.width(title)) / 2);
+        g.enableScissor(titleX, detailY + 6, titleRight, detailY + 28);
+        g.drawString(mc.font, title, drawX, detailY + 13, TEXT_WHITE, false);
+        g.disableScissor();
     }
 
     private void drawScaledPageString(GuiGraphics g, String text, float x, float y, int color, float scale) {
@@ -380,7 +384,44 @@ public class CodexPanel {
         g.pose().popPose();
     }
 
-    private void drawScaledString(GuiGraphics g, FormattedCharSequence text, int x, int y, int color, float scale) {
+    private void drawTextLine(GuiGraphics g, TextLine line, int x, int y, int color, float scale, int targetWidth) {
+        if (!line.justify || line.text.isBlank()) {
+            drawScaledString(g, line.text, x, y, color, scale);
+            return;
+        }
+
+        String[] words = line.text.trim().split("\\s+");
+        if (words.length <= 1) {
+            drawScaledString(g, line.text, x, y, color, scale);
+            return;
+        }
+
+        int wordWidth = 0;
+        for (String word : words) {
+            wordWidth += mc.font.width(word);
+        }
+
+        int gaps = words.length - 1;
+        int baseSpace = mc.font.width(" ");
+        int extra = targetWidth - wordWidth - (baseSpace * gaps);
+        if (extra <= 0 || extra > targetWidth / 3) {
+            drawScaledString(g, line.text, x, y, color, scale);
+            return;
+        }
+
+        g.pose().pushPose();
+        g.pose().translate(x, y, 0.0F);
+        g.pose().scale(scale, scale, 1.0F);
+        float cursorX = 0.0F;
+        float gapWidth = baseSpace + (extra / (float) gaps);
+        for (String word : words) {
+            g.drawString(mc.font, word, (int) cursorX, 0, color, false);
+            cursorX += mc.font.width(word) + gapWidth;
+        }
+        g.pose().popPose();
+    }
+
+    private void drawScaledString(GuiGraphics g, String text, int x, int y, int color, float scale) {
         g.pose().pushPose();
         g.pose().translate(x, y, 0.0F);
         g.pose().scale(scale, scale, 1.0F);
@@ -432,16 +473,47 @@ public class CodexPanel {
         return rows;
     }
 
-    private List<FormattedCharSequence> wrapText(String body, int width) {
-        List<FormattedCharSequence> lines = new ArrayList<>();
+    private List<TextLine> wrapJustifiedText(String body, int width) {
+        List<TextLine> lines = new ArrayList<>();
         for (String paragraph : body.split("\\R", -1)) {
             if (paragraph.isBlank()) {
-                lines.add(Component.literal("").getVisualOrderText());
+                lines.add(new TextLine("", false));
                 continue;
             }
-            lines.addAll(mc.font.split(Component.literal(paragraph), width));
+
+            List<String> paragraphLines = wrapParagraph(paragraph, width);
+            for (int i = 0; i < paragraphLines.size(); i++) {
+                lines.add(new TextLine(paragraphLines.get(i), i < paragraphLines.size() - 1));
+            }
         }
         return lines;
+    }
+
+    private List<String> wrapParagraph(String paragraph, int width) {
+        List<String> lines = new ArrayList<>();
+        String[] words = paragraph.trim().split("\\s+");
+        String current = "";
+
+        for (String word : words) {
+            if (current.isBlank()) {
+                current = word;
+                continue;
+            }
+
+            String candidate = current + " " + word;
+            if (mc.font.width(candidate) <= width) {
+                current = candidate;
+            } else {
+                lines.add(current);
+                current = word;
+            }
+        }
+
+        if (!current.isBlank()) {
+            lines.add(current);
+        }
+
+        return lines.isEmpty() ? List.of("") : lines;
     }
 
     private DisplayRow getClickedRow(double mouseX, double mouseY) {
@@ -473,7 +545,6 @@ public class CodexPanel {
             showingText = false;
             expandedImage = false;
             textScrollOffset = 0;
-            imageZoomLevel = 0;
         }
     }
 
@@ -495,10 +566,10 @@ public class CodexPanel {
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(documents.get(selectedIndex));
         String body = readText(definition).orElseGet(() -> buildFallbackText(documents.get(selectedIndex), definition));
         float scale = getTextScale();
-        int textWidth = detailWidth - 32;
+        int textWidth = detailWidth - 58;
         int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
-        int visibleLines = Math.max(1, (detailHeight - 48) / Math.max(8, Math.round(12 * scale)));
-        clampTextScroll(wrapText(body, scaledTextWidth).size(), visibleLines);
+        int visibleLines = Math.max(1, (detailHeight - 52) / Math.max(8, Math.round(12 * scale)));
+        clampTextScroll(wrapJustifiedText(body, scaledTextWidth).size(), visibleLines);
     }
 
     private void clampTextScroll(int totalLines, int visibleLines) {
@@ -621,10 +692,6 @@ public class CodexPanel {
         return Math.max(0.75F, 1.0F + (textZoomLevel * 0.15F));
     }
 
-    private float getImageZoomScale() {
-        return 1.0F + (imageZoomLevel * 0.25F);
-    }
-
     private int[] fitRect(int sourceWidth, int sourceHeight, int maxWidth, int maxHeight) {
         float scale = Math.min(maxWidth / (float) sourceWidth, maxHeight / (float) sourceHeight);
         int width = Math.max(1, Math.round(sourceWidth * scale));
@@ -651,6 +718,16 @@ public class CodexPanel {
 
         int guiHeight = minecraft.getWindow().getGuiScaledHeight();
         return Math.max(ROW_HEIGHT * 9, guiHeight - panelY - 160);
+    }
+
+    private static class TextLine {
+        private final String text;
+        private final boolean justify;
+
+        private TextLine(String text, boolean justify) {
+            this.text = text;
+            this.justify = justify;
+        }
     }
 
     private static class DisplayRow {
