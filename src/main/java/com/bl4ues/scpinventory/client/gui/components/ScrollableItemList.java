@@ -20,6 +20,7 @@ public class ScrollableItemList {
     private static final int ICON_CORNER = 0xAA6A6C6C;
     private static final int SCROLL_TRACK = 0x44000000;
     private static final int SCROLL_THUMB = 0xAA6A6C6C;
+    private static final float SOLID_ITEM_RENDER_ALPHA_THRESHOLD = 0.72F;
 
     private final Minecraft mc = Minecraft.getInstance();
 
@@ -90,9 +91,9 @@ public class ScrollableItemList {
 
         if (!stack.isEmpty()) {
             drawIconFrame(g, iconX, iconY, alpha);
-            g.setColor(1.0F, 1.0F, 1.0F, alpha);
-            g.renderItem(stack, iconX + 4, iconY + 4);
-            g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            if (alpha >= SOLID_ITEM_RENDER_ALPHA_THRESHOLD) {
+                g.renderItem(stack, iconX + 4, iconY + 4);
+            }
         }
 
         g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, applyAlpha(TEXT_WHITE, alpha), false);
