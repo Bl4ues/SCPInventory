@@ -23,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 public class ScpInventoryScreen extends Screen {
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int TEXT_SELECTED = 0xFF202020;
     private static final int TAB_ACTIVE = 0x55B2B3B3;
     private static final int TAB_INACTIVE = 0x336A6C6C;
     private static final int ROOT_TINT = 0x11000000;
@@ -46,7 +47,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int NAV_ICON_SIZE = 24;
     private static final int NAV_BUTTON_WIDTH = 120;
     private static final int NAV_BUTTON_HEIGHT = 46;
-    private static final int TAB_HEIGHT = 20;
+    private static final int TAB_HEIGHT = 17;
     private static final int INVENTORY_TAB_WIDTH = 90;
     private static final int KEYS_TAB_WIDTH = 76;
     private static final int HEALTH_ICON_SIZE = 20;
@@ -101,7 +102,17 @@ public class ScpInventoryScreen extends Screen {
             inventory = inv;
             rebuildItemList();
             equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, equipmentPanelX, inv);
-            codexPanel = new CodexPanel(listX, listPanelY + 26, listWidth, equipmentX, equipmentWidth, titleY, listPanelX, equipmentPanelX, inv);
+            codexPanel = new CodexPanel(
+                    listPanelX + 10,
+                    listPanelY + 26,
+                    listPanelWidth - 20,
+                    equipmentPanelX + 10,
+                    equipmentPanelWidth - 20,
+                    titleY,
+                    listPanelX,
+                    equipmentPanelX,
+                    inv
+            );
         });
     }
 
@@ -141,7 +152,7 @@ public class ScpInventoryScreen extends Screen {
         equipmentPanelHeight = listPanelHeight;
 
         listX = listPanelX + 18;
-        listY = tabY + 34;
+        listY = tabY + 31;
         listWidth = listPanelWidth - 36;
 
         equipmentX = equipmentPanelX + 28;
@@ -162,6 +173,8 @@ public class ScpInventoryScreen extends Screen {
         renderPanels(g);
         renderHealthStatus(g);
 
+        boolean codexExpanded = mode == ScreenMode.CODEX && codexPanel != null && codexPanel.isExpandedImage();
+
         if (mode == ScreenMode.CODEX) {
             if (codexPanel != null) codexPanel.render(g, mouseX, mouseY);
         } else {
@@ -171,10 +184,12 @@ public class ScpInventoryScreen extends Screen {
             if (equipmentPanel != null) equipmentPanel.render(g, mouseX, mouseY);
         }
 
-        renderBottomNavigation(g);
-        if (contextMenu != null) contextMenu.render(g, mouseX, mouseY);
-        renderDraggedStack(g, mouseX, mouseY);
-        super.render(g, mouseX, mouseY, partialTick);
+        if (!codexExpanded) {
+            renderBottomNavigation(g);
+            if (contextMenu != null) contextMenu.render(g, mouseX, mouseY);
+            renderDraggedStack(g, mouseX, mouseY);
+            super.render(g, mouseX, mouseY, partialTick);
+        }
     }
 
     private void renderPanels(GuiGraphics g) {
@@ -183,13 +198,8 @@ public class ScpInventoryScreen extends Screen {
         g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
 
         int panelBottom = listPanelY + listPanelHeight;
-        if (mode == ScreenMode.CODEX) {
-            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
-            g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
-        } else {
-            g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
-            g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
-        }
+        g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
+        g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
     }
 
     private void renderHealthStatus(GuiGraphics g) {
@@ -258,7 +268,7 @@ public class ScpInventoryScreen extends Screen {
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
         g.fill(x, y, x + w, y + TAB_HEIGHT, active ? TAB_ACTIVE : TAB_INACTIVE);
-        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 6, active ? TEXT_WHITE : TEXT_GRAY, false);
+        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 5, active ? TEXT_SELECTED : TEXT_GRAY, false);
     }
 
     private void drawSectionTitle(GuiGraphics g, int x, int y, String suffix) {
@@ -303,6 +313,9 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.isExpandedImage()) {
+            return codexPanel.mouseClicked(mouseX, mouseY, button);
+        }
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
         if (button == 0 && clickedBottomNavigation(mouseX, mouseY)) return true;
         if (mode == ScreenMode.CODEX) return codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
