@@ -1,5 +1,6 @@
 package com.bl4ues.scpinventory.client.gui.components;
 
+import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.item.CodexDocumentDefinition;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.client.Minecraft;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -24,7 +26,6 @@ public class CodexPanel {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int LINE_GRAY = 0x556A6C6C;
     private static final int CATEGORY_BACKGROUND = 0x336A6C6C;
     private static final int SELECTED_BACKGROUND = 0x889FC8C8;
     private static final int BUTTON_BACKGROUND = 0x446A6C6C;
@@ -58,6 +59,22 @@ public class CodexPanel {
     private boolean showingText = false;
     private boolean expandedImage = false;
 
+    public CodexPanel(int x, int y, int listWidth, int detailX, int detailWidth, int titleY, int listTitleX, int detailTitleX, IScpInventory inventory) {
+        this(
+                x,
+                y,
+                listWidth,
+                guessPanelHeight(y),
+                detailX,
+                detailWidth,
+                guessPanelHeight(y),
+                titleY,
+                listTitleX,
+                detailTitleX,
+                inventory == null ? List.of() : inventory.getDocuments()
+        );
+    }
+
     public CodexPanel(int x, int y, int listWidth, int listHeight, int detailX, int detailWidth, int detailHeight, int titleY, int listTitleX, int detailTitleX, List<ItemStack> documents) {
         this.x = x;
         this.y = y;
@@ -70,7 +87,7 @@ public class CodexPanel {
         this.titleY = titleY;
         this.listTitleX = listTitleX;
         this.detailTitleX = detailTitleX;
-        this.documents = documents;
+        this.documents = documents == null ? List.of() : documents;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -397,7 +414,7 @@ public class CodexPanel {
                 StringBuilder builder = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (!builder.isEmpty()) {
+                    if (builder.length() > 0) {
                         builder.append('\n');
                     }
                     builder.append(line);
@@ -459,6 +476,15 @@ public class CodexPanel {
         String prefix = "://CODEX_";
         g.drawString(mc.font, prefix, x, y, TEXT_GRAY, false);
         g.drawString(mc.font, suffix, x + mc.font.width(prefix), y, TEXT_WHITE, false);
+    }
+
+    private static int guessPanelHeight(int panelY) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || minecraft.getWindow() == null) {
+            return ROW_HEIGHT * 12;
+        }
+
+        return Math.max(ROW_HEIGHT * 12, minecraft.getWindow().getGuiScaledHeight() - panelY - 86);
     }
 
     private static class DisplayRow {
