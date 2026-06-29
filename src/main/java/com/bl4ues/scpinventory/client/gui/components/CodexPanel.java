@@ -122,7 +122,6 @@ public class CodexPanel {
     private void renderDocumentDetails(GuiGraphics g) {
         List<ItemStack> documents = inventory.getDocuments();
         if (selectedIndex < 0 || selectedIndex >= documents.size()) {
-            drawWrapped(g, "No document selected.", detailX, y + 10, detailWidth, TEXT_GRAY);
             return;
         }
 
