@@ -70,6 +70,8 @@ public class CodexPanel {
     private int textZoomLevel = 0;
     private boolean showingText = false;
     private boolean expandedImage = false;
+    private boolean draggingListScrollbar = false;
+    private boolean draggingTextScrollbar = false;
 
     public CodexPanel(int x, int y, int listWidth, int detailX, int detailWidth, int titleY, int listTitleX, int detailTitleX, IScpInventory inventory) {
         this(
@@ -121,6 +123,18 @@ public class CodexPanel {
 
         if (button != 0) {
             return false;
+        }
+
+        if (clickedListScrollbar(mouseX, mouseY)) {
+            draggingListScrollbar = true;
+            updateListScrollFromMouse(mouseY);
+            return true;
+        }
+
+        if (showingText && clickedTextScrollbar(mouseX, mouseY)) {
+            draggingTextScrollbar = true;
+            updateTextScrollFromMouse(mouseY);
+            return true;
         }
 
         if (isValidSelectedDocument()) {
@@ -177,6 +191,34 @@ public class CodexPanel {
         showingText = false;
         expandedImage = false;
         textScrollOffset = 0;
+        return true;
+    }
+
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (button != 0) {
+            return false;
+        }
+
+        if (draggingListScrollbar) {
+            updateListScrollFromMouse(mouseY);
+            return true;
+        }
+
+        if (draggingTextScrollbar) {
+            updateTextScrollFromMouse(mouseY);
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean mouseReleased(int button) {
+        if (button != 0 || (!draggingListScrollbar && !draggingTextScrollbar)) {
+            return false;
+        }
+
+        draggingListScrollbar = false;
+        draggingTextScrollbar = false;
         return true;
     }
 
@@ -363,8 +405,8 @@ public class CodexPanel {
         g.fill(lineX, highlightY - 1, lineX + lineW - pageW / 10, highlightY + lineStep + 1, DEBUG_HIGHLIGHT);
         g.fill(lineX, highlightY + lineStep + 2, lineX + lineW - pageW / 5, highlightY + (lineStep * 2) + 4, DEBUG_HIGHLIGHT);
 
-        drawScaledPageString(g, "This is a generated debug preview.", lineX, pageY + pageH - pageH / 7.5F, DEBUG_PAGE_DARK, titleScale * 0.60F);
-        drawScaledPageString(g, "Use the text button for the transcript.", lineX, pageY + pageH - pageH / 9.0F, DEBUG_PAGE_DARK, titleScale * 0.60F);
+        drawScaledPageString(g, "This is a generated preview.", lineX, pageY + pageH - pageH / 7.5F, DEBUG_PAGE_DARK, titleScale * 0.60F);
+        drawScaledPageString(g, "Configure an image resource for the final document.", lineX, pageY + pageH - pageH / 9.0F, DEBUG_PAGE_DARK, titleScale * 0.60F);
         g.disableScissor();
     }
 
@@ -584,13 +626,12 @@ public class CodexPanel {
             textScrollOffset = 0;
             return;
         }
+        TextMetrics metrics = getTextMetrics();
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(documents.get(selectedIndex));
         String body = readText(definition).orElseGet(() -> buildFallbackText(documents.get(selectedIndex), definition));
         float scale = getTextScale();
-        int textWidth = Math.max(40, getDetailRight() - SCROLL_WIDTH - 6 - (getDetailLeft() + 2));
-        int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
-        int textHeight = Math.max(40, getDetailBottom() - (getControlY() + BUTTON_HEIGHT + TEXT_TOP_GAP));
-        int visibleLines = Math.max(1, textHeight / Math.max(8, Math.round(12 * scale)));
+        int scaledTextWidth = Math.max(40, (int) (metrics.width / scale));
+        int visibleLines = Math.max(1, metrics.height / Math.max(8, Math.round(12 * scale)));
         clampTextScroll(wrapJustifiedText(body, scaledTextWidth).size(), visibleLines);
     }
 
@@ -615,12 +656,53 @@ public class CodexPanel {
                 && mouseY <= getDetailBottom();
     }
 
+    private boolean clickedListScrollbar(double mouseX, double mouseY) {
+        return isMouseInside(mouseX, mouseY, getListScrollbarX() - 3, getListContentY(), SCROLL_WIDTH + 6, getListScrollbarHeight()) && buildRows().size() > getVisibleRows();
+    }
+
+    private boolean clickedTextScrollbar(double mouseX, double mouseY) {
+        TextMetrics metrics = getTextMetrics();
+        return isMouseInside(mouseX, mouseY, getTextScrollbarX() - 3, metrics.y, SCROLL_WIDTH + 6, metrics.height) && getTextTotalLines() > metrics.visibleLines;
+    }
+
+    private void updateListScrollFromMouse(double mouseY) {
+        int totalRows = buildRows().size();
+        if (totalRows <= getVisibleRows()) {
+            scrollOffset = 0;
+            return;
+        }
+
+        int trackHeight = getListScrollbarHeight();
+        int thumbHeight = Math.max(18, trackHeight * getVisibleRows() / totalRows);
+        int thumbTravel = Math.max(1, trackHeight - thumbHeight);
+        int maxScroll = Math.max(1, totalRows - getVisibleRows());
+        double relative = (mouseY - getListContentY() - (thumbHeight / 2.0D)) / thumbTravel;
+        scrollOffset = (int) Math.round(relative * maxScroll);
+        clampScroll(totalRows);
+    }
+
+    private void updateTextScrollFromMouse(double mouseY) {
+        TextMetrics metrics = getTextMetrics();
+        int totalLines = getTextTotalLines();
+        if (totalLines <= metrics.visibleLines) {
+            textScrollOffset = 0;
+            return;
+        }
+
+        int thumbHeight = Math.max(18, metrics.height * metrics.visibleLines / totalLines);
+        int thumbTravel = Math.max(1, metrics.height - thumbHeight);
+        int maxScroll = Math.max(1, totalLines - metrics.visibleLines);
+        double relative = (mouseY - metrics.y - (thumbHeight / 2.0D)) / thumbTravel;
+        textScrollOffset = (int) Math.round(relative * maxScroll);
+        clampTextScroll(totalLines, metrics.visibleLines);
+    }
+
     private void renderScrollbar(GuiGraphics g, int totalRows) {
         if (totalRows <= getVisibleRows()) return;
 
-        int trackX = x + listWidth - 14;
+        int trackX = getListScrollbarX();
         int trackY = getListContentY();
-        int trackHeight = getVisibleRows() * ROW_HEIGHT;
+        int trackHeight = getListScrollbarHeight();
         int thumbHeight = Math.max(18, trackHeight * getVisibleRows() / totalRows);
         int maxScroll = Math.max(1, totalRows - getVisibleRows());
         int thumbTravel = trackHeight - thumbHeight;
@@ -640,6 +722,38 @@ public class CodexPanel {
 
         g.fill(trackX, trackY, trackX + SCROLL_WIDTH, trackY + trackHeight, SCROLL_TRACK);
         g.fill(trackX, thumbY, trackX + SCROLL_WIDTH, thumbY + thumbHeight, SCROLL_THUMB);
+    }
+
+    private int getListScrollbarX() {
+        return x + listWidth - 14;
+    }
+
+    private int getListScrollbarHeight() {
+        return getVisibleRows() * ROW_HEIGHT;
+    }
+
+    private int getTextScrollbarX() {
+        return getDetailRight() - SCROLL_WIDTH;
+    }
+
+    private int getTextTotalLines() {
+        if (!isValidSelectedDocument()) return 0;
+        CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(documents.get(selectedIndex));
+        String body = readText(definition).orElseGet(() -> buildFallbackText(documents.get(selectedIndex), definition));
+        TextMetrics metrics = getTextMetrics();
+        float scale = getTextScale();
+        return wrapJustifiedText(body, Math.max(40, (int) (metrics.width / scale))).size();
+    }
+
+    private TextMetrics getTextMetrics() {
+        int textX = getDetailLeft() + 2;
+        int textY = getControlY() + BUTTON_HEIGHT + TEXT_TOP_GAP;
+        int textRight = getDetailRight() - SCROLL_WIDTH - 6;
+        int textWidth = Math.max(40, textRight - textX);
+        int textHeight = Math.max(40, getDetailBottom() - textY);
+        int lineHeight = Math.max(8, Math.round(12 * getTextScale()));
+        int visibleLines = Math.max(1, textHeight / lineHeight);
+        return new TextMetrics(textX, textY, textWidth, textHeight, visibleLines);
     }
 
     private Optional<String> readText(CodexDocumentDefinition definition) {
@@ -767,6 +881,22 @@ public class CodexPanel {
         private TextLine(String text, boolean justify) {
             this.text = text;
             this.justify = justify;
+        }
+    }
+
+    private static class TextMetrics {
+        private final int x;
+        private final int y;
+        private final int width;
+        private final int height;
+        private final int visibleLines;
+
+        private TextMetrics(int x, int y, int width, int height, int visibleLines) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.visibleLines = visibleLines;
         }
     }
 
