@@ -1,0 +1,32 @@
+[scp_inventory]
+
+# Item classification rules used by the SCP inventory.
+# Format: "modid:item|TYPE"
+# Accepted TYPE values:
+# MISC, CONSUMABLE, KEY, CODEX, HEAD, BODY, CHEST, LEGS, FEET, ACCESSORY, WEAPON
+item_rules = [
+    "minecraft:leather_helmet|HEAD",
+    "minecraft:leather_chestplate|BODY",
+    "minecraft:clock|ACCESSORY",
+    "minecraft:stick|WEAPON",
+    "minecraft:golden_apple|CONSUMABLE",
+    "minecraft:tripwire_hook|KEY"
+]
+
+# Codex document rules.
+# Each document rule is one TOML string inside the list.
+# The parser accepts both semicolon-separated one-line entries and multiline entries.
+# Document images default to 1279x1920, so image_width/image_height can be omitted when using that size.
+codex_documents = [
+    """
+    id=minecraft:paper
+    category=SCP Documents
+    name=Debug Image Document
+    image=scpinventory:textures/gui/documents/debug_document.png
+    text=scpinventory:codex/debug_paper.txt
+    image_width=1279
+    image_height=1920
+    nbt_key=ScpCodexDebug
+    nbt_value=true
+    """
+]
