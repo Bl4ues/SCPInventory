@@ -115,8 +115,8 @@ public class VanillaMirrorSyncHandler {
             }
 
             ScpEquipmentSlot preservedSlot = getPreservedMirrorSlot(type);
-            if (preservedSlot != null && syncPreservedEquipmentMirror(inventory, preservedSlot, stack)) {
-                changed = true;
+            if (preservedSlot != null && isPreservedEquipmentMirror(inventory, preservedSlot, stack)) {
+                changed |= syncEquipmentFromMirror(inventory, preservedSlot, stack);
                 changed |= routeMirrorOverflow(player, inventory, vanillaInventory, i, stack);
                 continue;
             }
@@ -173,17 +173,15 @@ public class VanillaMirrorSyncHandler {
         };
     }
 
-    private static boolean syncPreservedEquipmentMirror(IScpInventory inventory, ScpEquipmentSlot slot, ItemStack vanillaStack) {
+    private static boolean isPreservedEquipmentMirror(IScpInventory inventory, ScpEquipmentSlot slot, ItemStack vanillaStack) {
         ItemStack equipped = inventory.getEquipment(slot);
-        if (equipped.isEmpty()) {
-            return false;
-        }
+        return !equipped.isEmpty() && vanillaStack.is(equipped.getItem());
+    }
 
+    private static boolean syncEquipmentFromMirror(IScpInventory inventory, ScpEquipmentSlot slot, ItemStack vanillaStack) {
         ItemStack normalized = vanillaStack.copy();
         normalized.setCount(1);
-        if (!ItemStack.isSameItemSameTags(equipped, normalized)) {
-            return false;
-        }
+        ItemStack equipped = inventory.getEquipment(slot);
 
         if (equipped.getCount() != 1 || !ItemStack.isSameItemSameTags(equipped, normalized)) {
             inventory.setEquipment(slot, normalized);
@@ -200,7 +198,7 @@ public class VanillaMirrorSyncHandler {
         }
 
         Inventory vanillaInventory = player.getInventory();
-        if (findSameStack(vanillaInventory, equipped) != -1) {
+        if (findSameItem(vanillaInventory, equipped) != -1) {
             return false;
         }
 
@@ -224,10 +222,10 @@ public class VanillaMirrorSyncHandler {
         return true;
     }
 
-    private static int findSameStack(Inventory inventory, ItemStack stack) {
+    private static int findSameItem(Inventory inventory, ItemStack stack) {
         for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
             ItemStack candidate = inventory.items.get(i);
-            if (!candidate.isEmpty() && ItemStack.isSameItemSameTags(candidate, stack)) {
+            if (!candidate.isEmpty() && candidate.is(stack.getItem())) {
                 return i;
             }
         }
