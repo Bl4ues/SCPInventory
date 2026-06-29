@@ -17,8 +17,8 @@ public final class CodexDocumentDefinition {
     public static final String DEBUG_TAG = "ScpCodexDebug";
 
     private static final ResourceLocation DEBUG_TEXT = new ResourceLocation(ScpInventoryMod.MODID, "codex/debug_paper.txt");
-    private static final int DEFAULT_IMAGE_WIDTH = 512;
-    private static final int DEFAULT_IMAGE_HEIGHT = 724;
+    private static final int DEFAULT_IMAGE_WIDTH = 1279;
+    private static final int DEFAULT_IMAGE_HEIGHT = 1920;
 
     private final ResourceLocation itemId;
     private final String category;
