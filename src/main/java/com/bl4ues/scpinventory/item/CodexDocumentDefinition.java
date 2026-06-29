@@ -1,12 +1,10 @@
 package com.bl4ues.scpinventory.item;
 
-import com.bl4ues.scpinventory.ScpInventoryMod;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -15,9 +13,6 @@ import java.util.Optional;
 
 public final class CodexDocumentDefinition {
 
-    public static final String DEBUG_TAG = "ScpCodexDebug";
-
-    private static final ResourceLocation DEBUG_TEXT = new ResourceLocation(ScpInventoryMod.MODID, "codex/debug_paper.txt");
     private static final int DEFAULT_IMAGE_WIDTH = 1279;
     private static final int DEFAULT_IMAGE_HEIGHT = 1920;
 
@@ -70,19 +65,6 @@ public final class CodexDocumentDefinition {
         }
 
         return Optional.of(new CodexDocumentDefinition(itemId, "Documents", "", null, null, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, "", "", "", "", ""));
-    }
-
-    public static Optional<CodexDocumentDefinition> getBuiltIn(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || stack.getItem() != Items.PAPER || !stack.hasTag()) {
-            return Optional.empty();
-        }
-
-        CompoundTag tag = stack.getTag();
-        if (tag == null || !tag.getBoolean(DEBUG_TAG)) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new CodexDocumentDefinition(BuiltInRegistries.ITEM.getKey(Items.PAPER), "SCP Documents", "Debug Paper Document", null, DEBUG_TEXT, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, "", "", "", DEBUG_TAG, "true"));
     }
 
     public static CodexDocumentDefinition fallback(ItemStack stack) {
