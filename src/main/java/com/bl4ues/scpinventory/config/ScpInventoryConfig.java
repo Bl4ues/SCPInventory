@@ -34,7 +34,7 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Codex document rules. Matching documents are unlocked into the Codex and do not consume main inventory slots.",
                         "Recommended key-value format:",
-                        "  id=modid:item;category=Documents de SCP;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=512;image_height=724",
+                        "  id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=512;image_height=724",
                         "Fields:",
                         "  id: required item id.",
                         "  category/type/section: left-panel group/tab name.",
