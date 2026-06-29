@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,20 +34,7 @@ public final class CodexDocumentDefinition {
     private final String nbtKey;
     private final String nbtValue;
 
-    private CodexDocumentDefinition(
-            ResourceLocation itemId,
-            String category,
-            String displayName,
-            ResourceLocation imageLocation,
-            ResourceLocation textLocation,
-            int imageWidth,
-            int imageHeight,
-            String creator,
-            String timestamp,
-            String uuid,
-            String nbtKey,
-            String nbtValue
-    ) {
+    private CodexDocumentDefinition(ResourceLocation itemId, String category, String displayName, ResourceLocation imageLocation, ResourceLocation textLocation, int imageWidth, int imageHeight, String creator, String timestamp, String uuid, String nbtKey, String nbtValue) {
         this.itemId = itemId;
         this.category = cleanOrDefault(category, "Documents");
         this.displayName = displayName == null ? "" : displayName.trim();
@@ -68,7 +56,7 @@ public final class CodexDocumentDefinition {
 
         String raw = rawRule.trim();
 
-        if (raw.contains("=") && raw.contains(";")) {
+        if (raw.contains("=")) {
             return parseKeyValueFormat(raw);
         }
 
@@ -81,20 +69,7 @@ public final class CodexDocumentDefinition {
             return Optional.empty();
         }
 
-        return Optional.of(new CodexDocumentDefinition(
-                itemId,
-                "Documents",
-                "",
-                null,
-                null,
-                DEFAULT_IMAGE_WIDTH,
-                DEFAULT_IMAGE_HEIGHT,
-                "",
-                "",
-                "",
-                "",
-                ""
-        ));
+        return Optional.of(new CodexDocumentDefinition(itemId, "Documents", "", null, null, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, "", "", "", "", ""));
     }
 
     public static Optional<CodexDocumentDefinition> getBuiltIn(ItemStack stack) {
@@ -107,45 +82,13 @@ public final class CodexDocumentDefinition {
             return Optional.empty();
         }
 
-        return Optional.of(new CodexDocumentDefinition(
-                BuiltInRegistries.ITEM.getKey(Items.PAPER),
-                "SCP Documents",
-                "Debug Paper Document",
-                null,
-                DEBUG_TEXT,
-                DEFAULT_IMAGE_WIDTH,
-                DEFAULT_IMAGE_HEIGHT,
-                "",
-                "",
-                "",
-                DEBUG_TAG,
-                "true"
-        ));
+        return Optional.of(new CodexDocumentDefinition(BuiltInRegistries.ITEM.getKey(Items.PAPER), "SCP Documents", "Debug Paper Document", null, DEBUG_TEXT, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, "", "", "", DEBUG_TAG, "true"));
     }
 
     public static CodexDocumentDefinition fallback(ItemStack stack) {
-        ResourceLocation itemId = stack == null || stack.isEmpty()
-                ? new ResourceLocation("minecraft", "air")
-                : BuiltInRegistries.ITEM.getKey(stack.getItem());
-
-        String name = stack == null || stack.isEmpty()
-                ? "Unknown Document"
-                : stack.getHoverName().getString();
-
-        return new CodexDocumentDefinition(
-                itemId,
-                "Documents",
-                name,
-                null,
-                null,
-                DEFAULT_IMAGE_WIDTH,
-                DEFAULT_IMAGE_HEIGHT,
-                "",
-                "",
-                "",
-                "",
-                ""
-        );
+        ResourceLocation itemId = stack == null || stack.isEmpty() ? new ResourceLocation("minecraft", "air") : BuiltInRegistries.ITEM.getKey(stack.getItem());
+        String name = stack == null || stack.isEmpty() ? "Unknown Document" : stack.getHoverName().getString();
+        return new CodexDocumentDefinition(itemId, "Documents", name, null, null, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, "", "", "", "", "");
     }
 
     private static Optional<CodexDocumentDefinition> parsePipeFormat(String raw) {
@@ -160,55 +103,18 @@ public final class CodexDocumentDefinition {
         }
 
         if (parts.length >= 6) {
-            return Optional.of(new CodexDocumentDefinition(
-                    itemId,
-                    getPart(parts, 1),
-                    getPart(parts, 2),
-                    parseLocation(getPart(parts, 3)),
-                    parseLocation(getPart(parts, 4)),
-                    parseInt(getPart(parts, 8), DEFAULT_IMAGE_WIDTH),
-                    parseInt(getPart(parts, 9), DEFAULT_IMAGE_HEIGHT),
-                    getPart(parts, 5),
-                    getPart(parts, 6),
-                    getPart(parts, 7),
-                    "",
-                    ""
-            ));
+            return Optional.of(new CodexDocumentDefinition(itemId, getPart(parts, 1), getPart(parts, 2), parseLocation(getPart(parts, 3)), parseLocation(getPart(parts, 4)), parseInt(getPart(parts, 8), DEFAULT_IMAGE_WIDTH), parseInt(getPart(parts, 9), DEFAULT_IMAGE_HEIGHT), getPart(parts, 5), getPart(parts, 6), getPart(parts, 7), "", ""));
         }
 
-        return Optional.of(new CodexDocumentDefinition(
-                itemId,
-                "Documents",
-                getPart(parts, 1),
-                null,
-                null,
-                DEFAULT_IMAGE_WIDTH,
-                DEFAULT_IMAGE_HEIGHT,
-                getPart(parts, 2),
-                getPart(parts, 3),
-                getPart(parts, 4),
-                "",
-                ""
-        ));
+        return Optional.of(new CodexDocumentDefinition(itemId, "Documents", getPart(parts, 1), null, null, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, getPart(parts, 2), getPart(parts, 3), getPart(parts, 4), "", ""));
     }
 
     private static Optional<CodexDocumentDefinition> parseKeyValueFormat(String raw) {
         Map<String, String> values = new HashMap<>();
-
-        int uuidStart = raw.indexOf("uuid=");
-        String beforeUuid = uuidStart >= 0 ? raw.substring(0, uuidStart) : raw;
-        if (uuidStart >= 0) {
-            values.put("uuid", raw.substring(uuidStart + "uuid=".length()).trim());
-        }
-
-        for (String part : beforeUuid.split(";")) {
-            if (part.isBlank()) {
-                continue;
-            }
-
+        for (String part : raw.split(";|\\r?\\n")) {
             String[] pair = part.split("=", 2);
-            if (pair.length == 2) {
-                values.put(pair[0].trim().toLowerCase(), pair[1].trim());
+            if (pair.length == 2 && !pair[0].isBlank()) {
+                values.put(pair[0].trim().toLowerCase(Locale.ROOT), pair[1].trim());
             }
         }
 
@@ -222,20 +128,7 @@ public final class CodexDocumentDefinition {
             return Optional.empty();
         }
 
-        return Optional.of(new CodexDocumentDefinition(
-                itemId,
-                firstPresent(values, "category", "type", "section"),
-                firstPresent(values, "name", "display_name", "title"),
-                parseLocation(firstPresent(values, "image", "texture", "photo")),
-                parseLocation(firstPresent(values, "text", "transcript", "transcription")),
-                parseInt(firstPresent(values, "image_width", "width"), DEFAULT_IMAGE_WIDTH),
-                parseInt(firstPresent(values, "image_height", "height"), DEFAULT_IMAGE_HEIGHT),
-                values.getOrDefault("creator", ""),
-                values.getOrDefault("timestamp", ""),
-                values.getOrDefault("uuid", ""),
-                firstPresent(values, "nbt_key", "tag_key"),
-                firstPresent(values, "nbt_value", "tag_value")
-        ));
+        return Optional.of(new CodexDocumentDefinition(itemId, firstPresent(values, "category", "type", "section"), firstPresent(values, "name", "display_name", "title"), parseLocation(firstPresent(values, "image", "texture", "photo")), parseLocation(firstPresent(values, "text", "transcript", "transcription")), parseInt(firstPresent(values, "image_width", "width"), DEFAULT_IMAGE_WIDTH), parseInt(firstPresent(values, "image_height", "height"), DEFAULT_IMAGE_HEIGHT), values.getOrDefault("creator", ""), values.getOrDefault("timestamp", ""), values.getOrDefault("uuid", ""), firstPresent(values, "nbt_key", "tag_key"), firstPresent(values, "nbt_value", "tag_value")));
     }
 
     public boolean matches(ItemStack stack) {
@@ -263,11 +156,9 @@ public final class CodexDocumentDefinition {
         if (!displayName.isBlank()) {
             return displayName;
         }
-
         if (fallbackStack != null && !fallbackStack.isEmpty()) {
             return fallbackStack.getHoverName().getString();
         }
-
         return itemId.toString();
     }
 
@@ -295,25 +186,20 @@ public final class CodexDocumentDefinition {
         if (key == null || key.isBlank() || expected == null || expected.isBlank()) {
             return true;
         }
-
         if (tag == null || !tag.contains(key)) {
             return false;
         }
-
         Tag actual = tag.get(key);
         if (actual == null) {
             return false;
         }
-
-        return normalize(actual.getAsString()).equals(normalize(expected))
-                || normalize(actual.toString()).equals(normalize(expected));
+        return normalize(actual.getAsString()).equals(normalize(expected)) || normalize(actual.toString()).equals(normalize(expected));
     }
 
     private static ResourceLocation parseLocation(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-
         return ResourceLocation.tryParse(value.trim());
     }
 
@@ -321,7 +207,6 @@ public final class CodexDocumentDefinition {
         if (value == null || value.isBlank()) {
             return fallback;
         }
-
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException ignored) {
@@ -336,7 +221,6 @@ public final class CodexDocumentDefinition {
                 return value;
             }
         }
-
         return "";
     }
 
@@ -348,19 +232,10 @@ public final class CodexDocumentDefinition {
         if (value == null || value.isBlank()) {
             return fallback;
         }
-
         return value.trim();
     }
 
     private static String normalize(String value) {
-        return value == null
-                ? ""
-                : value.replace(" ", "")
-                .replace("[", "")
-                .replace("]", "")
-                .replace("\"", "")
-                .replace("b", "")
-                .trim()
-                .toLowerCase();
+        return value == null ? "" : value.replace(" ", "").replace("[", "").replace("]", "").replace("\"", "").trim().toLowerCase(Locale.ROOT);
     }
 }
