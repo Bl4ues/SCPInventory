@@ -43,11 +43,11 @@ public class CodexPanel {
     private static final int ZOOM_BUTTON_SIZE = 14;
     private static final int SCROLL_WIDTH = 5;
     private static final int LIST_CONTENT_Y_OFFSET = -16;
-    private static final int DETAIL_PAD_X = 8;
-    private static final int DETAIL_PAD_TOP = 4;
-    private static final int DETAIL_PAD_BOTTOM = 8;
+    private static final int DETAIL_PAD_X = 4;
+    private static final int DETAIL_PAD_TOP = 0;
+    private static final int DETAIL_PAD_BOTTOM = 4;
     private static final int IMAGE_BOTTOM_GAP = 8;
-    private static final int TEXT_TOP_GAP = 9;
+    private static final int TEXT_TOP_GAP = 5;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final int x;
@@ -61,7 +61,6 @@ public class CodexPanel {
     private final int titleY;
     private final int listTitleX;
     private final int detailTitleX;
-
     private final List<ItemStack> documents;
     private final Set<String> collapsedCategories = new HashSet<>();
 
@@ -195,14 +194,12 @@ public class CodexPanel {
 
         if (delta < 0) scrollOffset++;
         if (delta > 0) scrollOffset--;
-
         clampScroll(buildRows().size());
         return true;
     }
 
     private void renderDocumentList(GuiGraphics g) {
         normalizeSelection();
-
         List<DisplayRow> rows = buildRows();
         clampScroll(rows.size());
 
@@ -210,13 +207,10 @@ public class CodexPanel {
         int listContentY = getListContentY();
         for (int i = 0; i < visibleRows; i++) {
             int rowIndex = scrollOffset + i;
-            if (rowIndex >= rows.size()) {
-                break;
-            }
+            if (rowIndex >= rows.size()) break;
 
             DisplayRow row = rows.get(rowIndex);
             int rowY = listContentY + (i * ROW_HEIGHT);
-
             if (row.categoryRow) {
                 renderCategoryRow(g, row, rowY);
             } else {
@@ -238,14 +232,11 @@ public class CodexPanel {
         if (selected) {
             g.fill(x + 6, rowY, x + listWidth - 36, rowY + ROW_HEIGHT, SELECTED_BACKGROUND);
         }
-
         g.drawString(mc.font, row.name, x + 26, rowY + 7, selected ? TEXT_SELECTED : TEXT_WHITE, false);
     }
 
     private void renderDocumentDetails(GuiGraphics g, int mouseX, int mouseY) {
-        if (!isValidSelectedDocument()) {
-            return;
-        }
+        if (!isValidSelectedDocument()) return;
 
         ItemStack document = documents.get(selectedIndex);
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(document);
@@ -279,20 +270,23 @@ public class CodexPanel {
 
         int marginX = Math.max(18, screenWidth / 16);
         int marginY = Math.max(12, screenHeight / 24);
-        int imageAreaX = marginX;
-        int imageAreaY = marginY;
-        int imageAreaWidth = screenWidth - marginX * 2;
-        int imageAreaHeight = screenHeight - marginY * 2;
-
-        drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight);
+        drawDocumentImage(
+                g,
+                document,
+                definition,
+                marginX,
+                marginY,
+                screenWidth - marginX * 2,
+                screenHeight - marginY * 2
+        );
     }
 
     private void renderDocumentText(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
         drawTopControls(g, mouseX, mouseY, definition.getDisplayName(document));
 
-        int textX = getDetailLeft();
+        int textX = getDetailLeft() + 2;
         int textY = getControlY() + BUTTON_HEIGHT + TEXT_TOP_GAP;
-        int textRight = getDetailRight() - SCROLL_WIDTH - 7;
+        int textRight = getDetailRight() - SCROLL_WIDTH - 6;
         int textWidth = Math.max(40, textRight - textX);
         int textHeight = Math.max(40, getDetailBottom() - textY);
         float scale = getTextScale();
@@ -308,9 +302,7 @@ public class CodexPanel {
         int drawY = textY;
         for (int i = 0; i < visibleLines + 2; i++) {
             int index = textScrollOffset + i;
-            if (index >= lines.size()) {
-                break;
-            }
+            if (index >= lines.size()) break;
             drawTextLine(g, lines.get(index), textX, drawY, TEXT_BODY, scale, scaledTextWidth);
             drawY += lineHeight;
         }
@@ -323,14 +315,14 @@ public class CodexPanel {
         ResourceLocation image = definition.getImageLocation().orElse(null);
         if (image != null) {
             int[] fitted = fitRect(definition.getImageWidth(), definition.getImageHeight(), areaWidth, areaHeight);
-            int width = Math.max(1, fitted[0]);
-            int height = Math.max(1, fitted[1]);
-            int imageX = areaX + (areaWidth - width) / 2;
-            int imageY = areaY + (areaHeight - height) / 2;
+            int fittedWidth = Math.max(1, fitted[0]);
+            int fittedHeight = Math.max(1, fitted[1]);
+            int imageX = areaX + (areaWidth - fittedWidth) / 2;
+            int imageY = areaY + (areaHeight - fittedHeight) / 2;
 
             g.enableScissor(areaX, areaY, areaX + areaWidth, areaY + areaHeight);
             setTextureFiltering(image, true);
-            g.blit(image, imageX, imageY, width, height, 0.0F, 0.0F, definition.getImageWidth(), definition.getImageHeight(), definition.getImageWidth(), definition.getImageHeight());
+            g.blit(image, imageX, imageY, fittedWidth, fittedHeight, 0.0F, 0.0F, definition.getImageWidth(), definition.getImageHeight(), definition.getImageWidth(), definition.getImageHeight());
             setTextureFiltering(image, false);
             g.disableScissor();
             return;
@@ -396,6 +388,22 @@ public class CodexPanel {
         g.disableScissor();
     }
 
+    private void drawDetailButtons(GuiGraphics g, int mouseX, int mouseY) {
+        int buttonY = getButtonY();
+        int gap = 6;
+        int buttonX = getDetailLeft();
+        int availableWidth = getDetailRight() - buttonX;
+        int buttonWidth = (availableWidth - gap) / 2;
+
+        drawButton(g, buttonX, buttonY, buttonWidth, BUTTON_HEIGHT, "Show Document as Text", clickedTextButton(mouseX, mouseY));
+        drawButton(g, buttonX + buttonWidth + gap, buttonY, buttonWidth, BUTTON_HEIGHT, "Expand Document", clickedExpandButton(mouseX, mouseY));
+    }
+
+    private void drawButton(GuiGraphics g, int x, int y, int width, int height, String label, boolean hovered) {
+        g.fill(x, y, x + width, y + height, hovered ? BUTTON_BACKGROUND_HOVERED : BUTTON_BACKGROUND);
+        g.drawString(mc.font, label, x + (width - mc.font.width(label)) / 2, y + 3, TEXT_WHITE, false);
+    }
+
     private void drawScaledPageString(GuiGraphics g, String text, float x, float y, int color, float scale) {
         g.pose().pushPose();
         g.pose().translate(x, y, 0.0F);
@@ -449,35 +457,15 @@ public class CodexPanel {
         g.pose().popPose();
     }
 
-    private void drawDetailButtons(GuiGraphics g, int mouseX, int mouseY) {
-        int buttonY = getButtonY();
-        int gap = 6;
-        int buttonX = getDetailLeft();
-        int availableWidth = getDetailRight() - buttonX;
-        int buttonWidth = (availableWidth - gap) / 2;
-
-        drawButton(g, buttonX, buttonY, buttonWidth, BUTTON_HEIGHT, "Show Document as Text", clickedTextButton(mouseX, mouseY));
-        drawButton(g, buttonX + buttonWidth + gap, buttonY, buttonWidth, BUTTON_HEIGHT, "Expand Document", clickedExpandButton(mouseX, mouseY));
-    }
-
-    private void drawButton(GuiGraphics g, int x, int y, int width, int height, String label, boolean hovered) {
-        g.fill(x, y, x + width, y + height, hovered ? BUTTON_BACKGROUND_HOVERED : BUTTON_BACKGROUND);
-        g.drawString(mc.font, label, x + (width - mc.font.width(label)) / 2, y + 3, TEXT_WHITE, false);
-    }
-
     private List<DisplayRow> buildRows() {
         Map<String, List<DisplayRow>> grouped = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-
         for (int i = 0; i < documents.size(); i++) {
             ItemStack document = documents.get(i);
-            if (document == null || document.isEmpty()) {
-                continue;
-            }
+            if (document == null || document.isEmpty()) continue;
 
             CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(document);
-            String category = definition.getCategory();
-            grouped.computeIfAbsent(category, ignored -> new ArrayList<>())
-                    .add(DisplayRow.document(category, i, definition.getDisplayName(document)));
+            grouped.computeIfAbsent(definition.getCategory(), ignored -> new ArrayList<>())
+                    .add(DisplayRow.document(definition.getCategory(), i, definition.getDisplayName(document)));
         }
 
         List<DisplayRow> rows = new ArrayList<>();
@@ -485,13 +473,9 @@ public class CodexPanel {
             String category = entry.getKey();
             List<DisplayRow> docs = entry.getValue();
             docs.sort((a, b) -> String.CASE_INSENSITIVE_ORDER.compare(a.name, b.name));
-
             rows.add(DisplayRow.category(category));
-            if (!collapsedCategories.contains(category)) {
-                rows.addAll(docs);
-            }
+            if (!collapsedCategories.contains(category)) rows.addAll(docs);
         }
-
         return rows;
     }
 
@@ -551,30 +535,20 @@ public class CodexPanel {
             }
         }
 
-        if (!current.isBlank()) {
-            lines.add(current);
-        }
-
+        if (!current.isBlank()) lines.add(current);
         return lines.isEmpty() ? List.of("") : lines;
     }
 
     private DisplayRow getClickedRow(double mouseX, double mouseY) {
-        if (!isMouseOverList(mouseX, mouseY)) {
-            return null;
-        }
+        if (!isMouseOverList(mouseX, mouseY)) return null;
 
         int listContentY = getListContentY();
         int row = (int) ((mouseY - listContentY) / ROW_HEIGHT);
-        if (row < 0 || row >= getVisibleRows()) {
-            return null;
-        }
+        if (row < 0 || row >= getVisibleRows()) return null;
 
         int index = scrollOffset + row;
         List<DisplayRow> rows = buildRows();
-        if (index < 0 || index >= rows.size()) {
-            return null;
-        }
-
+        if (index < 0 || index >= rows.size()) return null;
         return rows.get(index);
     }
 
@@ -613,7 +587,7 @@ public class CodexPanel {
         CodexDocumentDefinition definition = ScpItemClassifier.getCodexDefinitionOrFallback(documents.get(selectedIndex));
         String body = readText(definition).orElseGet(() -> buildFallbackText(documents.get(selectedIndex), definition));
         float scale = getTextScale();
-        int textWidth = Math.max(40, getDetailRight() - SCROLL_WIDTH - 7 - getDetailLeft());
+        int textWidth = Math.max(40, getDetailRight() - SCROLL_WIDTH - 6 - (getDetailLeft() + 2));
         int scaledTextWidth = Math.max(40, (int) (textWidth / scale));
         int textHeight = Math.max(40, getDetailBottom() - (getControlY() + BUTTON_HEIGHT + TEXT_TOP_GAP));
         int visibleLines = Math.max(1, textHeight / Math.max(8, Math.round(12 * scale)));
@@ -642,9 +616,7 @@ public class CodexPanel {
     }
 
     private void renderScrollbar(GuiGraphics g, int totalRows) {
-        if (totalRows <= getVisibleRows()) {
-            return;
-        }
+        if (totalRows <= getVisibleRows()) return;
 
         int trackX = x + listWidth - 14;
         int trackY = getListContentY();
@@ -659,9 +631,7 @@ public class CodexPanel {
     }
 
     private void renderTextScrollbar(GuiGraphics g, int totalLines, int visibleLines, int trackX, int trackY, int trackHeight) {
-        if (totalLines <= visibleLines) {
-            return;
-        }
+        if (totalLines <= visibleLines) return;
 
         int thumbHeight = Math.max(18, trackHeight * visibleLines / totalLines);
         int maxScroll = Math.max(1, totalLines - visibleLines);
@@ -674,18 +644,14 @@ public class CodexPanel {
 
     private Optional<String> readText(CodexDocumentDefinition definition) {
         ResourceLocation textLocation = definition.getTextLocation().orElse(null);
-        if (textLocation == null || mc == null) {
-            return Optional.empty();
-        }
+        if (textLocation == null || mc == null) return Optional.empty();
 
         return mc.getResourceManager().getResource(textLocation).flatMap(resource -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.open(), StandardCharsets.UTF_8))) {
                 StringBuilder builder = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (builder.length() > 0) {
-                        builder.append('\n');
-                    }
+                    if (builder.length() > 0) builder.append('\n');
                     builder.append(line);
                 }
                 return Optional.of(builder.toString());
@@ -789,10 +755,7 @@ public class CodexPanel {
 
     private static int guessPanelHeight(int panelY) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.getWindow() == null) {
-            return ROW_HEIGHT * 12;
-        }
-
+        if (minecraft == null || minecraft.getWindow() == null) return ROW_HEIGHT * 12;
         int guiHeight = minecraft.getWindow().getGuiScaledHeight();
         return Math.max(ROW_HEIGHT * 9, guiHeight - panelY - 160);
     }
