@@ -70,7 +70,7 @@ public final class ScpItemClassifier {
             }
         }
 
-        return CodexDocumentDefinition.getBuiltIn(stack);
+        return Optional.empty();
     }
 
     private static Optional<ScpItemType> getConfiguredType(ItemStack stack) {
