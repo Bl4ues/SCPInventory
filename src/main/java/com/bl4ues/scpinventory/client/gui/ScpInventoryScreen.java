@@ -88,6 +88,8 @@ public class ScpInventoryScreen extends Screen {
     private double dragStartY = 0.0D;
     private boolean dragMoved = false;
     private boolean dropPreviewTransparentRender = false;
+    private float dropPreviewFade = 0.0F;
+    private float dropPreviewRenderAlpha = 1.0F;
 
     public ScpInventoryScreen() {
         super(Component.literal("SCP Inventory"));
@@ -177,7 +179,9 @@ public class ScpInventoryScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         boolean worldDropPreview = isPreviewingWorldDrop(mouseX, mouseY);
-        if (worldDropPreview) {
+        updateDropPreviewFade(worldDropPreview);
+
+        if (dropPreviewFade > 0.01F) {
             renderTransparentDropPreview(g, mouseX, mouseY);
             return;
         }
@@ -205,9 +209,24 @@ public class ScpInventoryScreen extends Screen {
         }
     }
 
+    private void updateDropPreviewFade(boolean targetVisible) {
+        float target = targetVisible ? 1.0F : 0.0F;
+        float speed = targetVisible ? 0.35F : 0.28F;
+        dropPreviewFade += (target - dropPreviewFade) * speed;
+
+        if (Math.abs(dropPreviewFade - target) < 0.015F) {
+            dropPreviewFade = target;
+        }
+    }
+
+    private float getDropPreviewUiAlpha() {
+        return 1.0F - dropPreviewFade * (1.0F - DROP_PREVIEW_UI_ALPHA);
+    }
+
     private void renderTransparentDropPreview(GuiGraphics g, int mouseX, int mouseY) {
         dropPreviewTransparentRender = true;
-        g.setColor(1.0F, 1.0F, 1.0F, DROP_PREVIEW_UI_ALPHA);
+        dropPreviewRenderAlpha = getDropPreviewUiAlpha();
+        g.setColor(1.0F, 1.0F, 1.0F, dropPreviewRenderAlpha);
 
         renderPanels(g);
         renderHealthStatus(g);
@@ -217,7 +236,7 @@ public class ScpInventoryScreen extends Screen {
         } else {
             renderInventoryHeader(g);
             renderTabs(g);
-            if (itemList != null) itemList.render(g, mouseX, mouseY);
+            if (itemList != null) itemList.render(g, mouseX, mouseY, dropPreviewRenderAlpha);
             if (equipmentPanel != null) equipmentPanel.render(g, mouseX, mouseY);
         }
 
@@ -225,6 +244,7 @@ public class ScpInventoryScreen extends Screen {
 
         g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         dropPreviewTransparentRender = false;
+        dropPreviewRenderAlpha = 1.0F;
         renderDraggedStack(g, mouseX, mouseY);
     }
 
@@ -319,7 +339,7 @@ public class ScpInventoryScreen extends Screen {
         }
 
         int alpha = color >>> 24;
-        int fadedAlpha = Math.max(1, Math.round(alpha * DROP_PREVIEW_UI_ALPHA));
+        int fadedAlpha = Math.max(1, Math.round(alpha * dropPreviewRenderAlpha));
         return (fadedAlpha << 24) | (color & 0x00FFFFFF);
     }
 
