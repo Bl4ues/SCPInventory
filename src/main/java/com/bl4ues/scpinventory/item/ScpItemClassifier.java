@@ -54,9 +54,18 @@ public final class ScpItemClassifier {
                 .orElseGet(() -> stack == null || stack.isEmpty() ? "Unknown Document" : stack.getHoverName().getString());
     }
 
+    public static CodexDocumentDefinition getCodexDefinitionOrFallback(ItemStack stack) {
+        return getCodexDocument(stack).orElseGet(() -> CodexDocumentDefinition.fallback(stack));
+    }
+
     public static Optional<CodexDocumentDefinition> getCodexDocument(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return Optional.empty();
+        }
+
+        Optional<CodexDocumentDefinition> builtInDefinition = CodexDocumentDefinition.getBuiltIn(stack);
+        if (builtInDefinition.isPresent()) {
+            return builtInDefinition;
         }
 
         for (String rawRule : ScpInventoryConfig.CODEX_DOCUMENTS.get()) {
