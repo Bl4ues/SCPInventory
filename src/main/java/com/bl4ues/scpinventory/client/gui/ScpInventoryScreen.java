@@ -197,7 +197,7 @@ public class ScpInventoryScreen extends Screen {
         int healthX = rootX + Math.round(rootWidth * 0.038F);
         int healthY = rootY + Math.round(rootHeight * 0.032F);
         int textX = healthX + HEALTH_ICON_SIZE + 7;
-        blitFullIcon(g, HEALTH_ICON, healthX, healthY + 5, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
+        blitFullIcon(g, HEALTH_ICON, healthX, healthY + 1, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
 
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
