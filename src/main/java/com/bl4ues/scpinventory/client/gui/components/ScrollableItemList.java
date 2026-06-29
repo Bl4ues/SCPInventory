@@ -17,7 +17,7 @@ public class ScrollableItemList {
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int LINE_GRAY = 0x666A6C6C;
     private static final int ICON_BOX = 0x66303638;
-    private static final int ICON_CORNER = 0xAA6A6C6C;
+    private static final int ICON_BORDER = 0xAA6A6C6C;
     private static final int SCROLL_TRACK = 0x44000000;
     private static final int SCROLL_THUMB = 0xAA6A6C6C;
     private static final float SOLID_ITEM_RENDER_ALPHA_THRESHOLD = 0.72F;
@@ -82,12 +82,15 @@ public class ScrollableItemList {
     }
 
     private void renderRow(GuiGraphics g, ItemStack stack, int slotIndex, int rowY, float alpha) {
+        boolean keyList = isKeyList();
         int dropX = x + 4;
         int iconX = x + 28;
         int textX = x + 62;
         int iconY = rowY + 7;
 
-        g.drawString(mc.font, "X", dropX, rowY + 14, applyAlpha(TEXT_WHITE, alpha), false);
+        if (!keyList) {
+            g.drawString(mc.font, "X", dropX, rowY + 14, applyAlpha(TEXT_WHITE, alpha), false);
+        }
 
         if (!stack.isEmpty()) {
             drawIconFrame(g, iconX, iconY, alpha);
@@ -96,8 +99,12 @@ public class ScrollableItemList {
             }
         }
 
-        g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, applyAlpha(TEXT_WHITE, alpha), false);
-        g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, applyAlpha(TEXT_GRAY, alpha), false);
+        if (keyList) {
+            g.drawString(mc.font, stack.getHoverName(), textX, rowY + 14, applyAlpha(TEXT_WHITE, alpha), false);
+        } else {
+            g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, applyAlpha(TEXT_WHITE, alpha), false);
+            g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, applyAlpha(TEXT_GRAY, alpha), false);
+        }
 
         int lineY = rowY + ROW_HEIGHT - 1;
         g.fill(x + 18, lineY, x + width - 18, lineY + 1, applyAlpha(LINE_GRAY, alpha));
@@ -106,22 +113,20 @@ public class ScrollableItemList {
     private void drawIconFrame(GuiGraphics g, int x, int y, float alpha) {
         int right = x + ICON_BOX_SIZE;
         int bottom = y + ICON_BOX_SIZE;
-        int corner = 6;
 
         g.fill(x, y, right, bottom, applyAlpha(ICON_BOX, alpha));
-
-        g.fill(x, y, x + corner, y + 1, applyAlpha(ICON_CORNER, alpha));
-        g.fill(x, y, x + 1, y + corner, applyAlpha(ICON_CORNER, alpha));
-        g.fill(right - corner, y, right, y + 1, applyAlpha(ICON_CORNER, alpha));
-        g.fill(right - 1, y, right, y + corner, applyAlpha(ICON_CORNER, alpha));
-        g.fill(x, bottom - 1, x + corner, bottom, applyAlpha(ICON_CORNER, alpha));
-        g.fill(x, bottom - corner, x + 1, bottom, applyAlpha(ICON_CORNER, alpha));
-        g.fill(right - corner, bottom - 1, right, bottom, applyAlpha(ICON_CORNER, alpha));
-        g.fill(right - 1, bottom - corner, right, bottom, applyAlpha(ICON_CORNER, alpha));
+        g.fill(x, y, right, y + 1, applyAlpha(ICON_BORDER, alpha));
+        g.fill(x, bottom - 1, right, bottom, applyAlpha(ICON_BORDER, alpha));
+        g.fill(x, y, x + 1, bottom, applyAlpha(ICON_BORDER, alpha));
+        g.fill(right - 1, y, right, bottom, applyAlpha(ICON_BORDER, alpha));
     }
 
     private String getTypeLabel(int slotIndex) {
         return fixedTypeLabel != null ? fixedTypeLabel : inventory.getItemType(slotIndex);
+    }
+
+    private boolean isKeyList() {
+        return "Key".equals(fixedTypeLabel);
     }
 
     private void renderScrollbar(GuiGraphics g, int totalItems, float alpha) {
@@ -252,7 +257,7 @@ public class ScrollableItemList {
     }
 
     public boolean clickedDrop(double mouseX) {
-        return mouseX >= x + 4 && mouseX <= x + 15;
+        return !isKeyList() && mouseX >= x + 4 && mouseX <= x + 15;
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
