@@ -20,8 +20,8 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Item classification rules used by the SCP inventory.",
                         "Format: modid:item|TYPE",
-                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, ACCESSORY, BODY, WEAPON.",
-                        "Items not listed here fall back to vanilla detection: food becomes Consumable, helmets become Head, chestplates become Body, everything else becomes Miscellaneous.",
+                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, CHEST, LEGS, FEET, ACCESSORY, WEAPON.",
+                        "Items not listed here fall back to vanilla detection: food becomes Consumable, vanilla armor goes to its matching equipment slot, everything else becomes Miscellaneous.",
                         "Examples:",
                         "  scp_additions:level_2_keycard|KEY",
                         "  scp_additions:gas_mask|HEAD",
@@ -33,12 +33,22 @@ public final class ScpInventoryConfig {
         CODEX_DOCUMENTS = builder
                 .comment(
                         "Codex document rules. Matching documents are unlocked into the Codex and do not consume main inventory slots.",
-                        "Recommended format: item_id|display_name|creator|timestamp|uuid",
-                        "Only item_id is mandatory. Leave optional fields empty when you do not need NBT matching.",
-                        "The uuid field may contain semicolons because the parser splits this format by pipes.",
-                        "Example:",
-                        "  camerapture:picture|SCP-330 Containment Protocol|Bl4ues|1772756289088L|I; 1717201316, -226147414, -127193371, 1090671268",
-                        "Also accepted: id=camerapture:picture;name=SCP-330 Containment Protocol;creator=Bl4ues;timestamp=1772756289088L;uuid=I; 1717201316, -226147414, -127193371, 1090671268"
+                        "Recommended key-value format:",
+                        "  id=modid:item;category=Documents de SCP;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=512;image_height=724",
+                        "Fields:",
+                        "  id: required item id.",
+                        "  category/type/section: left-panel group/tab name.",
+                        "  name/display_name/title: document title shown inside the category.",
+                        "  image/texture/photo: ResourceLocation for a static document image.",
+                        "  text/transcript/transcription: ResourceLocation for a .txt transcription asset.",
+                        "  image_width/image_height: source texture dimensions. Defaults to 512x724.",
+                        "  creator/timestamp/uuid: optional Camerapture-style NBT filters kept for later integration.",
+                        "  nbt_key/nbt_value: optional generic NBT filter for custom debug or special documents.",
+                        "Legacy pipe format is still accepted:",
+                        "  modid:item|Display Name|creator|timestamp|uuid",
+                        "New pipe format is also accepted:",
+                        "  modid:item|Category|Display Name|image_resource|text_resource|creator|timestamp|uuid|image_width|image_height",
+                        "Debug note: /scpinventory debugcodex adds a built-in paper document for UI testing without editing this file."
                 )
                 .defineList("codex_documents", List.<String>of(), ScpInventoryConfig::isString);
 
