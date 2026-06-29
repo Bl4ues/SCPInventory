@@ -182,16 +182,12 @@ public class InventoryMovePacket {
         }
 
         if (targetIndex < 0) {
-            if (inventory.addInventoryItem(equippedStack)) {
-                inventory.clearEquipment(sourceSlot);
-                InventoryActionPacket.syncVanillaEquipmentSlot(player, sourceSlot, ItemStack.EMPTY);
-            } else {
-                ModNetwork.showInventoryFull(player);
-            }
+            addEquipmentToFirstAvailableSlot(player, inventory, sourceSlot, equippedStack);
             return;
         }
 
         if (!inventory.isValidMainSlot(targetIndex)) {
+            addEquipmentToFirstAvailableSlot(player, inventory, sourceSlot, equippedStack);
             return;
         }
 
@@ -208,6 +204,18 @@ public class InventoryMovePacket {
             inventory.setEquipment(sourceSlot, targetStack);
             inventory.setInventoryItem(targetIndex, equippedStack);
             InventoryActionPacket.syncVanillaEquipmentSlot(player, sourceSlot, targetStack);
+            return;
+        }
+
+        addEquipmentToFirstAvailableSlot(player, inventory, sourceSlot, equippedStack);
+    }
+
+    private static void addEquipmentToFirstAvailableSlot(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot sourceSlot, ItemStack equippedStack) {
+        if (inventory.addInventoryItem(equippedStack)) {
+            inventory.clearEquipment(sourceSlot);
+            InventoryActionPacket.syncVanillaEquipmentSlot(player, sourceSlot, ItemStack.EMPTY);
+        } else {
+            ModNetwork.showInventoryFull(player);
         }
     }
 
