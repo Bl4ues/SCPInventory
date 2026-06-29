@@ -60,6 +60,10 @@ public class ScrollableItemList {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
+        render(g, mouseX, mouseY, 1.0F);
+    }
+
+    public void render(GuiGraphics g, int mouseX, int mouseY, float alpha) {
         List<Integer> slots = getNonEmptySlots();
 
         for (int i = 0; i < MAX_VISIBLE; i++) {
@@ -70,54 +74,56 @@ public class ScrollableItemList {
             ItemStack stack = items.get(slotIndex);
             int rowY = y + (i * ROW_HEIGHT);
 
-            renderRow(g, stack, slotIndex, rowY);
+            renderRow(g, stack, slotIndex, rowY, alpha);
         }
 
-        renderScrollbar(g, slots.size());
+        renderScrollbar(g, slots.size(), alpha);
     }
 
-    private void renderRow(GuiGraphics g, ItemStack stack, int slotIndex, int rowY) {
+    private void renderRow(GuiGraphics g, ItemStack stack, int slotIndex, int rowY, float alpha) {
         int dropX = x + 4;
         int iconX = x + 28;
         int textX = x + 62;
         int iconY = rowY + 7;
 
-        g.drawString(mc.font, "X", dropX, rowY + 14, TEXT_WHITE, false);
+        g.drawString(mc.font, "X", dropX, rowY + 14, applyAlpha(TEXT_WHITE, alpha), false);
 
         if (!stack.isEmpty()) {
-            drawIconFrame(g, iconX, iconY);
+            drawIconFrame(g, iconX, iconY, alpha);
+            g.setColor(1.0F, 1.0F, 1.0F, alpha);
             g.renderItem(stack, iconX + 4, iconY + 4);
+            g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         }
 
-        g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, TEXT_WHITE, false);
-        g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, TEXT_GRAY, false);
+        g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, applyAlpha(TEXT_WHITE, alpha), false);
+        g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, applyAlpha(TEXT_GRAY, alpha), false);
 
         int lineY = rowY + ROW_HEIGHT - 1;
-        g.fill(x + 18, lineY, x + width - 18, lineY + 1, LINE_GRAY);
+        g.fill(x + 18, lineY, x + width - 18, lineY + 1, applyAlpha(LINE_GRAY, alpha));
     }
 
-    private void drawIconFrame(GuiGraphics g, int x, int y) {
+    private void drawIconFrame(GuiGraphics g, int x, int y, float alpha) {
         int right = x + ICON_BOX_SIZE;
         int bottom = y + ICON_BOX_SIZE;
         int corner = 6;
 
-        g.fill(x, y, right, bottom, ICON_BOX);
+        g.fill(x, y, right, bottom, applyAlpha(ICON_BOX, alpha));
 
-        g.fill(x, y, x + corner, y + 1, ICON_CORNER);
-        g.fill(x, y, x + 1, y + corner, ICON_CORNER);
-        g.fill(right - corner, y, right, y + 1, ICON_CORNER);
-        g.fill(right - 1, y, right, y + corner, ICON_CORNER);
-        g.fill(x, bottom - 1, x + corner, bottom, ICON_CORNER);
-        g.fill(x, bottom - corner, x + 1, bottom, ICON_CORNER);
-        g.fill(right - corner, bottom - 1, right, bottom, ICON_CORNER);
-        g.fill(right - 1, bottom - corner, right, bottom, ICON_CORNER);
+        g.fill(x, y, x + corner, y + 1, applyAlpha(ICON_CORNER, alpha));
+        g.fill(x, y, x + 1, y + corner, applyAlpha(ICON_CORNER, alpha));
+        g.fill(right - corner, y, right, y + 1, applyAlpha(ICON_CORNER, alpha));
+        g.fill(right - 1, y, right, y + corner, applyAlpha(ICON_CORNER, alpha));
+        g.fill(x, bottom - 1, x + corner, bottom, applyAlpha(ICON_CORNER, alpha));
+        g.fill(x, bottom - corner, x + 1, bottom, applyAlpha(ICON_CORNER, alpha));
+        g.fill(right - corner, bottom - 1, right, bottom, applyAlpha(ICON_CORNER, alpha));
+        g.fill(right - 1, bottom - corner, right, bottom, applyAlpha(ICON_CORNER, alpha));
     }
 
     private String getTypeLabel(int slotIndex) {
         return fixedTypeLabel != null ? fixedTypeLabel : inventory.getItemType(slotIndex);
     }
 
-    private void renderScrollbar(GuiGraphics g, int totalItems) {
+    private void renderScrollbar(GuiGraphics g, int totalItems, float alpha) {
         if (totalItems <= MAX_VISIBLE) {
             return;
         }
@@ -128,8 +134,14 @@ public class ScrollableItemList {
         int thumbHeight = getThumbHeight(totalItems);
         int thumbY = getThumbY(totalItems, thumbHeight);
 
-        g.fill(trackX, trackY, trackX + 5, trackY + trackHeight, SCROLL_TRACK);
-        g.fill(trackX, thumbY, trackX + 5, thumbY + thumbHeight, SCROLL_THUMB);
+        g.fill(trackX, trackY, trackX + 5, trackY + trackHeight, applyAlpha(SCROLL_TRACK, alpha));
+        g.fill(trackX, thumbY, trackX + 5, thumbY + thumbHeight, applyAlpha(SCROLL_THUMB, alpha));
+    }
+
+    private int applyAlpha(int color, float alphaMultiplier) {
+        int alpha = color >>> 24;
+        int adjustedAlpha = Math.max(1, Math.min(255, Math.round(alpha * alphaMultiplier)));
+        return (adjustedAlpha << 24) | (color & 0x00FFFFFF);
     }
 
     public boolean mouseScrolled(double delta) {
