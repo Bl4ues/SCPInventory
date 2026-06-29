@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.client.gui.components;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -26,7 +27,7 @@ public class StatusPanel {
     private static final int CONDITION_ROW_HEIGHT = 42;
     private static final int CONDITION_ICON_SIZE = 24;
     private static final int CONDITIONS_PAD_X = 24;
-    private static final int CONDITIONS_PAD_TOP = 16;
+    private static final int CONDITIONS_PAD_TOP = 8;
     private static final int PARAMETERS_PAD_X = 28;
     private static final int PARAMETERS_PAD_TOP = 26;
 
@@ -63,7 +64,7 @@ public class StatusPanel {
         drawSectionTitle(g, conditionsTitleX, titleY, "CONDITIONS");
         drawSectionTitle(g, parametersTitleX, titleY, "PARAMETERS");
         renderConditions(g);
-        renderParameters(g);
+        renderParameters(g, mouseX, mouseY);
     }
 
     private void renderConditions(GuiGraphics g) {
@@ -126,7 +127,7 @@ public class StatusPanel {
         g.blit(x, y, 0, 18, 18, sprite);
     }
 
-    private void renderParameters(GuiGraphics g) {
+    private void renderParameters(GuiGraphics g, int mouseX, int mouseY) {
         if (mc.player == null) return;
 
         int contentX = parametersX + PARAMETERS_PAD_X;
@@ -135,18 +136,27 @@ public class StatusPanel {
         int avatarW = Math.min(108, parametersWidth / 3);
         int avatarH = Math.min(190, parametersHeight - 70);
 
-        g.fill(contentX, contentY, contentX + avatarW, contentY + avatarH, 0xAA101010);
-        g.drawString(mc.font, "Player Preview", contentX + 14, contentY + (avatarH / 2) - 4, TEXT_GRAY, false);
+        int previewLeft = contentX;
+        int previewTop = contentY;
+        int previewRight = previewLeft + avatarW;
+        int previewBottom = previewTop + avatarH;
+        g.fill(previewLeft, previewTop, previewRight, previewBottom, 0xAA101010);
+
+        int previewCenterX = previewLeft + (avatarW / 2);
+        int previewBottomY = previewBottom - 8;
+        int previewScale = Math.max(36, Math.min(64, avatarH / 3));
+        InventoryScreen.renderEntityInInventoryFollowsMouse(g, previewCenterX, previewBottomY, previewScale,
+                previewCenterX - mouseX, previewTop + 55 - mouseY, mc.player);
 
         int parameterX = contentX + avatarW + 34;
-        int parameterRight = Math.max(parameterX + 80, contentRight);
+        int parameterRight = contentRight;
         int rowY = contentY + 4;
         int rowGap = 33;
 
         drawParameterLine(g, parameterX, rowY, parameterRight, "Max Health", formatValue(getAttributeValue(Attributes.MAX_HEALTH)));
         drawParameterLine(g, parameterX, rowY + rowGap, parameterRight, "Armor", formatValue(getAttributeValue(Attributes.ARMOR)));
-        drawParameterLine(g, parameterX, rowY + (rowGap * 2), parameterRight, "Attack", formatValue(getAttributeValue(Attributes.ATTACK_DAMAGE)));
-        drawParameterLine(g, parameterX, rowY + (rowGap * 3), parameterRight, "Speed", formatSpeed());
+        drawParameterLine(g, parameterX, rowY + (rowGap * 2), parameterRight, "Toughness", formatValue(getAttributeValue(Attributes.ARMOR_TOUGHNESS)));
+        drawParameterLine(g, parameterX, rowY + (rowGap * 3), parameterRight, "Attack", formatValue(getAttributeValue(Attributes.ATTACK_DAMAGE)));
         drawParameterLine(g, parameterX, rowY + (rowGap * 4), parameterRight, "Stamina", "100");
     }
 
@@ -171,12 +181,6 @@ public class StatusPanel {
         double rounded = Math.round(value);
         if (Math.abs(value - rounded) < 0.05D) return Integer.toString((int) rounded);
         return String.format(Locale.ROOT, "%.1f", value);
-    }
-
-    private String formatSpeed() {
-        double speed = getAttributeValue(Attributes.MOVEMENT_SPEED);
-        int percent = speed <= 0.0D ? 0 : Math.round((float) (speed / 0.1D * 100.0D));
-        return percent + "%";
     }
 
     private String formatDuration(int ticks) {
