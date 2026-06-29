@@ -696,7 +696,7 @@ public class CodexPanel {
     }
 
     private int getControlY() {
-        return getDetailTop();
+        return getDetailTop() - 14;
     }
 
     private boolean clickedTextButton(double mouseX, double mouseY) {
