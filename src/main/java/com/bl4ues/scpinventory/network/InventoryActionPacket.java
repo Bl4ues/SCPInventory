@@ -8,6 +8,7 @@ import com.bl4ues.scpinventory.item.ScpItemType;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -19,6 +20,11 @@ public class InventoryActionPacket {
     public static final String ACTION_DROP = "DROP";
     public static final String ACTION_USE = "USE";
     public static final String ACTION_EQUIP = "EQUIP";
+
+    private static final int VANILLA_HOTBAR_START = 0;
+    private static final int VANILLA_HOTBAR_END_EXCLUSIVE = 9;
+    private static final int VANILLA_MAIN_START = 9;
+    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
 
     private final int slot;
     private final String action;
@@ -112,6 +118,11 @@ public class InventoryActionPacket {
         EquipmentSlot vanillaSlot = getVanillaEquipmentSlot(slot);
         if (vanillaSlot != null) {
             player.setItemSlot(vanillaSlot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
+            return;
+        }
+
+        if (slot == ScpEquipmentSlot.WEAPON || slot == ScpEquipmentSlot.ACCESSORY) {
+            syncMainInventoryMirror(player, slot, stack);
         }
     }
 
@@ -123,5 +134,102 @@ public class InventoryActionPacket {
             case FEET -> EquipmentSlot.FEET;
             default -> null;
         };
+    }
+
+    private static void syncMainInventoryMirror(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
+        if (player == null || slot == null) {
+            return;
+        }
+
+        Inventory inventory = player.getInventory();
+        if (stack == null || stack.isEmpty()) {
+            removeAllMirrorsForSlot(inventory, slot);
+            inventory.setChanged();
+            return;
+        }
+
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
+        removeMismatchedMirrors(inventory, slot, normalized);
+
+        int existingSlot = findExactMirror(inventory, slot, normalized);
+        if (existingSlot != -1) {
+            ItemStack existing = inventory.items.get(existingSlot);
+            if (existing.getCount() != 1) {
+                inventory.items.set(existingSlot, normalized);
+                inventory.setChanged();
+            }
+            return;
+        }
+
+        int targetSlot = findPreferredEmptySlot(inventory, slot);
+        if (targetSlot != -1) {
+            inventory.items.set(targetSlot, normalized);
+            inventory.setChanged();
+        }
+    }
+
+    private static void removeMismatchedMirrors(Inventory inventory, ScpEquipmentSlot slot, ItemStack expected) {
+        for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
+            ItemStack candidate = inventory.items.get(i);
+            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) {
+                continue;
+            }
+
+            ItemStack normalized = candidate.copy();
+            normalized.setCount(1);
+            if (!ItemStack.isSameItemSameTags(normalized, expected)) {
+                inventory.items.set(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    private static void removeAllMirrorsForSlot(Inventory inventory, ScpEquipmentSlot slot) {
+        for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
+            ItemStack candidate = inventory.items.get(i);
+            if (!candidate.isEmpty() && ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) == slot) {
+                inventory.items.set(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    private static int findExactMirror(Inventory inventory, ScpEquipmentSlot slot, ItemStack expected) {
+        for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
+            ItemStack candidate = inventory.items.get(i);
+            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) {
+                continue;
+            }
+
+            ItemStack normalized = candidate.copy();
+            normalized.setCount(1);
+            if (ItemStack.isSameItemSameTags(normalized, expected)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int findPreferredEmptySlot(Inventory inventory, ScpEquipmentSlot slot) {
+        int preferred = slot == ScpEquipmentSlot.WEAPON
+                ? findFirstEmpty(inventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE)
+                : findFirstEmpty(inventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE);
+
+        if (preferred != -1) {
+            return preferred;
+        }
+
+        return slot == ScpEquipmentSlot.WEAPON
+                ? findFirstEmpty(inventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE)
+                : findFirstEmpty(inventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE);
+    }
+
+    private static int findFirstEmpty(Inventory inventory, int start, int endExclusive) {
+        for (int i = start; i < endExclusive && i < inventory.items.size(); i++) {
+            if (inventory.items.get(i).isEmpty()) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
