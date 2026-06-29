@@ -33,7 +33,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int DRAG_ICON_CORNER = 0xCC6A6C6C;
     private static final int EQUIPMENT_LINE_GRAY = 0x666A6C6C;
     private static final int EQUIPMENT_ICON_BOX = 0x66303638;
-    private static final int EQUIPMENT_ICON_CORNER = 0xAA6A6C6C;
+    private static final int EQUIPMENT_ICON_BORDER = 0xAA6A6C6C;
     private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
     private static final double DRAG_THRESHOLD = 4.0D;
     private static final float DROP_PREVIEW_UI_ALPHA = 0.25F;
@@ -68,7 +68,7 @@ public class ScpInventoryScreen extends Screen {
             ScpEquipmentSlot.HEAD,
             ScpEquipmentSlot.CHEST,
             ScpEquipmentSlot.LEGS,
-            ScpEquipmentSlot.valueOf("FE" + "ET"),
+            ScpEquipmentSlot.FEET,
             ScpEquipmentSlot.ACCESSORY,
             ScpEquipmentSlot.WEAPON
     };
@@ -123,6 +123,7 @@ public class ScpInventoryScreen extends Screen {
             inventory = inv;
             rebuildItemList();
             equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, equipmentPanelX, inv);
+
             int codexY = listPanelY + 26;
             int codexPanelHeight = Math.max(120, listPanelHeight - 26);
             codexPanel = new CodexPanel(
@@ -229,7 +230,6 @@ public class ScpInventoryScreen extends Screen {
         float target = targetVisible ? 1.0F : 0.0F;
         float speed = targetVisible ? 0.055F : 0.070F;
         dropPreviewFade += (target - dropPreviewFade) * speed;
-
         if (Math.abs(dropPreviewFade - target) < 0.008F) {
             dropPreviewFade = target;
         }
@@ -268,10 +268,7 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderPreviewBackgroundDim(GuiGraphics g) {
         float dimAlpha = 0.35F * (1.0F - dropPreviewFade);
-        if (dimAlpha <= 0.01F) {
-            return;
-        }
-
+        if (dimAlpha <= 0.01F) return;
         int alpha = Math.max(1, Math.min(255, Math.round(255.0F * dimAlpha)));
         g.fill(0, 0, width, height, alpha << 24);
     }
@@ -302,12 +299,24 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderInventoryHeader(GuiGraphics g) {
         drawSectionTitle(g, listPanelX, titleY, "BACKPACK");
-        String count = inventory == null
-                ? "0 of 12 items"
-                : showingKeys
-                ? inventory.getKeyCount() + " of " + IScpInventory.MAX_KEY_COUNT + " keys"
-                : inventory.getInventoryCount() + " of " + inventory.getMaxMainSlots() + " items";
-        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), titleY, uiColor(TEXT_WHITE), false);
+        if (inventory == null) {
+            drawRightAlignedCount(g, 0, " of 12 items");
+            return;
+        }
+
+        if (showingKeys) {
+            drawRightAlignedCount(g, inventory.getKeyCount(), " key(s) in inventory");
+        } else {
+            drawRightAlignedCount(g, inventory.getInventoryCount(), " of " + inventory.getMaxMainSlots() + " items");
+        }
+    }
+
+    private void drawRightAlignedCount(GuiGraphics g, int current, String suffix) {
+        String currentText = Integer.toString(current);
+        int totalWidth = minecraft.font.width(currentText) + minecraft.font.width(suffix);
+        int x = listX + listWidth - totalWidth;
+        g.drawString(minecraft.font, currentText, x, titleY, uiColor(TEXT_WHITE), false);
+        g.drawString(minecraft.font, suffix, x + minecraft.font.width(currentText), titleY, uiColor(TEXT_GRAY), false);
     }
 
     private void renderTabs(GuiGraphics g) {
@@ -316,12 +325,8 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private void renderDropPreviewEquipmentPanel(GuiGraphics g) {
-        if (inventory == null) {
-            return;
-        }
-
+        if (inventory == null) return;
         drawSectionTitle(g, equipmentPanelX, titleY, "EQUIPMENT");
-
         int rowY = equipmentY;
         for (ScpEquipmentSlot slot : DROP_PREVIEW_EQUIPMENT_SLOTS) {
             renderDropPreviewEquipmentSlot(g, slot, rowY);
@@ -331,13 +336,14 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderDropPreviewEquipmentSlot(GuiGraphics g, ScpEquipmentSlot slot, int rowY) {
         ItemStack stack = inventory.getEquipment(slot);
-
         int iconX = equipmentX + 8;
         int iconY = rowY + 6;
         int textX = equipmentX + 44;
 
-        if (!stack.isEmpty()) {
-            drawDropPreviewIconFrame(g, iconX, iconY);
+        if (stack.isEmpty()) {
+            drawDropPreviewEmptyCorners(g, iconX, iconY);
+        } else {
+            drawDropPreviewFilledFrame(g, iconX, iconY);
             if (dropPreviewRenderAlpha >= DROP_PREVIEW_SOLID_ITEM_ALPHA_THRESHOLD) {
                 g.renderItem(stack, iconX + 4, iconY + 4);
             }
@@ -351,20 +357,28 @@ public class ScpInventoryScreen extends Screen {
         g.fill(equipmentX, lineY, equipmentX + equipmentWidth, lineY + 1, uiColor(EQUIPMENT_LINE_GRAY));
     }
 
-    private void drawDropPreviewIconFrame(GuiGraphics g, int x, int y) {
+    private void drawDropPreviewFilledFrame(GuiGraphics g, int x, int y) {
+        int right = x + EQUIPMENT_ICON_BOX_SIZE;
+        int bottom = y + EQUIPMENT_ICON_BOX_SIZE;
+        g.fill(x, y, right, bottom, uiColor(EQUIPMENT_ICON_BOX));
+        g.fill(x, y, right, y + 1, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(x, bottom - 1, right, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(x, y, x + 1, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(right - 1, y, right, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+    }
+
+    private void drawDropPreviewEmptyCorners(GuiGraphics g, int x, int y) {
         int right = x + EQUIPMENT_ICON_BOX_SIZE;
         int bottom = y + EQUIPMENT_ICON_BOX_SIZE;
         int corner = 6;
-
-        g.fill(x, y, right, bottom, uiColor(EQUIPMENT_ICON_BOX));
-        g.fill(x, y, x + corner, y + 1, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(x, y, x + 1, y + corner, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(right - corner, y, right, y + 1, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(right - 1, y, right, y + corner, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(x, bottom - 1, x + corner, bottom, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(x, bottom - corner, x + 1, bottom, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(right - corner, bottom - 1, right, bottom, uiColor(EQUIPMENT_ICON_CORNER));
-        g.fill(right - 1, bottom - corner, right, bottom, uiColor(EQUIPMENT_ICON_CORNER));
+        g.fill(x, y, x + corner, y + 1, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(x, y, x + 1, y + corner, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(right - corner, y, right, y + 1, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(right - 1, y, right, y + corner, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(x, bottom - 1, x + corner, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(x, bottom - corner, x + 1, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(right - corner, bottom - 1, right, bottom, uiColor(EQUIPMENT_ICON_BORDER));
+        g.fill(right - 1, bottom - corner, right, bottom, uiColor(EQUIPMENT_ICON_BORDER));
     }
 
     private void renderBottomNavigation(GuiGraphics g) {
@@ -419,20 +433,14 @@ public class ScpInventoryScreen extends Screen {
     }
 
     private int uiColor(int color) {
-        if (!dropPreviewTransparentRender) {
-            return color;
-        }
-
+        if (!dropPreviewTransparentRender) return color;
         int alpha = color >>> 24;
         int fadedAlpha = Math.max(1, Math.round(alpha * dropPreviewRenderAlpha));
         return (fadedAlpha << 24) | (color & 0x00FFFFFF);
     }
 
     private void renderDraggedStack(GuiGraphics g, int mouseX, int mouseY) {
-        if (draggedStack.isEmpty() || !dragMoved) {
-            return;
-        }
-
+        if (draggedStack.isEmpty() || !dragMoved) return;
         int frameX = mouseX - (DRAG_ICON_FRAME_SIZE / 2);
         int frameY = mouseY - (DRAG_ICON_FRAME_SIZE / 2);
         drawDragIconFrame(g, frameX, frameY);
@@ -443,7 +451,6 @@ public class ScpInventoryScreen extends Screen {
         int right = x + DRAG_ICON_FRAME_SIZE;
         int bottom = y + DRAG_ICON_FRAME_SIZE;
         int corner = 6;
-
         g.fill(x, y, right, bottom, DRAG_ICON_BOX);
         g.fill(x, y, x + corner, y + 1, DRAG_ICON_CORNER);
         g.fill(x, y, x + 1, y + corner, DRAG_ICON_CORNER);
@@ -467,6 +474,7 @@ public class ScpInventoryScreen extends Screen {
         if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.isExpandedImage()) {
             return codexPanel.mouseClicked(mouseX, mouseY, button);
         }
+
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseClickedScrollbar(mouseX, mouseY, button)) return true;
         if (button == 0 && clickedBottomNavigation(mouseX, mouseY)) return true;
         if (mode == ScreenMode.CODEX) return codexPanel != null && codexPanel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
@@ -495,13 +503,10 @@ public class ScpInventoryScreen extends Screen {
                         ClientInventoryBridge.moveEquipmentToMain(clickedEquipmentSlot, -1);
                         return true;
                     }
-
                     startEquipmentDrag(clickedEquipmentSlot, mouseX, mouseY);
                     return true;
                 }
-                if (button == 1) {
-                    return true;
-                }
+                if (button == 1) return true;
             }
         }
 
@@ -511,6 +516,7 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseDraggedScrollbar(mouseY)) return true;
 
         if (button == 0 && hasDragSource()) {
@@ -525,13 +531,11 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (mode == ScreenMode.CODEX && codexPanel != null && codexPanel.mouseReleased(button)) return true;
         if (mode == ScreenMode.INVENTORY && itemList != null && itemList.mouseReleasedScrollbar(button)) return true;
 
         if (button == 0 && hasDragSource()) {
-            if (dragMoved) {
-                finishDrag(mouseX, mouseY);
-            }
-
+            if (dragMoved) finishDrag(mouseX, mouseY);
             clearDragSource();
             return true;
         }
@@ -555,14 +559,13 @@ public class ScpInventoryScreen extends Screen {
                 if (contextMenu != null) contextMenu.close();
                 return true;
             }
-
             startMainDrag(index, stack, mouseX, mouseY);
             return true;
         }
         if (button == 1) {
             contextIndex = index;
             contextIsKey = false;
-            contextMenu.open((int) mouseX, (int) mouseY, ScpItemClassifier.getEquipmentSlot(stack).isPresent() ? "Head" : inventory.getItemType(index));
+            contextMenu.open((int) mouseX, (int) mouseY, ScpItemClassifier.getDisplayType(stack));
             return true;
         }
         return false;
@@ -574,10 +577,6 @@ public class ScpInventoryScreen extends Screen {
         ItemStack key = inventory.getKeys().get(index);
         if (key.isEmpty()) return false;
 
-        if (button == 0 && itemList.clickedDrop(mouseX)) {
-            ClientInventoryBridge.performKey(index, KeyActionPacket.ACTION_DROP);
-            return true;
-        }
         if (button == 1) {
             contextIndex = index;
             contextIsKey = true;
@@ -592,12 +591,10 @@ public class ScpInventoryScreen extends Screen {
             ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_EQUIP);
             return true;
         }
-
         if ("Consumable".equals(inventory.getItemType(index))) {
             ClientInventoryBridge.perform(index, InventoryActionPacket.ACTION_USE);
             return true;
         }
-
         return false;
     }
 
@@ -705,11 +702,9 @@ public class ScpInventoryScreen extends Screen {
         boolean result = index == lastLeftClickIndex
                 && keyList == lastLeftClickWasKey
                 && now - lastLeftClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
-
         lastLeftClickIndex = index;
         lastLeftClickWasKey = keyList;
         lastLeftClickTimeMs = now;
-
         return result;
     }
 
@@ -717,10 +712,8 @@ public class ScpInventoryScreen extends Screen {
         long now = System.currentTimeMillis();
         boolean result = slot == lastEquipmentClickSlot
                 && now - lastEquipmentClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
-
         lastEquipmentClickSlot = slot;
         lastEquipmentClickTimeMs = now;
-
         return result;
     }
 
