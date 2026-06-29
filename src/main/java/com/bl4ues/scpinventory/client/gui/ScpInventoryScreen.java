@@ -10,7 +10,6 @@ import com.bl4ues.scpinventory.client.gui.components.EquipmentPanel;
 import com.bl4ues.scpinventory.client.gui.components.ScrollableItemList;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
-import com.bl4ues.scpinventory.network.EquipmentActionPacket;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.KeyActionPacket;
 import net.minecraft.client.Minecraft;
@@ -29,7 +28,6 @@ public class ScpInventoryScreen extends Screen {
     private static final int ROOT_TINT = 0x11000000;
     private static final int PANEL_BACKGROUND = 0x8F545D5F;
     private static final int FOOTER_BACKGROUND = 0x242B3133;
-    private static final int DROP_PREVIEW_DIM = 0xB8000000;
     private static final int DRAG_ICON_BOX = 0x99303638;
     private static final int DRAG_ICON_CORNER = 0xCC6A6C6C;
     private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
@@ -105,7 +103,6 @@ public class ScpInventoryScreen extends Screen {
             equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, equipmentPanelX, inv);
             int codexY = listPanelY + 26;
             int codexPanelHeight = Math.max(120, listPanelHeight - 26);
-            int codexDetailBaseHeight = Math.max(120, codexPanelHeight - 120);
             codexPanel = new CodexPanel(
                     listPanelX + 10,
                     codexY,
@@ -113,7 +110,7 @@ public class ScpInventoryScreen extends Screen {
                     codexPanelHeight,
                     equipmentPanelX + 10,
                     equipmentPanelWidth - 20,
-                    codexDetailBaseHeight,
+                    codexPanelHeight,
                     titleY,
                     listPanelX,
                     equipmentPanelX,
@@ -175,6 +172,12 @@ public class ScpInventoryScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        boolean worldDropPreview = isPreviewingWorldDrop(mouseX, mouseY);
+        if (worldDropPreview) {
+            renderDraggedStack(g, mouseX, mouseY);
+            return;
+        }
+
         renderBackground(g);
         renderPanels(g);
         renderHealthStatus(g);
@@ -193,7 +196,6 @@ public class ScpInventoryScreen extends Screen {
         if (!codexExpanded) {
             renderBottomNavigation(g);
             if (contextMenu != null) contextMenu.render(g, mouseX, mouseY);
-            renderDropPreviewOverlay(g, mouseX, mouseY);
             renderDraggedStack(g, mouseX, mouseY);
             super.render(g, mouseX, mouseY, partialTick);
         }
@@ -282,14 +284,6 @@ public class ScpInventoryScreen extends Screen {
         String prefix = "://INVENTORY_";
         g.drawString(minecraft.font, prefix, x, y, TEXT_GRAY, false);
         g.drawString(minecraft.font, suffix, x + minecraft.font.width(prefix), y, TEXT_WHITE, false);
-    }
-
-    private void renderDropPreviewOverlay(GuiGraphics g, int mouseX, int mouseY) {
-        if (!isPreviewingWorldDrop(mouseX, mouseY)) {
-            return;
-        }
-
-        g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, DROP_PREVIEW_DIM);
     }
 
     private void renderDraggedStack(GuiGraphics g, int mouseX, int mouseY) {
@@ -386,8 +380,6 @@ public class ScpInventoryScreen extends Screen {
         if (button == 0 && hasDragSource()) {
             if (dragMoved) {
                 finishDrag(mouseX, mouseY);
-            } else if (dragSourceKind == DragSourceKind.EQUIPMENT) {
-                ClientInventoryBridge.performEquipment(dragSourceEquipmentSlot, EquipmentActionPacket.ACTION_UNEQUIP);
             }
 
             clearDragSource();
