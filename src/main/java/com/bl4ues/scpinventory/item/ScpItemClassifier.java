@@ -63,11 +63,6 @@ public final class ScpItemClassifier {
             return Optional.empty();
         }
 
-        Optional<CodexDocumentDefinition> builtInDefinition = CodexDocumentDefinition.getBuiltIn(stack);
-        if (builtInDefinition.isPresent()) {
-            return builtInDefinition;
-        }
-
         for (String rawRule : ScpInventoryConfig.CODEX_DOCUMENTS.get()) {
             Optional<CodexDocumentDefinition> definition = CodexDocumentDefinition.parse(rawRule);
             if (definition.isPresent() && definition.get().matches(stack)) {
@@ -75,7 +70,7 @@ public final class ScpItemClassifier {
             }
         }
 
-        return Optional.empty();
+        return CodexDocumentDefinition.getBuiltIn(stack);
     }
 
     private static Optional<ScpItemType> getConfiguredType(ItemStack stack) {
