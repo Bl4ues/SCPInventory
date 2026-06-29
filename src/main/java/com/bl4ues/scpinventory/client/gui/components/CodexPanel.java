@@ -26,15 +26,18 @@ public class CodexPanel {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int CATEGORY_BACKGROUND = 0x336A6C6C;
+    private static final int CATEGORY_BACKGROUND = 0x446A6C6C;
     private static final int SELECTED_BACKGROUND = 0x889FC8C8;
     private static final int BUTTON_BACKGROUND = 0x446A6C6C;
     private static final int BUTTON_BACKGROUND_HOVERED = 0x667A7C7C;
-    private static final int ICON_BOX = 0x553F4648;
     private static final int SCROLL_TRACK = 0x33000000;
     private static final int SCROLL_THUMB = 0x886A6C6C;
+    private static final int DEBUG_PAGE = 0xE8D7D8D5;
+    private static final int DEBUG_PAGE_DARK = 0xFF202020;
+    private static final int DEBUG_PAGE_FAINT = 0x66303030;
+    private static final int DEBUG_HIGHLIGHT = 0x99D8D24A;
 
-    private static final int ROW_HEIGHT = 28;
+    private static final int ROW_HEIGHT = 34;
     private static final int BUTTON_HEIGHT = 18;
     private static final int SCROLL_WIDTH = 5;
 
@@ -180,17 +183,17 @@ public class CodexPanel {
     }
 
     private void renderCategoryRow(GuiGraphics g, DisplayRow row, int rowY) {
-        g.fill(x, rowY, x + listWidth - 18, rowY + ROW_HEIGHT, CATEGORY_BACKGROUND);
-        g.drawString(mc.font, row.category, x + 10, rowY + 8, TEXT_WHITE, false);
-        g.drawString(mc.font, collapsedCategories.contains(row.category) ? ">" : "v", x + listWidth - 38, rowY + 8, TEXT_GRAY, false);
+        g.fill(x, rowY, x + listWidth - 10, rowY + ROW_HEIGHT, CATEGORY_BACKGROUND);
+        g.drawString(mc.font, row.category, x + 12, rowY + 12, TEXT_WHITE, false);
+        g.drawString(mc.font, collapsedCategories.contains(row.category) ? ">" : "v", x + listWidth - 34, rowY + 12, TEXT_GRAY, false);
     }
 
     private void renderDocumentRow(GuiGraphics g, DisplayRow row, int rowY) {
         if (row.documentIndex == selectedIndex) {
-            g.fill(x + 6, rowY, x + listWidth - 24, rowY + ROW_HEIGHT, SELECTED_BACKGROUND);
+            g.fill(x + 6, rowY, x + listWidth - 26, rowY + ROW_HEIGHT, SELECTED_BACKGROUND);
         }
 
-        g.drawString(mc.font, row.name, x + 24, rowY + 8, TEXT_WHITE, false);
+        g.drawString(mc.font, row.name, x + 28, rowY + 12, TEXT_WHITE, false);
     }
 
     private void renderDocumentDetails(GuiGraphics g, int mouseX, int mouseY) {
@@ -216,10 +219,10 @@ public class CodexPanel {
 
     private void renderDocumentImagePreview(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
         int buttonY = getButtonY();
-        int imageAreaX = detailX + 40;
-        int imageAreaY = detailY + 4;
-        int imageAreaWidth = detailWidth - 80;
-        int imageAreaHeight = Math.max(40, buttonY - imageAreaY - 8);
+        int imageAreaX = detailX + 32;
+        int imageAreaY = detailY + 8;
+        int imageAreaWidth = detailWidth - 64;
+        int imageAreaHeight = Math.max(40, buttonY - imageAreaY - 10);
 
         drawDocumentImage(g, document, definition, imageAreaX, imageAreaY, imageAreaWidth, imageAreaHeight);
         drawDetailButtons(g, mouseX, mouseY);
@@ -238,20 +241,20 @@ public class CodexPanel {
 
     private void renderDocumentText(GuiGraphics g, int mouseX, int mouseY, ItemStack document, CodexDocumentDefinition definition) {
         int buttonY = getButtonY();
-        int textY = detailY + 4;
+        int textY = detailY + 8;
         String title = definition.getDisplayName(document);
 
-        g.drawString(mc.font, title, detailX, textY, TEXT_WHITE, false);
+        g.drawString(mc.font, title, detailX + 10, textY, TEXT_WHITE, false);
         textY += 18;
 
         String body = readText(definition).orElseGet(() -> buildFallbackText(document, definition));
-        int maxTextY = buttonY - 8;
-        for (FormattedCharSequence line : mc.font.split(Component.literal(body), detailWidth)) {
+        int maxTextY = buttonY - 10;
+        for (FormattedCharSequence line : mc.font.split(Component.literal(body), detailWidth - 20)) {
             if (textY + 10 > maxTextY) {
-                g.drawString(mc.font, "...", detailX, textY, TEXT_GRAY, false);
+                g.drawString(mc.font, "...", detailX + 10, textY, TEXT_GRAY, false);
                 break;
             }
-            g.drawString(mc.font, line, detailX, textY, TEXT_GRAY, false);
+            g.drawString(mc.font, line, detailX + 10, textY, TEXT_GRAY, false);
             textY += 12;
         }
 
@@ -271,27 +274,50 @@ public class CodexPanel {
             return;
         }
 
-        renderDocumentPlaceholder(g, document, definition, areaX, areaY, areaWidth, areaHeight);
+        renderDebugDocumentPage(g, document, definition, areaX, areaY, areaWidth, areaHeight);
     }
 
-    private void renderDocumentPlaceholder(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight) {
-        int centerX = areaX + (areaWidth / 2);
-        int centerY = areaY + (areaHeight / 2);
-        int iconBox = 42;
-        int iconX = centerX - (iconBox / 2);
-        int iconY = centerY - 34;
+    private void renderDebugDocumentPage(GuiGraphics g, ItemStack document, CodexDocumentDefinition definition, int areaX, int areaY, int areaWidth, int areaHeight) {
+        int[] fitted = fitRect(512, 724, areaWidth, areaHeight);
+        int pageX = areaX + (areaWidth - fitted[0]) / 2;
+        int pageY = areaY + (areaHeight - fitted[1]) / 2;
+        int pageW = fitted[0];
+        int pageH = fitted[1];
 
-        g.fill(iconX, iconY, iconX + iconBox, iconY + iconBox, ICON_BOX);
+        g.fill(pageX, pageY, pageX + pageW, pageY + pageH, DEBUG_PAGE);
+        g.fill(pageX + pageW / 22, pageY + pageH / 8, pageX + pageW - pageW / 22, pageY + pageH / 8 + 1, DEBUG_PAGE_DARK);
+
+        float titleScale = Math.max(0.65F, pageW / 320.0F);
+        drawScaledPageString(g, "SCP", pageX + pageW / 12.0F, pageY + pageH / 22.0F, DEBUG_PAGE_DARK, titleScale * 2.2F);
+        drawScaledPageString(g, "Secure. Contain. Protect.", pageX + pageW / 12.0F, pageY + pageH / 10.0F, DEBUG_PAGE_DARK, titleScale * 0.72F);
+
+        String documentTitle = definition.getDisplayName(document);
+        drawScaledPageString(g, documentTitle, pageX + pageW / 12.0F, pageY + pageH / 6.2F, DEBUG_PAGE_DARK, titleScale * 0.72F);
+        drawScaledPageString(g, "Special Containment Procedures:", pageX + pageW / 12.0F, pageY + pageH / 4.7F, DEBUG_PAGE_DARK, titleScale * 0.62F);
+
+        int lineX = pageX + pageW / 12;
+        int lineW = pageW - pageW / 6;
+        int lineY = pageY + pageH / 4;
+        int lineStep = Math.max(5, pageH / 42);
+        for (int i = 0; i < 19; i++) {
+            int currentLineW = lineW - ((i % 4) * pageW / 18);
+            g.fill(lineX, lineY + i * lineStep, lineX + currentLineW, lineY + i * lineStep + 1, DEBUG_PAGE_FAINT);
+        }
+
+        int highlightY = lineY + lineStep * 7;
+        g.fill(lineX, highlightY - 1, lineX + lineW - pageW / 10, highlightY + lineStep + 1, DEBUG_HIGHLIGHT);
+        g.fill(lineX, highlightY + lineStep + 2, lineX + lineW - pageW / 5, highlightY + (lineStep * 2) + 4, DEBUG_HIGHLIGHT);
+
+        drawScaledPageString(g, "This is a generated debug preview.", lineX, pageY + pageH - pageH / 7.5F, DEBUG_PAGE_DARK, titleScale * 0.60F);
+        drawScaledPageString(g, "Use the text button for the transcript.", lineX, pageY + pageH - pageH / 9.0F, DEBUG_PAGE_DARK, titleScale * 0.60F);
+    }
+
+    private void drawScaledPageString(GuiGraphics g, String text, float x, float y, int color, float scale) {
         g.pose().pushPose();
-        g.pose().translate(iconX + 5, iconY + 5, 0.0F);
-        g.pose().scale(2.0F, 2.0F, 1.0F);
-        g.renderItem(document, 0, 0);
+        g.pose().translate(x, y, 0.0F);
+        g.pose().scale(scale, scale, 1.0F);
+        g.drawString(mc.font, text, 0, 0, color, false);
         g.pose().popPose();
-
-        String title = definition.getDisplayName(document);
-        g.drawString(mc.font, title, centerX - (mc.font.width(title) / 2), iconY + iconBox + 10, TEXT_WHITE, false);
-        String hint = "No image configured.";
-        g.drawString(mc.font, hint, centerX - (mc.font.width(hint) / 2), iconY + iconBox + 23, TEXT_GRAY, false);
     }
 
     private void drawDetailButtons(GuiGraphics g, int mouseX, int mouseY) {
@@ -437,7 +463,7 @@ public class CodexPanel {
     }
 
     private int getButtonY() {
-        return detailY + detailHeight - BUTTON_HEIGHT - 6;
+        return detailY + detailHeight - BUTTON_HEIGHT - 10;
     }
 
     private boolean clickedTextButton(double mouseX, double mouseY) {
@@ -484,7 +510,8 @@ public class CodexPanel {
             return ROW_HEIGHT * 12;
         }
 
-        return Math.max(ROW_HEIGHT * 12, minecraft.getWindow().getGuiScaledHeight() - panelY - 86);
+        int guiHeight = minecraft.getWindow().getGuiScaledHeight();
+        return Math.max(ROW_HEIGHT * 9, guiHeight - panelY - 160);
     }
 
     private static class DisplayRow {
