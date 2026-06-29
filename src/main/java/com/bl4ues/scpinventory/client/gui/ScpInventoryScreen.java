@@ -32,6 +32,7 @@ public class ScpInventoryScreen extends Screen {
     private static final int DRAG_ICON_CORNER = 0xCC6A6C6C;
     private static final long DOUBLE_LEFT_CLICK_WINDOW_MS = 320L;
     private static final double DRAG_THRESHOLD = 4.0D;
+    private static final float DROP_PREVIEW_UI_ALPHA = 0.18F;
 
     private static final ResourceLocation BACKGROUND = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventory_background.png");
     private static final ResourceLocation INVENTORY_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/inventoryicon.png");
@@ -76,6 +77,8 @@ public class ScpInventoryScreen extends Screen {
     private int lastLeftClickIndex = -1;
     private boolean lastLeftClickWasKey = false;
     private long lastLeftClickTimeMs = 0L;
+    private ScpEquipmentSlot lastEquipmentClickSlot = null;
+    private long lastEquipmentClickTimeMs = 0L;
 
     private DragSourceKind dragSourceKind = DragSourceKind.NONE;
     private int dragSourceIndex = -1;
@@ -84,6 +87,7 @@ public class ScpInventoryScreen extends Screen {
     private double dragStartX = 0.0D;
     private double dragStartY = 0.0D;
     private boolean dragMoved = false;
+    private boolean dropPreviewTransparentRender = false;
 
     public ScpInventoryScreen() {
         super(Component.literal("SCP Inventory"));
@@ -174,7 +178,7 @@ public class ScpInventoryScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         boolean worldDropPreview = isPreviewingWorldDrop(mouseX, mouseY);
         if (worldDropPreview) {
-            renderDraggedStack(g, mouseX, mouseY);
+            renderTransparentDropPreview(g, mouseX, mouseY);
             return;
         }
 
@@ -201,14 +205,37 @@ public class ScpInventoryScreen extends Screen {
         }
     }
 
+    private void renderTransparentDropPreview(GuiGraphics g, int mouseX, int mouseY) {
+        dropPreviewTransparentRender = true;
+        g.setColor(1.0F, 1.0F, 1.0F, DROP_PREVIEW_UI_ALPHA);
+
+        renderPanels(g);
+        renderHealthStatus(g);
+
+        if (mode == ScreenMode.CODEX) {
+            if (codexPanel != null) codexPanel.render(g, mouseX, mouseY);
+        } else {
+            renderInventoryHeader(g);
+            renderTabs(g);
+            if (itemList != null) itemList.render(g, mouseX, mouseY);
+            if (equipmentPanel != null) equipmentPanel.render(g, mouseX, mouseY);
+        }
+
+        renderBottomNavigation(g);
+
+        g.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        dropPreviewTransparentRender = false;
+        renderDraggedStack(g, mouseX, mouseY);
+    }
+
     private void renderPanels(GuiGraphics g) {
         blitSmoothTexture(g, BACKGROUND, rootX, rootY, rootWidth, rootHeight, BACKGROUND_SOURCE_WIDTH, BACKGROUND_SOURCE_HEIGHT);
-        g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, ROOT_TINT);
-        g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, FOOTER_BACKGROUND);
+        g.fill(rootX, rootY, rootX + rootWidth, rootY + rootHeight, uiColor(ROOT_TINT));
+        g.fill(rootX, navY - 18, rootX + rootWidth, rootY + rootHeight, uiColor(FOOTER_BACKGROUND));
 
         int panelBottom = listPanelY + listPanelHeight;
-        g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, PANEL_BACKGROUND);
-        g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, PANEL_BACKGROUND);
+        g.fill(listPanelX, listPanelY, listPanelX + listPanelWidth, panelBottom, uiColor(PANEL_BACKGROUND));
+        g.fill(equipmentPanelX, equipmentPanelY, equipmentPanelX + equipmentPanelWidth, equipmentPanelY + equipmentPanelHeight, uiColor(PANEL_BACKGROUND));
     }
 
     private void renderHealthStatus(GuiGraphics g) {
@@ -232,7 +259,7 @@ public class ScpInventoryScreen extends Screen {
                 : showingKeys
                 ? inventory.getKeyCount() + " of " + IScpInventory.MAX_KEY_COUNT + " keys"
                 : inventory.getInventoryCount() + " of " + inventory.getMaxMainSlots() + " items";
-        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), titleY, TEXT_WHITE, false);
+        g.drawString(minecraft.font, count, listX + listWidth - minecraft.font.width(count), titleY, uiColor(TEXT_WHITE), false);
     }
 
     private void renderTabs(GuiGraphics g) {
@@ -249,7 +276,7 @@ public class ScpInventoryScreen extends Screen {
         int iconX = x + (NAV_BUTTON_WIDTH - NAV_ICON_SIZE) / 2;
         int textX = x + (NAV_BUTTON_WIDTH - minecraft.font.width(label)) / 2;
         blitFullIcon(g, icon, iconX, y, NAV_ICON_SIZE, NAV_ICON_SIZE);
-        g.drawString(minecraft.font, label, textX, y + NAV_ICON_SIZE + 6, active ? TEXT_WHITE : TEXT_GRAY, false);
+        g.drawString(minecraft.font, label, textX, y + NAV_ICON_SIZE + 6, uiColor(active ? TEXT_WHITE : TEXT_GRAY), false);
     }
 
     private void blitFullIcon(GuiGraphics g, ResourceLocation icon, int x, int y, int width, int height) {
@@ -271,19 +298,29 @@ public class ScpInventoryScreen extends Screen {
         g.pose().pushPose();
         g.pose().translate(x, y, 0.0F);
         g.pose().scale(scale, scale, 1.0F);
-        g.drawString(minecraft.font, text, 0, 0, color, false);
+        g.drawString(minecraft.font, text, 0, 0, uiColor(color), false);
         g.pose().popPose();
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
-        g.fill(x, y, x + w, y + TAB_HEIGHT, active ? TAB_ACTIVE : TAB_INACTIVE);
-        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 5, active ? TEXT_SELECTED : TEXT_GRAY, false);
+        g.fill(x, y, x + w, y + TAB_HEIGHT, uiColor(active ? TAB_ACTIVE : TAB_INACTIVE));
+        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 5, uiColor(active ? TEXT_SELECTED : TEXT_GRAY), false);
     }
 
     private void drawSectionTitle(GuiGraphics g, int x, int y, String suffix) {
         String prefix = "://INVENTORY_";
-        g.drawString(minecraft.font, prefix, x, y, TEXT_GRAY, false);
-        g.drawString(minecraft.font, suffix, x + minecraft.font.width(prefix), y, TEXT_WHITE, false);
+        g.drawString(minecraft.font, prefix, x, y, uiColor(TEXT_GRAY), false);
+        g.drawString(minecraft.font, suffix, x + minecraft.font.width(prefix), y, uiColor(TEXT_WHITE), false);
+    }
+
+    private int uiColor(int color) {
+        if (!dropPreviewTransparentRender) {
+            return color;
+        }
+
+        int alpha = color >>> 24;
+        int fadedAlpha = Math.max(1, Math.round(alpha * DROP_PREVIEW_UI_ALPHA));
+        return (fadedAlpha << 24) | (color & 0x00FFFFFF);
     }
 
     private void renderDraggedStack(GuiGraphics g, int mouseX, int mouseY) {
@@ -346,6 +383,14 @@ public class ScpInventoryScreen extends Screen {
             ScpEquipmentSlot clickedEquipmentSlot = equipmentPanel.getClickedSlot(mouseX, mouseY);
             if (clickedEquipmentSlot != null && !inventory.getEquipment(clickedEquipmentSlot).isEmpty()) {
                 if (button == 0) {
+                    if (isDoubleEquipmentClick(clickedEquipmentSlot)) {
+                        resetEquipmentClickMemory();
+                        resetLeftClickMemory();
+                        clearDragSource();
+                        ClientInventoryBridge.moveEquipmentToMain(clickedEquipmentSlot, -1);
+                        return true;
+                    }
+
                     startEquipmentDrag(clickedEquipmentSlot, mouseX, mouseY);
                     return true;
                 }
@@ -563,10 +608,26 @@ public class ScpInventoryScreen extends Screen {
         return result;
     }
 
+    private boolean isDoubleEquipmentClick(ScpEquipmentSlot slot) {
+        long now = System.currentTimeMillis();
+        boolean result = slot == lastEquipmentClickSlot
+                && now - lastEquipmentClickTimeMs <= DOUBLE_LEFT_CLICK_WINDOW_MS;
+
+        lastEquipmentClickSlot = slot;
+        lastEquipmentClickTimeMs = now;
+
+        return result;
+    }
+
     private void resetLeftClickMemory() {
         lastLeftClickIndex = -1;
         lastLeftClickWasKey = false;
         lastLeftClickTimeMs = 0L;
+    }
+
+    private void resetEquipmentClickMemory() {
+        lastEquipmentClickSlot = null;
+        lastEquipmentClickTimeMs = 0L;
     }
 
     private boolean clickedTabs(double mouseX, double mouseY) {
