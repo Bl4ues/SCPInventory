@@ -13,7 +13,7 @@ public class EquipmentPanel {
             ScpEquipmentSlot.HEAD,
             ScpEquipmentSlot.CHEST,
             ScpEquipmentSlot.LEGS,
-            ScpEquipmentSlot.valueOf("FE" + "ET"),
+            ScpEquipmentSlot.FEET,
             ScpEquipmentSlot.ACCESSORY,
             ScpEquipmentSlot.WEAPON
     };
@@ -24,7 +24,7 @@ public class EquipmentPanel {
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int LINE_GRAY = 0x666A6C6C;
     private static final int ICON_BOX = 0x66303638;
-    private static final int ICON_CORNER = 0xAA6A6C6C;
+    private static final int ICON_BORDER = 0xAA6A6C6C;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final int x;
@@ -78,8 +78,10 @@ public class EquipmentPanel {
         int iconY = rowY + 6;
         int textX = x + 44;
 
-        if (!stack.isEmpty()) {
-            drawIconFrame(g, iconX, iconY);
+        if (stack.isEmpty()) {
+            drawEmptyIconCorners(g, iconX, iconY);
+        } else {
+            drawFilledIconFrame(g, iconX, iconY);
             g.renderItem(stack, iconX + 4, iconY + 4);
         }
 
@@ -99,21 +101,30 @@ public class EquipmentPanel {
         g.fill(x, lineY, x + width, lineY + 1, LINE_GRAY);
     }
 
-    private void drawIconFrame(GuiGraphics g, int x, int y) {
+    private void drawFilledIconFrame(GuiGraphics g, int x, int y) {
+        int right = x + ICON_BOX_SIZE;
+        int bottom = y + ICON_BOX_SIZE;
+
+        g.fill(x, y, right, bottom, ICON_BOX);
+        g.fill(x, y, right, y + 1, ICON_BORDER);
+        g.fill(x, bottom - 1, right, bottom, ICON_BORDER);
+        g.fill(x, y, x + 1, bottom, ICON_BORDER);
+        g.fill(right - 1, y, right, bottom, ICON_BORDER);
+    }
+
+    private void drawEmptyIconCorners(GuiGraphics g, int x, int y) {
         int right = x + ICON_BOX_SIZE;
         int bottom = y + ICON_BOX_SIZE;
         int corner = 6;
 
-        g.fill(x, y, right, bottom, ICON_BOX);
-
-        g.fill(x, y, x + corner, y + 1, ICON_CORNER);
-        g.fill(x, y, x + 1, y + corner, ICON_CORNER);
-        g.fill(right - corner, y, right, y + 1, ICON_CORNER);
-        g.fill(right - 1, y, right, y + corner, ICON_CORNER);
-        g.fill(x, bottom - 1, x + corner, bottom, ICON_CORNER);
-        g.fill(x, bottom - corner, x + 1, bottom, ICON_CORNER);
-        g.fill(right - corner, bottom - 1, right, bottom, ICON_CORNER);
-        g.fill(right - 1, bottom - corner, right, bottom, ICON_CORNER);
+        g.fill(x, y, x + corner, y + 1, ICON_BORDER);
+        g.fill(x, y, x + 1, y + corner, ICON_BORDER);
+        g.fill(right - corner, y, right, y + 1, ICON_BORDER);
+        g.fill(right - 1, y, right, y + corner, ICON_BORDER);
+        g.fill(x, bottom - 1, x + corner, bottom, ICON_BORDER);
+        g.fill(x, bottom - corner, x + 1, bottom, ICON_BORDER);
+        g.fill(right - corner, bottom - 1, right, bottom, ICON_BORDER);
+        g.fill(right - 1, bottom - corner, right, bottom, ICON_BORDER);
     }
 
     private void drawSectionTitle(GuiGraphics g, int x, int y, String suffix) {
