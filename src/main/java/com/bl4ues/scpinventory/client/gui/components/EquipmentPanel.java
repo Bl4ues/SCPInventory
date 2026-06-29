@@ -31,18 +31,20 @@ public class EquipmentPanel {
     private final int y;
     private final int width;
     private final int titleY;
+    private final int titleX;
     private final IScpInventory inventory;
 
-    public EquipmentPanel(int x, int y, int width, int titleY, IScpInventory inventory) {
+    public EquipmentPanel(int x, int y, int width, int titleY, int titleX, IScpInventory inventory) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.titleY = titleY;
+        this.titleX = titleX;
         this.inventory = inventory;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        drawSectionTitle(g, x, titleY, "EQUIPMENT");
+        drawSectionTitle(g, titleX, titleY, "EQUIPMENT");
 
         int rowY = y;
         for (ScpEquipmentSlot slot : DISPLAY_SLOTS) {
