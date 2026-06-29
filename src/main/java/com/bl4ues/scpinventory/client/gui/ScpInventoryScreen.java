@@ -49,8 +49,9 @@ public class ScpInventoryScreen extends Screen {
     private static final int TAB_HEIGHT = 20;
     private static final int INVENTORY_TAB_WIDTH = 90;
     private static final int KEYS_TAB_WIDTH = 76;
-    private static final int HEALTH_ICON_SIZE = 24;
+    private static final int HEALTH_ICON_SIZE = 20;
     private static final int DRAG_ICON_FRAME_SIZE = 24;
+    private static final float HEALTH_TEXT_SCALE = 0.86F;
 
     private enum ScreenMode { INVENTORY, CODEX }
     private enum DragSourceKind { NONE, MAIN, EQUIPMENT }
@@ -99,8 +100,8 @@ public class ScpInventoryScreen extends Screen {
         mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inv -> {
             inventory = inv;
             rebuildItemList();
-            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, inv);
-            codexPanel = new CodexPanel(listX, listPanelY + 26, listWidth, equipmentX, equipmentWidth, titleY, inv);
+            equipmentPanel = new EquipmentPanel(equipmentX, equipmentY, equipmentWidth, titleY, equipmentPanelX, inv);
+            codexPanel = new CodexPanel(listX, listPanelY + 26, listWidth, equipmentX, equipmentWidth, titleY, listPanelX, equipmentPanelX, inv);
         });
     }
 
@@ -193,20 +194,20 @@ public class ScpInventoryScreen extends Screen {
 
     private void renderHealthStatus(GuiGraphics g) {
         if (minecraft == null || minecraft.player == null) return;
-        int healthX = rootX + Math.round(rootWidth * 0.040F);
-        int healthY = rootY + Math.round(rootHeight * 0.040F);
-        int textX = healthX + HEALTH_ICON_SIZE + 8;
-        blitFullIcon(g, HEALTH_ICON, healthX, healthY + 3, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
+        int healthX = rootX + Math.round(rootWidth * 0.038F);
+        int healthY = rootY + Math.round(rootHeight * 0.032F);
+        int textX = healthX + HEALTH_ICON_SIZE + 7;
+        blitFullIcon(g, HEALTH_ICON, healthX, healthY + 5, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
 
         int health = Math.round(minecraft.player.getHealth());
         int maxHealth = Math.round(minecraft.player.getMaxHealth());
         int percent = maxHealth <= 0 ? 0 : Math.round((health / (float) maxHealth) * 100.0F);
-        g.drawString(minecraft.font, "HEALTH", textX, healthY, TEXT_WHITE, false);
-        g.drawString(minecraft.font, percent + "/100", textX, healthY + 13, TEXT_WHITE, false);
+        drawScaledString(g, "HEALTH", textX, healthY, TEXT_WHITE, HEALTH_TEXT_SCALE);
+        drawScaledString(g, percent + "/100", textX, healthY + 13, TEXT_WHITE, HEALTH_TEXT_SCALE);
     }
 
     private void renderInventoryHeader(GuiGraphics g) {
-        drawSectionTitle(g, listX, titleY, "BACKPACK");
+        drawSectionTitle(g, listPanelX, titleY, "BACKPACK");
         String count = inventory == null
                 ? "0 of 12 items"
                 : showingKeys
@@ -245,6 +246,14 @@ public class ScpInventoryScreen extends Screen {
     private void setTextureFiltering(ResourceLocation texture, boolean blur) {
         if (minecraft == null) return;
         minecraft.getTextureManager().getTexture(texture).setFilter(blur, false);
+    }
+
+    private void drawScaledString(GuiGraphics g, String text, float x, float y, int color, float scale) {
+        g.pose().pushPose();
+        g.pose().translate(x, y, 0.0F);
+        g.pose().scale(scale, scale, 1.0F);
+        g.drawString(minecraft.font, text, 0, 0, color, false);
+        g.pose().popPose();
     }
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
