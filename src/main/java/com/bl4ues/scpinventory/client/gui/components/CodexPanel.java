@@ -34,23 +34,27 @@ public class CodexPanel {
     private final int detailX;
     private final int detailWidth;
     private final int titleY;
+    private final int listTitleX;
+    private final int detailTitleX;
 
     private int selectedIndex = -1;
     private int scrollOffset = 0;
 
-    public CodexPanel(int x, int y, int listWidth, int detailX, int detailWidth, int titleY, IScpInventory inventory) {
+    public CodexPanel(int x, int y, int listWidth, int detailX, int detailWidth, int titleY, int listTitleX, int detailTitleX, IScpInventory inventory) {
         this.x = x;
         this.y = y;
         this.listWidth = listWidth;
         this.detailX = detailX;
         this.detailWidth = detailWidth;
         this.titleY = titleY;
+        this.listTitleX = listTitleX;
+        this.detailTitleX = detailTitleX;
         this.inventory = inventory;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
-        drawSectionTitle(g, x, titleY, "CLASSIFICATION");
-        drawSectionTitle(g, detailX, titleY, "DOCUMENT");
+        drawSectionTitle(g, listTitleX, titleY, "CLASSIFICATION");
+        drawSectionTitle(g, detailTitleX, titleY, "DOCUMENT");
         renderDocumentList(g);
         renderDocumentDetails(g);
     }
