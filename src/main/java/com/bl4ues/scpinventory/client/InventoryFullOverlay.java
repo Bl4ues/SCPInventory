@@ -13,6 +13,7 @@ public class InventoryFullOverlay {
     private static final long VISIBLE_DURATION = 2500L;
     private static final long FADE_IN_TIME = 150L;
     private static final long FADE_OUT_TIME = 500L;
+    private static final long REPEAT_COOLDOWN = 3500L;
 
     private static final int PADDING_X = 10;
     private static final int PADDING_Y = 10;
@@ -24,14 +25,18 @@ public class InventoryFullOverlay {
     private static boolean active = false;
     private static long shownAt = 0L;
     private static long visibleUntil = 0L;
+    private static long lastAcceptedShow = 0L;
 
     public static void show() {
         long now = System.currentTimeMillis();
-        if (!active) {
-            active = true;
-            shownAt = now;
+        if (active || now - lastAcceptedShow < REPEAT_COOLDOWN) {
+            return;
         }
-        visibleUntil = Math.max(visibleUntil, now + VISIBLE_DURATION);
+
+        active = true;
+        shownAt = now;
+        visibleUntil = now + VISIBLE_DURATION;
+        lastAcceptedShow = now;
     }
 
     public static void render(GuiGraphics guiGraphics) {
