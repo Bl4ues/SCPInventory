@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 
 public class PickupItemPacket {
 
-    private static final double MAX_PICKUP_DISTANCE_SQR = 36.0D;
+    private static final double MAX_PICKUP_DISTANCE_SQR = 6.25D;
 
     private final int entityId;
 
@@ -34,7 +34,7 @@ public class PickupItemPacket {
     public static void handle(PickupItemPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player == null) {
+            if (player == null || player.isCreative() || player.isSpectator()) {
                 return;
             }
 
