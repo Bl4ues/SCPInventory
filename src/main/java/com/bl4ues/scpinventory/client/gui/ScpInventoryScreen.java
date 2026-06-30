@@ -320,7 +320,7 @@ public class ScpInventoryScreen extends Screen {
             drawRightAlignedCount(g, 0, " of 12 items");
             return;
         }
-        if (showingKeys) drawRightAlignedCount(g, inventory.getKeyCount(), " key(s) in inventory");
+        if (showingKeys) drawRightAlignedCount(g, inventory.getKeyCount(), " of 12 keys");
         else drawRightAlignedCount(g, inventory.getInventoryCount(), " of " + inventory.getMaxMainSlots() + " items");
     }
 
@@ -432,7 +432,7 @@ public class ScpInventoryScreen extends Screen {
 
     private void drawTab(GuiGraphics g, int x, int y, int w, String label, boolean active) {
         g.fill(x, y, x + w, y + TAB_HEIGHT, uiColor(active ? TAB_ACTIVE : TAB_INACTIVE));
-        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 5, uiColor(active ? TEXT_SELECTED : TEXT_GRAY), false);
+        g.drawString(minecraft.font, label, x + (w - minecraft.font.width(label)) / 2, y + 5, uiColor(active ? TEXT_SELECTED : TEXT_WHITE), false);
     }
 
     private void drawSectionTitle(GuiGraphics g, int x, int y, String suffix) {
