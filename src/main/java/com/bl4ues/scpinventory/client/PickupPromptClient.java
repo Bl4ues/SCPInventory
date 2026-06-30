@@ -35,8 +35,11 @@ public final class PickupPromptClient {
     private static final double MAX_PICKUP_REACH = 2.25D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.58D * 0.58D;
     private static final float MODEL_OUTLINE_SCALE = 1.12F;
+    private static final int PICKUP_CLICK_COOLDOWN_TICKS = 5;
 
     private static ItemEntity target;
+    private static boolean useWasDown = false;
+    private static int pickupCooldownTicks = 0;
 
     private PickupPromptClient() {
     }
@@ -46,12 +49,24 @@ public final class PickupPromptClient {
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null || mc.screen != null || player.isCreative() || player.isSpectator()) {
             clearTarget();
+            useWasDown = false;
+            pickupCooldownTicks = 0;
             return;
         }
 
+        if (pickupCooldownTicks > 0) {
+            pickupCooldownTicks--;
+        }
+
         target = findTarget(mc, player);
-        if (target != null && mc.options.keyUse.consumeClick()) {
+
+        boolean useDown = mc.options.keyUse.isDown();
+        boolean pressedThisTick = useDown && !useWasDown;
+        useWasDown = useDown;
+
+        if (target != null && pressedThisTick && pickupCooldownTicks <= 0) {
             ModNetwork.CHANNEL.sendToServer(new PickupItemPacket(target.getId()));
+            pickupCooldownTicks = PICKUP_CLICK_COOLDOWN_TICKS;
             clearTarget();
         }
     }
