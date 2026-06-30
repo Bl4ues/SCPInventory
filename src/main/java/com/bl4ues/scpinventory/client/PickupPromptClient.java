@@ -3,11 +3,13 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import com.bl4ues.scpinventory.network.PickupItemPacket;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -17,20 +19,26 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 
 public final class PickupPromptClient {
-    private static final ResourceLocation PICKUP_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/pickup.png");
+    private static final String PICKUP_ICON_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAADAFBMVEUAAAAKCgry8vIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADg3fsDAAAAAXRSTlMAQObYZgAAANFJREFUeNrll0EWwyAIRGHuf+g2xrSp0gpMXk1TVi4y/40IREX+IwBWzxHucmUIi54ELHpQ+gMMyFwDCpmewjzhLID8ORS9ll7AbwJW/URA1ZdjzCA2fRKAh74ygi31qq95cAzfEmWlTQzrGW0EAXuFCRhksf++jwHANu4niIPgqoRPCHgLABTgvYlALcPWI95GSQMmINaMVh1SvRif6w0hNY7AGOjTQExEYhPHWlAecII9XMICOIAkfrA7derp8iQwt7y8fAOQV+2p770rAL4RNxL8BNjJYCMAAAAAAElFTkSuQmCC";
+
     private static final int ICON_SOURCE_SIZE = 64;
     private static final int ICON_SIZE = 58;
     private static final int TEXT_WHITE = 0xFFE8E8E8;
     private static final int TEXT_GRAY = 0xFFB2B3B3;
-    private static final int BRACKET = 0xDDE8E8E8;
     private static final double MAX_PICKUP_REACH = 4.75D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.85D * 0.85D;
 
+    private static ResourceLocation pickupIcon;
+    private static boolean textureReady = false;
     private static ItemEntity target;
+    private static ItemEntity glowingTarget;
 
     private PickupPromptClient() {
     }
@@ -39,14 +47,15 @@ public final class PickupPromptClient {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null || mc.screen != null) {
-            target = null;
+            clearTarget();
             return;
         }
 
         target = findTarget(mc, player);
+        updateGlowingTarget(target);
         if (target != null && mc.options.keyUse.consumeClick()) {
             ModNetwork.CHANNEL.sendToServer(new PickupItemPacket(target.getId()));
-            target = null;
+            clearTarget();
         }
     }
 
@@ -56,6 +65,8 @@ public final class PickupPromptClient {
             return;
         }
 
+        ensureTexture(mc);
+
         ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.18D, 0.0D), screenWidth, screenHeight);
         if (point == null) {
             point = new ScreenPoint(screenWidth / 2, screenHeight / 2);
@@ -63,15 +74,14 @@ public final class PickupPromptClient {
 
         int screenX = Mth.clamp(point.x(), 28, screenWidth - 28);
         int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
-        drawTargetBrackets(g, screenX, screenY);
 
-        int iconX = screenX - 78;
+        int iconX = screenX - 122;
         int iconY = screenY - 31;
         int textX = iconX + ICON_SIZE + 14;
-        int textY = iconY + 9;
+        int textY = iconY + 10;
 
         if (textX + 210 > screenWidth) {
-            textX = Math.max(6, screenX - 240);
+            textX = Math.max(6, screenX - 248);
             iconX = Math.max(6, textX - ICON_SIZE - 14);
         }
         if (iconX < 6) {
@@ -80,7 +90,7 @@ public final class PickupPromptClient {
         }
         if (iconY < 6) {
             iconY = 6;
-            textY = iconY + 9;
+            textY = iconY + 10;
         }
 
         drawIcon(g, iconX, iconY);
@@ -135,35 +145,56 @@ public final class PickupPromptClient {
         double fov = mc.options.fov().get();
         double scale = screenHeight / (2.0D * Math.tan(Math.toRadians(fov) / 2.0D));
 
-        int x = (int) Math.round((screenWidth / 2.0D) + (transformed.x() * scale / depth));
+        int x = (int) Math.round((screenWidth / 2.0D) - (transformed.x() * scale / depth));
         int y = (int) Math.round((screenHeight / 2.0D) - (transformed.y() * scale / depth));
         return new ScreenPoint(x, y);
     }
 
-    private static void drawTargetBrackets(GuiGraphics g, int centerX, int centerY) {
-        int half = 13;
-        int len = 8;
-        int x1 = centerX - half;
-        int x2 = centerX + half;
-        int y1 = centerY - half;
-        int y2 = centerY + half;
-        g.fill(x1, y1, x1 + len, y1 + 1, BRACKET);
-        g.fill(x1, y1, x1 + 1, y1 + len, BRACKET);
-        g.fill(x2 - len, y1, x2, y1 + 1, BRACKET);
-        g.fill(x2 - 1, y1, x2, y1 + len, BRACKET);
-        g.fill(x1, y2 - 1, x1 + len, y2, BRACKET);
-        g.fill(x1, y2 - len, x1 + 1, y2, BRACKET);
-        g.fill(x2 - len, y2 - 1, x2, y2, BRACKET);
-        g.fill(x2 - 1, y2 - len, x2, y2, BRACKET);
-    }
-
     private static void drawIcon(GuiGraphics g, int x, int y) {
+        if (pickupIcon == null) return;
+
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.96F);
-        g.blit(PICKUP_ICON, x, y, ICON_SIZE, ICON_SIZE, 0.0F, 0.0F, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE);
+        g.blit(pickupIcon, x, y, ICON_SIZE, ICON_SIZE, 0.0F, 0.0F, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.disableBlend();
+    }
+
+    private static void ensureTexture(Minecraft mc) {
+        if (textureReady) return;
+        pickupIcon = registerEmbeddedTexture(mc, "hud/pickup_hand", PICKUP_ICON_BASE64);
+        textureReady = true;
+    }
+
+    private static ResourceLocation registerEmbeddedTexture(Minecraft mc, String name, String base64) {
+        ResourceLocation location = new ResourceLocation(ScpInventoryMod.MODID, name);
+        try {
+            byte[] bytes = Base64.getDecoder().decode(base64);
+            try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+                NativeImage image = NativeImage.read(input);
+                mc.getTextureManager().register(location, new DynamicTexture(image));
+            }
+            return location;
+        } catch (IOException | IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static void updateGlowingTarget(ItemEntity newTarget) {
+        if (glowingTarget != null && glowingTarget != newTarget) {
+            glowingTarget.setGlowingTag(false);
+            glowingTarget = null;
+        }
+        if (newTarget != null && newTarget.isAlive()) {
+            glowingTarget = newTarget;
+            glowingTarget.setGlowingTag(true);
+        }
+    }
+
+    private static void clearTarget() {
+        target = null;
+        updateGlowingTarget(null);
     }
 
     private record TargetCandidate(ItemEntity item, double score) {
