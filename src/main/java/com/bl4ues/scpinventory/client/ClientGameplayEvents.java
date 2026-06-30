@@ -14,8 +14,13 @@ public final class ClientGameplayEvents {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        PlayerVitalsClient.clientTick();
-        PickupPromptClient.clientTick();
+        if (event.phase == TickEvent.Phase.START) {
+            PickupPromptClient.clientTick();
+            return;
+        }
+
+        if (event.phase == TickEvent.Phase.END) {
+            PlayerVitalsClient.clientTick();
+        }
     }
 }
