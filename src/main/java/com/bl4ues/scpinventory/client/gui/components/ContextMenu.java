@@ -19,6 +19,12 @@ public class ContextMenu {
     private static final int OPTION_TOP = 4;
     private static final int OPTION_GAP = 6;
     private static final int HINT_TOP_GAP = 11;
+    private static final int HINT_INSET_LEFT = 4;
+    private static final int HINT_INSET_RIGHT = 1;
+    private static final int HINT_TEXT_PADDING_X = 2;
+    private static final int HINT_LINE_HEIGHT = 10;
+    private static final int HINT_PADDING_TOP = 3;
+    private static final int HINT_PADDING_BOTTOM = 4;
     private static final float HINT_TEXT_SCALE = 0.82F;
 
     private final Minecraft mc = Minecraft.getInstance();
@@ -91,18 +97,19 @@ public class ContextMenu {
 
         if (hintMode != HintMode.NONE) {
             int hintY = getOptionY(options.size() - 1) + OPTION_HEIGHT + HINT_TOP_GAP;
-            int hintLeft = x + 4;
-            int hintRight = x + MENU_WIDTH - 1;
-            int hintHeight = hintMode == HintMode.EQUIP ? 34 : 24;
-            g.fill(hintLeft, hintY - 3, hintRight, hintY + hintHeight, HINT_BACKGROUND);
+            int hintLeft = x + HINT_INSET_LEFT;
+            int hintRight = x + MENU_WIDTH - HINT_INSET_RIGHT;
+            int textX = hintLeft + HINT_TEXT_PADDING_X;
+            int maxTextWidth = getHintTextWidth();
+            List<String> lines = wrapHintText(getHintText(), maxTextWidth);
+            int hintHeight = HINT_PADDING_TOP + (lines.size() * HINT_LINE_HEIGHT) + HINT_PADDING_BOTTOM;
 
-            if (hintMode == HintMode.EQUIP) {
-                drawScaledString(g, "You can double click", hintLeft + 2, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
-                drawScaledString(g, "or Shift + Left Click", hintLeft + 2, hintY + 11, TEXT_WHITE, HINT_TEXT_SCALE);
-                drawScaledString(g, "to EQUIP this item", hintLeft + 2, hintY + 22, TEXT_WHITE, HINT_TEXT_SCALE);
-            } else {
-                drawScaledString(g, "You can double click to", hintLeft + 2, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
-                drawScaledString(g, "CONSUME this item", hintLeft + 2, hintY + 11, TEXT_WHITE, HINT_TEXT_SCALE);
+            g.fill(hintLeft, hintY - HINT_PADDING_TOP, hintRight, hintY + hintHeight - HINT_PADDING_TOP, HINT_BACKGROUND);
+
+            int lineY = hintY;
+            for (String line : lines) {
+                drawScaledString(g, line, textX, lineY, TEXT_WHITE, HINT_TEXT_SCALE);
+                lineY += HINT_LINE_HEIGHT;
             }
         }
     }
@@ -130,11 +137,52 @@ public class ContextMenu {
 
     private int getMenuHeight() {
         int base = OPTION_TOP + options.size() * OPTION_HEIGHT + Math.max(0, options.size() - 1) * OPTION_GAP + OPTION_TOP;
-        return switch (hintMode) {
-            case NONE -> base;
-            case CONSUME -> base + HINT_TOP_GAP + 24;
-            case EQUIP -> base + HINT_TOP_GAP + 36;
-        };
+        if (hintMode == HintMode.NONE) {
+            return base;
+        }
+
+        int lineCount = wrapHintText(getHintText(), getHintTextWidth()).size();
+        int hintHeight = HINT_PADDING_TOP + (lineCount * HINT_LINE_HEIGHT) + HINT_PADDING_BOTTOM;
+        return base + HINT_TOP_GAP + hintHeight;
+    }
+
+    private int getHintTextWidth() {
+        int rawWidth = MENU_WIDTH - HINT_INSET_LEFT - HINT_INSET_RIGHT - (HINT_TEXT_PADDING_X * 2);
+        return Math.max(1, Math.round(rawWidth / HINT_TEXT_SCALE));
+    }
+
+    private String getHintText() {
+        return hintMode == HintMode.EQUIP
+                ? "You can double click or press Shift + Left Click to EQUIP this item"
+                : "You can double click to CONSUME this item";
+    }
+
+    private List<String> wrapHintText(String text, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        String[] words = text.split(" ");
+        StringBuilder current = new StringBuilder();
+
+        for (String word : words) {
+            if (word.isEmpty()) {
+                continue;
+            }
+
+            String candidate = current.isEmpty() ? word : current + " " + word;
+            if (mc.font.width(candidate) <= maxWidth || current.isEmpty()) {
+                current.setLength(0);
+                current.append(candidate);
+            } else {
+                lines.add(current.toString());
+                current.setLength(0);
+                current.append(word);
+            }
+        }
+
+        if (!current.isEmpty()) {
+            lines.add(current.toString());
+        }
+
+        return lines.isEmpty() ? List.of(text) : lines;
     }
 
     private boolean isEquipmentType(String type) {
