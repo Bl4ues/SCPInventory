@@ -71,11 +71,19 @@ public class ModNetwork {
         );
 
         CHANNEL.registerMessage(
-                id,
+                id++,
                 InventoryMovePacket.class,
                 InventoryMovePacket::encode,
                 InventoryMovePacket::decode,
                 InventoryMovePacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id,
+                PickupItemPacket.class,
+                PickupItemPacket::encode,
+                PickupItemPacket::decode,
+                PickupItemPacket::handle
         );
     }
 
