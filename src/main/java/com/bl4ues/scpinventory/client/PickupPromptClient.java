@@ -10,8 +10,6 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.OutlineBufferSource;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -29,7 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class PickupPromptClient {
-    private static final String PICKUP_ICON_BASE64 = "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";
+    private static final String PICKUP_ICON_BASE64 = "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";
 
     private static final int ICON_SOURCE_SIZE = 64;
     private static final int ICON_SIZE = 58;
@@ -41,6 +39,7 @@ public final class PickupPromptClient {
     private static ResourceLocation pickupIcon;
     private static boolean textureReady = false;
     private static ItemEntity target;
+    private static ItemEntity glowingTarget;
 
     private PickupPromptClient() {
     }
@@ -49,14 +48,15 @@ public final class PickupPromptClient {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null || mc.screen != null) {
-            target = null;
+            clearTarget();
             return;
         }
 
         target = findTarget(mc, player);
+        updateGlowingTarget(target);
         if (target != null && mc.options.keyUse.consumeClick()) {
             ModNetwork.CHANNEL.sendToServer(new PickupItemPacket(target.getId()));
-            target = null;
+            clearTarget();
         }
     }
 
@@ -76,22 +76,25 @@ public final class PickupPromptClient {
         int screenX = Mth.clamp(point.x(), 28, screenWidth - 28);
         int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
 
-        int iconX = screenX + 34;
-        int iconY = screenY - 31;
-        int textX = iconX + ICON_SIZE + 14;
-        int textY = iconY + 10;
+        int iconX = screenX - 44;
+        int iconY = screenY - 32;
+        int textX = screenX + 54;
+        int textY = screenY - 20;
 
-        if (textX + 210 > screenWidth) {
-            iconX = Math.max(6, screenX - ICON_SIZE - 230);
-            textX = iconX + ICON_SIZE + 14;
+        if (textX + 180 > screenWidth) {
+            iconX = Math.max(6, screenX - ICON_SIZE - 180);
+            textX = iconX + ICON_SIZE + 12;
+        }
+        if (iconX < 6) {
+            iconX = 6;
         }
         if (iconY < 6) {
             iconY = 6;
-            textY = iconY + 10;
+            textY = iconY + 12;
         }
         if (iconY + ICON_SIZE > screenHeight - 6) {
             iconY = screenHeight - ICON_SIZE - 6;
-            textY = iconY + 10;
+            textY = iconY + 12;
         }
 
         drawIcon(g, iconX, iconY);
@@ -100,22 +103,8 @@ public final class PickupPromptClient {
     }
 
     public static void renderWorldOutline(PoseStack poseStack, Camera camera) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || mc.screen != null || target == null || !target.isAlive()) {
-            return;
-        }
-
-        Vec3 cameraPosition = camera.getPosition();
-        double x = target.getX() - cameraPosition.x;
-        double y = target.getY() - cameraPosition.y;
-        double z = target.getZ() - cameraPosition.z;
-
-        poseStack.pushPose();
-        OutlineBufferSource outline = mc.renderBuffers().outlineBufferSource();
-        outline.setColor(255, 255, 255, 190);
-        mc.getEntityRenderDispatcher().render(target, x, y, z, target.getYRot(), mc.getFrameTime(), poseStack, outline, LightTexture.FULL_BRIGHT);
-        outline.endOutlineBatch();
-        poseStack.popPose();
+        // Intentionally empty for now. The direct outline-buffer render produced a solid white item.
+        // The selected ItemEntity still receives the vanilla glowing flag as a safer highlight path.
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
@@ -183,7 +172,7 @@ public final class PickupPromptClient {
 
     private static void ensureTexture(Minecraft mc) {
         if (textureReady) return;
-        pickupIcon = registerEmbeddedTexture(mc, "hud/pickup_hand", PICKUP_ICON_BASE64);
+        pickupIcon = registerEmbeddedTexture(mc, "hud/pickup_hand_clean", PICKUP_ICON_BASE64);
         textureReady = true;
     }
 
@@ -199,6 +188,22 @@ public final class PickupPromptClient {
         } catch (IOException | IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private static void updateGlowingTarget(ItemEntity newTarget) {
+        if (glowingTarget != null && glowingTarget != newTarget) {
+            glowingTarget.setGlowingTag(false);
+            glowingTarget = null;
+        }
+        if (newTarget != null && newTarget.isAlive()) {
+            glowingTarget = newTarget;
+            glowingTarget.setGlowingTag(true);
+        }
+    }
+
+    private static void clearTarget() {
+        target = null;
+        updateGlowingTarget(null);
     }
 
     private record TargetCandidate(ItemEntity item, double score) {
