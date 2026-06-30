@@ -14,7 +14,7 @@ public class ContextMenu {
     private static final int OPTION_HOVER = 0x55B2B3B3;
     private static final int LINE_GRAY = 0x666A6C6C;
     private static final int HINT_BACKGROUND = 0x33303638;
-    private static final int MENU_WIDTH = 118;
+    private static final int MENU_WIDTH = 154;
     private static final int OPTION_HEIGHT = 22;
     private static final int OPTION_TOP = 4;
     private static final int OPTION_GAP = 6;
@@ -26,25 +26,25 @@ public class ContextMenu {
     private int x;
     private int y;
     private boolean open = false;
-    private String hintVerb = "";
+    private HintMode hintMode = HintMode.NONE;
 
     private final List<MenuOption> options = new ArrayList<>();
 
     public void open(int x, int y, String type) {
         this.x = x;
         this.y = y;
-        this.hintVerb = "";
+        this.hintMode = HintMode.NONE;
 
         options.clear();
 
         if ("Consumable".equals(type)) {
             options.add(new MenuOption("USE", "Use Item"));
             options.add(new MenuOption("DROP", "Drop Item"));
-            hintVerb = "CONSUME";
+            hintMode = HintMode.CONSUME;
         } else if (isEquipmentType(type)) {
             options.add(new MenuOption("EQUIP", "Equip Item"));
             options.add(new MenuOption("DROP", "Drop Item"));
-            hintVerb = "EQUIP";
+            hintMode = HintMode.EQUIP;
         } else {
             options.add(new MenuOption("DROP", "Drop Item"));
         }
@@ -89,13 +89,21 @@ public class ContextMenu {
             }
         }
 
-        if (!hintVerb.isBlank()) {
+        if (hintMode != HintMode.NONE) {
             int hintY = getOptionY(options.size() - 1) + OPTION_HEIGHT + HINT_TOP_GAP;
-            int hintLeft = x + 9;
-            int hintRight = x + MENU_WIDTH - 9;
-            g.fill(hintLeft, hintY - 3, hintRight, hintY + 20, HINT_BACKGROUND);
-            drawScaledString(g, "You can double click to", hintLeft + 3, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
-            drawScaledString(g, hintVerb + " this item", hintLeft + 3, hintY + 10, TEXT_WHITE, HINT_TEXT_SCALE);
+            int hintLeft = x + 8;
+            int hintRight = x + MENU_WIDTH - 8;
+            int hintHeight = hintMode == HintMode.EQUIP ? 32 : 22;
+            g.fill(hintLeft, hintY - 3, hintRight, hintY + hintHeight, HINT_BACKGROUND);
+
+            if (hintMode == HintMode.EQUIP) {
+                drawScaledString(g, "You can double click or", hintLeft + 3, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
+                drawScaledString(g, "press Shift + Left Click to", hintLeft + 3, hintY + 10, TEXT_WHITE, HINT_TEXT_SCALE);
+                drawScaledString(g, "EQUIP this item", hintLeft + 3, hintY + 20, TEXT_WHITE, HINT_TEXT_SCALE);
+            } else {
+                drawScaledString(g, "You can double click to", hintLeft + 3, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
+                drawScaledString(g, "CONSUME this item", hintLeft + 3, hintY + 10, TEXT_WHITE, HINT_TEXT_SCALE);
+            }
         }
     }
 
@@ -122,7 +130,11 @@ public class ContextMenu {
 
     private int getMenuHeight() {
         int base = OPTION_TOP + options.size() * OPTION_HEIGHT + Math.max(0, options.size() - 1) * OPTION_GAP + OPTION_TOP;
-        return hintVerb.isBlank() ? base : base + HINT_TOP_GAP + 22;
+        return switch (hintMode) {
+            case NONE -> base;
+            case CONSUME -> base + HINT_TOP_GAP + 22;
+            case EQUIP -> base + HINT_TOP_GAP + 34;
+        };
     }
 
     private boolean isEquipmentType(String type) {
@@ -145,6 +157,12 @@ public class ContextMenu {
         g.pose().scale(scale, scale, 1.0F);
         g.drawString(mc.font, text, 0, 0, color, false);
         g.pose().popPose();
+    }
+
+    private enum HintMode {
+        NONE,
+        CONSUME,
+        EQUIP
     }
 
     private static class MenuOption {
