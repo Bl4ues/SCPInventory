@@ -9,6 +9,8 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.OutlineBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -32,9 +34,9 @@ public final class PickupPromptClient {
     private static final float ITEM_TEXT_SCALE = 1.85F;
     private static final double MAX_PICKUP_REACH = 2.25D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.58D * 0.58D;
+    private static final float MODEL_OUTLINE_SCALE = 1.12F;
 
     private static ItemEntity target;
-    private static ItemEntity glowingTarget;
 
     private PickupPromptClient() {
     }
@@ -48,7 +50,6 @@ public final class PickupPromptClient {
         }
 
         target = findTarget(mc, player);
-        updateGlowingTarget(target);
         if (target != null && mc.options.keyUse.consumeClick()) {
             ModNetwork.CHANNEL.sendToServer(new PickupItemPacket(target.getId()));
             clearTarget();
@@ -101,8 +102,39 @@ public final class PickupPromptClient {
     }
 
     public static void renderWorldOutline(PoseStack poseStack, Camera camera) {
-        // Model highlighting is delegated to the vanilla glowing flag.
-        // Rendering the item manually through OutlineBufferSource makes it appear as a solid white duplicate.
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null || mc.screen != null || target == null || !target.isAlive()) {
+            return;
+        }
+
+        Vec3 cameraPosition = camera.getPosition();
+        AABB bounds = target.getBoundingBox();
+        Vec3 center = bounds.getCenter();
+
+        double x = target.getX() - cameraPosition.x;
+        double y = target.getY() - cameraPosition.y;
+        double z = target.getZ() - cameraPosition.z;
+        double cx = center.x - cameraPosition.x;
+        double cy = center.y - cameraPosition.y;
+        double cz = center.z - cameraPosition.z;
+
+        OutlineBufferSource outline = mc.renderBuffers().outlineBufferSource();
+        outline.setColor(255, 255, 255, 165);
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(false);
+
+        poseStack.pushPose();
+        poseStack.translate(cx, cy, cz);
+        poseStack.scale(MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE);
+        poseStack.translate(-cx, -cy, -cz);
+        mc.getEntityRenderDispatcher().render(target, x, y, z, target.getYRot(), mc.getFrameTime(), poseStack, outline, LightTexture.FULL_BRIGHT);
+        poseStack.popPose();
+
+        outline.endOutlineBatch();
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
@@ -175,20 +207,8 @@ public final class PickupPromptClient {
         pose.popPose();
     }
 
-    private static void updateGlowingTarget(ItemEntity newTarget) {
-        if (glowingTarget != null && glowingTarget != newTarget) {
-            glowingTarget.setGlowingTag(false);
-            glowingTarget = null;
-        }
-        if (newTarget != null && newTarget.isAlive()) {
-            glowingTarget = newTarget;
-            glowingTarget.setGlowingTag(true);
-        }
-    }
-
     private static void clearTarget() {
         target = null;
-        updateGlowingTarget(null);
     }
 
     private record TargetCandidate(ItemEntity item, double score) {
