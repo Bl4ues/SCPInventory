@@ -14,7 +14,7 @@ public final class PickupPromptWorldEvents {
 
     @SubscribeEvent
     public static void renderPickupOutline(RenderLevelStageEvent event) {
-        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) {
             PickupPromptClient.renderWorldOutline(event.getPoseStack(), event.getCamera());
         }
     }
