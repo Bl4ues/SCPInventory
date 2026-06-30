@@ -53,9 +53,10 @@ public class PickupItemPacket {
             }
 
             player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-                int originalCount = stack.getCount();
-                int acceptedCount = ScpPickupRouter.accept(inventory, player, stack);
+                ItemStack singlePickup = stack.copy();
+                singlePickup.setCount(1);
 
+                int acceptedCount = ScpPickupRouter.accept(inventory, player, singlePickup);
                 if (acceptedCount <= 0) {
                     ModNetwork.showInventoryFull(player);
                     ModNetwork.syncTo(player, inventory);
@@ -64,13 +65,12 @@ public class PickupItemPacket {
 
                 playPickupFeedback(player, itemEntity, acceptedCount);
 
-                if (acceptedCount >= originalCount) {
+                stack.shrink(1);
+                if (stack.isEmpty()) {
                     itemEntity.discard();
                 } else {
-                    stack.shrink(acceptedCount);
                     itemEntity.setItem(stack);
                     itemEntity.setPickUpDelay(10);
-                    ModNetwork.showInventoryFull(player);
                 }
 
                 ModNetwork.syncTo(player, inventory);
