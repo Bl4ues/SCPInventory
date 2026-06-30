@@ -5,14 +5,10 @@ import com.bl4ues.scpinventory.network.ModNetwork;
 import com.bl4ues.scpinventory.network.PickupItemPacket;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -34,8 +30,8 @@ public final class PickupPromptClient {
     private static final int TEXT_GRAY = 0xFFB2B3B3;
     private static final float PICKUP_TEXT_SCALE = 1.55F;
     private static final float ITEM_TEXT_SCALE = 1.85F;
-    private static final double MAX_PICKUP_REACH = 4.75D;
-    private static final double SOFT_AIM_RADIUS_SQR = 0.85D * 0.85D;
+    private static final double MAX_PICKUP_REACH = 2.25D;
+    private static final double SOFT_AIM_RADIUS_SQR = 0.58D * 0.58D;
 
     private static ItemEntity target;
     private static ItemEntity glowingTarget;
@@ -46,7 +42,7 @@ public final class PickupPromptClient {
     public static void clientTick() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        if (player == null || mc.level == null || mc.screen != null) {
+        if (player == null || mc.level == null || mc.screen != null || player.isCreative() || player.isSpectator()) {
             clearTarget();
             return;
         }
@@ -65,7 +61,7 @@ public final class PickupPromptClient {
             return;
         }
 
-        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.02D, 0.0D), screenWidth, screenHeight);
+        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, -0.08D, 0.0D), screenWidth, screenHeight);
         if (point == null) {
             point = new ScreenPoint(screenWidth / 2, screenHeight / 2);
         }
@@ -74,19 +70,19 @@ public final class PickupPromptClient {
         int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
 
         int iconX = screenX - (ICON_SIZE / 2) - 7;
-        int iconY = screenY - (ICON_SIZE / 2) + 6;
-        int textX = iconX + ICON_SIZE + 5;
+        int iconY = screenY - (ICON_SIZE / 2) + 8;
+        int textX = iconX + ICON_SIZE + 4;
         int pickupY = iconY + 22;
         int itemY = pickupY + 32;
 
         int itemWidth = Math.round(mc.font.width(target.getItem().getHoverName().getString()) * ITEM_TEXT_SCALE);
         if (textX + itemWidth > screenWidth - 8) {
             textX = Math.max(8, screenWidth - itemWidth - 8);
-            iconX = Math.max(6, textX - ICON_SIZE - 5);
+            iconX = Math.max(6, textX - ICON_SIZE - 4);
         }
         if (iconX < 6) {
             iconX = 6;
-            textX = iconX + ICON_SIZE + 5;
+            textX = iconX + ICON_SIZE + 4;
         }
         if (iconY < 6) {
             iconY = 6;
@@ -105,29 +101,8 @@ public final class PickupPromptClient {
     }
 
     public static void renderWorldOutline(PoseStack poseStack, Camera camera) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || mc.screen != null || target == null || !target.isAlive()) {
-            return;
-        }
-
-        Vec3 cameraPosition = camera.getPosition();
-        AABB box = target.getBoundingBox()
-                .inflate(0.035D, 0.035D, 0.035D)
-                .move(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.lineWidth(1.6F);
-
-        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
-        VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
-        LevelRenderer.renderLineBox(poseStack, consumer, box, 1.0F, 1.0F, 1.0F, 0.68F);
-        buffer.endBatch(RenderType.lines());
-
-        RenderSystem.lineWidth(1.0F);
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        // Intentionally empty. The selected item uses the vanilla glowing flag set in updateGlowingTarget().
+        // The previous custom AABB line render looked like a hitbox instead of a model outline.
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
@@ -135,11 +110,11 @@ public final class PickupPromptClient {
         Vec3 look = player.getViewVector(1.0F).normalize();
         double reach = MAX_PICKUP_REACH;
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
-            reach = Math.min(reach, eye.distanceTo(mc.hitResult.getLocation()) + 0.75D);
+            reach = Math.min(reach, eye.distanceTo(mc.hitResult.getLocation()) + 0.35D);
         }
         final double effectiveReach = reach;
 
-        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(effectiveReach)).inflate(1.35D);
+        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(effectiveReach)).inflate(0.85D);
         List<ItemEntity> items = player.level().getEntitiesOfClass(ItemEntity.class, searchBox, item -> item.isAlive() && !item.getItem().isEmpty());
         return items.stream()
                 .map(item -> new TargetCandidate(item, scoreItem(item, eye, look, effectiveReach)))
@@ -157,7 +132,7 @@ public final class PickupPromptClient {
 
         Vec3 closest = eye.add(look.scale(alongRay));
         double lineDistanceSqr = closest.distanceToSqr(center);
-        boolean directBoxHit = item.getBoundingBox().inflate(0.42D).clip(eye, eye.add(look.scale(reach))).isPresent();
+        boolean directBoxHit = item.getBoundingBox().inflate(0.35D).clip(eye, eye.add(look.scale(reach))).isPresent();
         if (!directBoxHit && lineDistanceSqr > SOFT_AIM_RADIUS_SQR) return Double.MAX_VALUE;
         return lineDistanceSqr + (alongRay * 0.015D);
     }
