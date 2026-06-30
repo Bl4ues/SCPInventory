@@ -11,11 +11,16 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class PickupItemPacket {
 
     private static final double MAX_PICKUP_DISTANCE_SQR = 6.25D;
+    private static final long PICKUP_PACKET_COOLDOWN_MS = 180L;
+    private static final Map<UUID, Long> LAST_PICKUP_MS = new HashMap<>();
 
     private final int entityId;
 
@@ -37,6 +42,14 @@ public class PickupItemPacket {
             if (player == null || player.isCreative() || player.isSpectator()) {
                 return;
             }
+
+            long now = System.currentTimeMillis();
+            UUID playerId = player.getUUID();
+            long lastPickup = LAST_PICKUP_MS.getOrDefault(playerId, 0L);
+            if (now - lastPickup < PICKUP_PACKET_COOLDOWN_MS) {
+                return;
+            }
+            LAST_PICKUP_MS.put(playerId, now);
 
             Entity entity = player.serverLevel().getEntity(msg.entityId);
             if (!(entity instanceof ItemEntity itemEntity) || !itemEntity.isAlive()) {
@@ -70,7 +83,7 @@ public class PickupItemPacket {
                     itemEntity.discard();
                 } else {
                     itemEntity.setItem(stack);
-                    itemEntity.setPickUpDelay(10);
+                    itemEntity.setPickUpDelay(20);
                 }
 
                 ModNetwork.syncTo(player, inventory);
