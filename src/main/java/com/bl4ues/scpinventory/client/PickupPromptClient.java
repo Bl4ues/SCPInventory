@@ -81,11 +81,12 @@ public final class PickupPromptClient {
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
             reach = Math.min(reach, eye.distanceTo(mc.hitResult.getLocation()) + 0.75D);
         }
+        final double effectiveReach = reach;
 
-        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(reach)).inflate(1.35D);
+        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(effectiveReach)).inflate(1.35D);
         List<ItemEntity> items = player.level().getEntitiesOfClass(ItemEntity.class, searchBox, item -> item.isAlive() && !item.getItem().isEmpty());
         return items.stream()
-                .map(item -> new TargetCandidate(item, scoreItem(item, eye, look, reach)))
+                .map(item -> new TargetCandidate(item, scoreItem(item, eye, look, effectiveReach)))
                 .filter(candidate -> candidate.score() < Double.MAX_VALUE)
                 .min(Comparator.comparingDouble(TargetCandidate::score))
                 .map(TargetCandidate::item)
