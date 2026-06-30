@@ -11,13 +11,10 @@ public class BlockPickupHandler {
     @SubscribeEvent
     public static void onItemPickup(EntityItemPickupEvent event) {
         Player player = event.getEntity();
-        if (player.level().isClientSide()) {
+        if (player.level().isClientSide() || player.isCreative() || player.isSpectator()) {
             return;
         }
 
-        // The SCP inventory uses deliberate right-click pickup instead of Minecraft's
-        // proximity pickup. This prevents items from silently entering the hidden
-        // vanilla inventory while the custom inventory is being used.
         event.setCanceled(true);
     }
 }
