@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.network;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.events.PendingConsumableUseManager;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
@@ -92,6 +93,10 @@ public class InventoryActionPacket {
         boolean hasVanillaUseResult = stack.isEdible() || animation == UseAnim.EAT || animation == UseAnim.DRINK;
         if (!hasVanillaUseResult) {
             inventory.removeInventoryItem(slot);
+            return;
+        }
+
+        if (PendingConsumableUseManager.start(player, inventory, slot, stack)) {
             return;
         }
 
