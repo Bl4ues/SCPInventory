@@ -39,6 +39,12 @@ public class InventoryFullOverlay {
         lastAcceptedShow = now;
     }
 
+    public static void hide() {
+        active = false;
+        shownAt = 0L;
+        visibleUntil = 0L;
+    }
+
     public static void render(GuiGraphics guiGraphics) {
         if (!active) {
             return;
