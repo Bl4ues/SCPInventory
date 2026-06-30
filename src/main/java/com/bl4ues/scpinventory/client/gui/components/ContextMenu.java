@@ -22,9 +22,9 @@ public class ContextMenu {
     private static final int HINT_INSET_LEFT = 4;
     private static final int HINT_INSET_RIGHT = 1;
     private static final int HINT_TEXT_PADDING_X = 2;
-    private static final int HINT_LINE_HEIGHT = 10;
+    private static final int HINT_LINE_HEIGHT = 9;
     private static final int HINT_PADDING_TOP = 3;
-    private static final int HINT_PADDING_BOTTOM = 1;
+    private static final int HINT_PADDING_BOTTOM = -1;
     private static final float HINT_TEXT_SCALE = 0.82F;
 
     private final Minecraft mc = Minecraft.getInstance();
