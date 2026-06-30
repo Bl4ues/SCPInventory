@@ -34,7 +34,7 @@ public final class PickupPromptClient {
     private static final float ITEM_TEXT_SCALE = 1.85F;
     private static final double MAX_PICKUP_REACH = 2.25D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.58D * 0.58D;
-    private static final float MODEL_OUTLINE_SCALE = 1.0F;
+    private static final float MODEL_OUTLINE_SCALE = 1.04F;
     private static final int PICKUP_CLICK_COOLDOWN_TICKS = 5;
 
     private static ItemEntity target;
