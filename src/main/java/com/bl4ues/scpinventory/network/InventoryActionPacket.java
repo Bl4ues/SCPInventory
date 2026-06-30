@@ -5,6 +5,7 @@ import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
+import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -96,6 +97,7 @@ public class InventoryActionPacket {
 
         ItemStack usedStack = stack.copy();
         usedStack.setCount(1);
+
         player.swing(InteractionHand.MAIN_HAND, true);
         player.level().playSound(
                 null,
@@ -109,7 +111,23 @@ public class InventoryActionPacket {
         );
 
         ItemStack result = usedStack.finishUsingItem(player.level(), player);
-        inventory.setInventoryItem(slot, result);
+        stack.shrink(1);
+        inventory.setInventoryItem(slot, stack.isEmpty() ? ItemStack.EMPTY : stack);
+
+        if (!result.isEmpty()) {
+            routeUseRemainder(player, inventory, result);
+        }
+    }
+
+    private static void routeUseRemainder(ServerPlayer player, IScpInventory inventory, ItemStack remainder) {
+        ItemStack leftover = remainder.copy();
+        int accepted = ScpPickupRouter.accept(inventory, player, leftover);
+        if (accepted > 0) {
+            leftover.shrink(accepted);
+        }
+        if (!leftover.isEmpty()) {
+            player.drop(leftover, false);
+        }
     }
 
     private static void equipSlot(ServerPlayer player, IScpInventory inventory, int slot) {
