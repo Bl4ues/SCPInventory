@@ -2,7 +2,6 @@ package com.bl4ues.scpinventory.network;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
-import com.bl4ues.scpinventory.events.PendingConsumableUseManager;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
@@ -52,9 +51,7 @@ public class InventoryActionPacket {
     public static void handle(InventoryActionPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
-            if (player == null) {
-                return;
-            }
+            if (player == null) return;
 
             player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
                 if (!inventory.isValidMainSlot(msg.slot)) {
@@ -78,16 +75,12 @@ public class InventoryActionPacket {
 
     private static void moveSlotToWorld(ServerPlayer player, IScpInventory inventory, int slot) {
         ItemStack stack = inventory.extractInventoryItem(slot);
-        if (!stack.isEmpty()) {
-            player.drop(stack, false);
-        }
+        if (!stack.isEmpty()) player.drop(stack, false);
     }
 
     private static void useSlot(ServerPlayer player, IScpInventory inventory, int slot) {
         ItemStack stack = inventory.getInventoryItem(slot);
-        if (stack.isEmpty() || ScpItemClassifier.getType(stack) != ScpItemType.CONSUMABLE) {
-            return;
-        }
+        if (stack.isEmpty() || ScpItemClassifier.getType(stack) != ScpItemType.CONSUMABLE) return;
 
         UseAnim animation = stack.getUseAnimation();
         boolean hasVanillaUseResult = stack.isEdible() || animation == UseAnim.EAT || animation == UseAnim.DRINK;
@@ -96,12 +89,9 @@ public class InventoryActionPacket {
             return;
         }
 
-        if (PendingConsumableUseManager.start(player, inventory, slot, stack)) {
-            return;
-        }
-
         ItemStack usedStack = stack.copy();
         usedStack.setCount(1);
+        ScpPickupRouter.stripNoMergeMarker(usedStack);
 
         player.swing(InteractionHand.MAIN_HAND, true);
         player.level().playSound(
@@ -119,32 +109,23 @@ public class InventoryActionPacket {
         stack.shrink(1);
         inventory.setInventoryItem(slot, stack.isEmpty() ? ItemStack.EMPTY : stack);
 
-        if (!result.isEmpty()) {
-            routeUseRemainder(player, inventory, result);
-        }
+        if (!result.isEmpty()) routeUseRemainder(player, inventory, result);
     }
 
     private static void routeUseRemainder(ServerPlayer player, IScpInventory inventory, ItemStack remainder) {
         ItemStack leftover = remainder.copy();
+        ScpPickupRouter.stripNoMergeMarker(leftover);
         int accepted = ScpPickupRouter.accept(inventory, player, leftover);
-        if (accepted > 0) {
-            leftover.shrink(accepted);
-        }
-        if (!leftover.isEmpty()) {
-            player.drop(leftover, false);
-        }
+        if (accepted > 0) leftover.shrink(accepted);
+        if (!leftover.isEmpty()) player.drop(leftover, false);
     }
 
     private static void equipSlot(ServerPlayer player, IScpInventory inventory, int slot) {
         ItemStack stack = inventory.getInventoryItem(slot);
-        if (stack.isEmpty()) {
-            return;
-        }
+        if (stack.isEmpty()) return;
 
         Optional<ScpEquipmentSlot> equipmentSlot = ScpItemClassifier.getEquipmentSlot(stack);
-        if (equipmentSlot.isEmpty()) {
-            return;
-        }
+        if (equipmentSlot.isEmpty()) return;
 
         ScpEquipmentSlot targetSlot = equipmentSlot.get();
         ItemStack newEquipment = inventory.extractInventoryItem(slot);
@@ -153,9 +134,7 @@ public class InventoryActionPacket {
         inventory.setEquipment(targetSlot, newEquipment);
         syncVanillaEquipmentSlot(player, targetSlot, newEquipment);
 
-        if (!previousEquipment.isEmpty()) {
-            inventory.setInventoryItem(slot, previousEquipment);
-        }
+        if (!previousEquipment.isEmpty()) inventory.setInventoryItem(slot, previousEquipment);
     }
 
     public static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
@@ -165,9 +144,7 @@ public class InventoryActionPacket {
             return;
         }
 
-        if (slot == ScpEquipmentSlot.WEAPON || slot == ScpEquipmentSlot.ACCESSORY) {
-            syncMainInventoryMirror(player, slot, stack);
-        }
+        if (slot == ScpEquipmentSlot.WEAPON || slot == ScpEquipmentSlot.ACCESSORY) syncMainInventoryMirror(player, slot, stack);
     }
 
     public static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
@@ -181,9 +158,7 @@ public class InventoryActionPacket {
     }
 
     private static void syncMainInventoryMirror(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
-        if (player == null || slot == null) {
-            return;
-        }
+        if (player == null || slot == null) return;
 
         Inventory inventory = player.getInventory();
         if (stack == null || stack.isEmpty()) {
@@ -216,39 +191,29 @@ public class InventoryActionPacket {
     private static void removeMismatchedMirrors(Inventory inventory, ScpEquipmentSlot slot, ItemStack expected) {
         for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
             ItemStack candidate = inventory.items.get(i);
-            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) {
-                continue;
-            }
+            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) continue;
 
             ItemStack normalized = candidate.copy();
             normalized.setCount(1);
-            if (!ItemStack.isSameItemSameTags(normalized, expected)) {
-                inventory.items.set(i, ItemStack.EMPTY);
-            }
+            if (!ItemStack.isSameItemSameTags(normalized, expected)) inventory.items.set(i, ItemStack.EMPTY);
         }
     }
 
     private static void removeAllMirrorsForSlot(Inventory inventory, ScpEquipmentSlot slot) {
         for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
             ItemStack candidate = inventory.items.get(i);
-            if (!candidate.isEmpty() && ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) == slot) {
-                inventory.items.set(i, ItemStack.EMPTY);
-            }
+            if (!candidate.isEmpty() && ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) == slot) inventory.items.set(i, ItemStack.EMPTY);
         }
     }
 
     private static int findExactMirror(Inventory inventory, ScpEquipmentSlot slot, ItemStack expected) {
         for (int i = VANILLA_HOTBAR_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
             ItemStack candidate = inventory.items.get(i);
-            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) {
-                continue;
-            }
+            if (candidate.isEmpty() || ScpItemClassifier.getEquipmentSlot(candidate).orElse(null) != slot) continue;
 
             ItemStack normalized = candidate.copy();
             normalized.setCount(1);
-            if (ItemStack.isSameItemSameTags(normalized, expected)) {
-                return i;
-            }
+            if (ItemStack.isSameItemSameTags(normalized, expected)) return i;
         }
 
         return -1;
@@ -259,9 +224,7 @@ public class InventoryActionPacket {
                 ? findFirstEmpty(inventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE)
                 : findFirstEmpty(inventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE);
 
-        if (preferred != -1) {
-            return preferred;
-        }
+        if (preferred != -1) return preferred;
 
         return slot == ScpEquipmentSlot.WEAPON
                 ? findFirstEmpty(inventory, VANILLA_MAIN_START, VANILLA_MAIN_END_EXCLUSIVE)
@@ -270,9 +233,7 @@ public class InventoryActionPacket {
 
     private static int findFirstEmpty(Inventory inventory, int start, int endExclusive) {
         for (int i = start; i < endExclusive && i < inventory.items.size(); i++) {
-            if (inventory.items.get(i).isEmpty()) {
-                return i;
-            }
+            if (inventory.items.get(i).isEmpty()) return i;
         }
         return -1;
     }
