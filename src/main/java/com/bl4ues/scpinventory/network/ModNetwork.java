@@ -99,7 +99,7 @@ public class ModNetwork {
     }
 
     public static void showInventoryFull(ServerPlayer player) {
-        if (player == null) {
+        if (player == null || player.isCreative() || player.isSpectator()) {
             return;
         }
 
