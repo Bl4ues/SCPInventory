@@ -9,8 +9,6 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.OutlineBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -26,10 +24,12 @@ import java.util.List;
 public final class PickupPromptClient {
     private static final ResourceLocation PICKUP_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/pickup.png");
 
-    private static final int ICON_SOURCE_SIZE = 64;
-    private static final int ICON_SIZE = 58;
+    private static final int ICON_SOURCE_SIZE = 128;
+    private static final int ICON_SIZE = 70;
     private static final int TEXT_WHITE = 0xFFE8E8E8;
     private static final int TEXT_GRAY = 0xFFB2B3B3;
+    private static final float PICKUP_TEXT_SCALE = 1.35F;
+    private static final float ITEM_TEXT_SCALE = 1.55F;
     private static final double MAX_PICKUP_REACH = 4.75D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.85D * 0.85D;
 
@@ -61,7 +61,7 @@ public final class PickupPromptClient {
             return;
         }
 
-        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.18D, 0.0D), screenWidth, screenHeight);
+        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.22D, 0.0D), screenWidth, screenHeight);
         if (point == null) {
             point = new ScreenPoint(screenWidth / 2, screenHeight / 2);
         }
@@ -69,52 +69,40 @@ public final class PickupPromptClient {
         int screenX = Mth.clamp(point.x(), 28, screenWidth - 28);
         int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
 
-        int iconX = screenX - 54;
-        int iconY = screenY - 34;
-        int textX = screenX + 42;
-        int textY = screenY - 19;
+        int iconX = screenX - (ICON_SIZE / 2) - 8;
+        int iconY = screenY - (ICON_SIZE / 2) - 10;
+        int textX = iconX + ICON_SIZE + 10;
+        int pickupY = iconY + 18;
+        int itemY = pickupY + 27;
 
-        if (textX + 180 > screenWidth) {
-            textX = Math.max(8, screenX - 164);
-            iconX = Math.max(6, textX - ICON_SIZE - 14);
+        int itemWidth = Math.round(mc.font.width(target.getItem().getHoverName().getString()) * ITEM_TEXT_SCALE);
+        if (textX + itemWidth > screenWidth - 8) {
+            textX = Math.max(8, screenWidth - itemWidth - 8);
+            iconX = Math.max(6, textX - ICON_SIZE - 10);
         }
         if (iconX < 6) {
             iconX = 6;
+            textX = iconX + ICON_SIZE + 10;
         }
         if (iconY < 6) {
             iconY = 6;
-            textY = iconY + 13;
+            pickupY = iconY + 18;
+            itemY = pickupY + 27;
         }
         if (iconY + ICON_SIZE > screenHeight - 6) {
             iconY = screenHeight - ICON_SIZE - 6;
-            textY = iconY + 13;
+            pickupY = iconY + 18;
+            itemY = pickupY + 27;
         }
 
         drawIcon(g, iconX, iconY);
-        g.drawString(mc.font, "Pickup", textX, textY, TEXT_GRAY, true);
-        g.drawString(mc.font, target.getItem().getHoverName().getString(), textX, textY + 18, TEXT_WHITE, true);
+        drawScaledString(g, mc, "Pickup", textX, pickupY, PICKUP_TEXT_SCALE, TEXT_GRAY);
+        drawScaledString(g, mc, target.getItem().getHoverName().getString(), textX, itemY, ITEM_TEXT_SCALE, TEXT_WHITE);
     }
 
     public static void renderWorldOutline(PoseStack poseStack, Camera camera) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null || mc.screen != null || target == null || !target.isAlive()) {
-            return;
-        }
-
-        Vec3 cameraPosition = camera.getPosition();
-        double x = target.getX() - cameraPosition.x;
-        double y = target.getY() - cameraPosition.y;
-        double z = target.getZ() - cameraPosition.z;
-
-        poseStack.pushPose();
-        poseStack.translate(x, y, z);
-        poseStack.scale(1.075F, 1.075F, 1.075F);
-
-        OutlineBufferSource outline = mc.renderBuffers().outlineBufferSource();
-        outline.setColor(255, 255, 255, 150);
-        mc.getEntityRenderDispatcher().render(target, 0.0D, 0.0D, 0.0D, target.getYRot(), mc.getFrameTime(), poseStack, outline, LightTexture.FULL_BRIGHT);
-        outline.endOutlineBatch();
-        poseStack.popPose();
+        // The vanilla glowing flag set in updateGlowingTarget() is used for item feedback.
+        // Rendering the item again through OutlineBufferSource made selected items become a solid white duplicate.
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
@@ -172,10 +160,19 @@ public final class PickupPromptClient {
     private static void drawIcon(GuiGraphics g, int x, int y) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.96F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.98F);
         g.blit(PICKUP_ICON, x, y, ICON_SIZE, ICON_SIZE, 0.0F, 0.0F, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.disableBlend();
+    }
+
+    private static void drawScaledString(GuiGraphics g, Minecraft mc, String text, int x, int y, float scale, int color) {
+        PoseStack pose = g.pose();
+        pose.pushPose();
+        pose.translate(x, y, 0.0F);
+        pose.scale(scale, scale, 1.0F);
+        g.drawString(mc.font, text, 0, 0, color, true);
+        pose.popPose();
     }
 
     private static void updateGlowingTarget(ItemEntity newTarget) {
