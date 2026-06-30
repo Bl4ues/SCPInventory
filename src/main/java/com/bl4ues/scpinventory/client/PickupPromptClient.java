@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.OutlineBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -140,12 +141,21 @@ public final class PickupPromptClient {
         RenderSystem.defaultBlendFunc();
         RenderSystem.depthMask(false);
 
+        ItemStack originalStack = target.getItem();
+        ItemStack singleVisualStack = originalStack.copy();
+        singleVisualStack.setCount(1);
+
         poseStack.pushPose();
-        poseStack.translate(cx, cy, cz);
-        poseStack.scale(MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE);
-        poseStack.translate(-cx, -cy, -cz);
-        mc.getEntityRenderDispatcher().render(target, x, y, z, target.getYRot(), mc.getFrameTime(), poseStack, outline, LightTexture.FULL_BRIGHT);
-        poseStack.popPose();
+        try {
+            target.setItem(singleVisualStack);
+            poseStack.translate(cx, cy, cz);
+            poseStack.scale(MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE, MODEL_OUTLINE_SCALE);
+            poseStack.translate(-cx, -cy, -cz);
+            mc.getEntityRenderDispatcher().render(target, x, y, z, target.getYRot(), mc.getFrameTime(), poseStack, outline, LightTexture.FULL_BRIGHT);
+        } finally {
+            target.setItem(originalStack);
+            poseStack.popPose();
+        }
 
         outline.endOutlineBatch();
         RenderSystem.depthMask(true);
