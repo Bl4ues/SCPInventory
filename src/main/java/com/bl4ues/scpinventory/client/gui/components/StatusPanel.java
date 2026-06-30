@@ -1,5 +1,6 @@
 package com.bl4ues.scpinventory.client.gui.components;
 
+import com.bl4ues.scpinventory.client.PlayerVitalsClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -221,7 +222,7 @@ public class StatusPanel {
         drawParameterLine(g, parameterX, rowY + rowGap, parameterRight, "Armor", formatValue(getAttributeValue(Attributes.ARMOR)));
         drawParameterLine(g, parameterX, rowY + (rowGap * 2), parameterRight, "Toughness", formatValue(getAttributeValue(Attributes.ARMOR_TOUGHNESS)));
         drawParameterLine(g, parameterX, rowY + (rowGap * 3), parameterRight, "Attack", formatValue(getAttributeValue(Attributes.ATTACK_DAMAGE)));
-        drawParameterLine(g, parameterX, rowY + (rowGap * 4), parameterRight, "Stamina", "100");
+        drawParameterLine(g, parameterX, rowY + (rowGap * 4), parameterRight, "Stamina", formatValue(PlayerVitalsClient.getStamina()) + "/" + formatValue(PlayerVitalsClient.getMaxStamina()));
     }
 
     private void drawPreviewBox(GuiGraphics g, int left, int top, int right, int bottom) {
