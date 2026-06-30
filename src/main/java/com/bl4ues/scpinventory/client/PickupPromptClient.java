@@ -20,7 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.util.Comparator;
 import java.util.List;
 
 public final class PickupPromptClient {
@@ -159,16 +158,20 @@ public final class PickupPromptClient {
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
             reach = Math.min(reach, eye.distanceTo(mc.hitResult.getLocation()) + 0.35D);
         }
-        final double effectiveReach = reach;
 
-        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(effectiveReach)).inflate(0.85D);
+        AABB searchBox = player.getBoundingBox().expandTowards(look.scale(reach)).inflate(0.85D);
         List<ItemEntity> items = player.level().getEntitiesOfClass(ItemEntity.class, searchBox, item -> item.isAlive() && !item.getItem().isEmpty());
-        return items.stream()
-                .map(item -> new TargetCandidate(item, scoreItem(item, eye, look, effectiveReach)))
-                .filter(candidate -> candidate.score() < Double.MAX_VALUE)
-                .min(Comparator.comparingDouble(TargetCandidate::score))
-                .map(TargetCandidate::item)
-                .orElse(null);
+
+        ItemEntity bestItem = null;
+        double bestScore = Double.MAX_VALUE;
+        for (ItemEntity item : items) {
+            double score = scoreItem(item, eye, look, reach);
+            if (score < bestScore) {
+                bestItem = item;
+                bestScore = score;
+            }
+        }
+        return bestItem;
     }
 
     private static double scoreItem(ItemEntity item, Vec3 eye, Vec3 look, double reach) {
@@ -224,9 +227,6 @@ public final class PickupPromptClient {
 
     private static void clearTarget() {
         target = null;
-    }
-
-    private record TargetCandidate(ItemEntity item, double score) {
     }
 
     private record ScreenPoint(int x, int y) {
