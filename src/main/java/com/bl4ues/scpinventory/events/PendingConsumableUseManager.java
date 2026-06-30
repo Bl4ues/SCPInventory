@@ -23,7 +23,6 @@ public final class PendingConsumableUseManager {
 
     private static final int HOTBAR_START = 0;
     private static final int HOTBAR_END_EXCLUSIVE = 9;
-    private static final int FINISH_GRACE_TICKS = 4;
     private static final Map<UUID, PendingUse> PENDING_USES = new HashMap<>();
 
     private PendingConsumableUseManager() {
@@ -63,7 +62,7 @@ public final class PendingConsumableUseManager {
         player.connection.send(new ClientboundSetCarriedItemPacket(visualSlot));
 
         int duration = Math.max(1, visualStack.getUseDuration());
-        PENDING_USES.put(player.getUUID(), new PendingUse(visualSlot, previousSelected, player.tickCount, duration));
+        PENDING_USES.put(player.getUUID(), new PendingUse(visualSlot, previousSelected, player.tickCount, duration, visualStack.copy()));
 
         player.startUsingItem(InteractionHand.MAIN_HAND);
         ModNetwork.syncTo(player, scpInventory);
@@ -85,16 +84,21 @@ public final class PendingConsumableUseManager {
         Inventory vanillaInventory = player.getInventory();
         ItemStack handStack = vanillaInventory.items.get(pending.hotbarSlot());
 
-        if (elapsed >= pending.useDurationTicks() + FINISH_GRACE_TICKS && player.isUsingItem() && !handStack.isEmpty()) {
+        if (elapsed < pending.useDurationTicks()) {
+            if (!handStack.isEmpty() && !player.isUsingItem()) {
+                vanillaInventory.selected = pending.hotbarSlot();
+                player.connection.send(new ClientboundSetCarriedItemPacket(pending.hotbarSlot()));
+                player.startUsingItem(InteractionHand.MAIN_HAND);
+            }
+            return;
+        }
+
+        if (!handStack.isEmpty() && ItemStack.isSameItemSameTags(handStack, pending.originalStack())) {
             ItemStack result = handStack.copy().finishUsingItem(player.level(), player);
             vanillaInventory.items.set(pending.hotbarSlot(), result);
             player.stopUsingItem();
             vanillaInventory.setChanged();
             handStack = result;
-        }
-
-        if (elapsed < pending.useDurationTicks() && player.isUsingItem()) {
-            return;
         }
 
         final ItemStack remainder = handStack.copy();
@@ -144,6 +148,6 @@ public final class PendingConsumableUseManager {
         }
     }
 
-    private record PendingUse(int hotbarSlot, int previousSelectedSlot, int startedAtTick, int useDurationTicks) {
+    private record PendingUse(int hotbarSlot, int previousSelectedSlot, int startedAtTick, int useDurationTicks, ItemStack originalStack) {
     }
 }
