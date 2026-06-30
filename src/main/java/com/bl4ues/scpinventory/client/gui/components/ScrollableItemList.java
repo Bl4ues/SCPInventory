@@ -34,6 +34,7 @@ public class ScrollableItemList {
     private final List<ItemStack> items;
     private final IScpInventory inventory;
     private final String fixedTypeLabel;
+    private final List<Integer> nonEmptySlots = new ArrayList<>();
 
     public ScrollableItemList(int x, int y, int width, List<ItemStack> items, IScpInventory inventory) {
         this(x, y, width, items, inventory, null);
@@ -48,16 +49,14 @@ public class ScrollableItemList {
         this.fixedTypeLabel = fixedTypeLabel;
     }
 
-    private List<Integer> getNonEmptySlots() {
-        List<Integer> slots = new ArrayList<>();
-
+    private List<Integer> rebuildNonEmptySlots() {
+        nonEmptySlots.clear();
         for (int i = 0; i < items.size(); i++) {
             if (!items.get(i).isEmpty()) {
-                slots.add(i);
+                nonEmptySlots.add(i);
             }
         }
-
-        return slots;
+        return nonEmptySlots;
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
@@ -65,7 +64,7 @@ public class ScrollableItemList {
     }
 
     public void render(GuiGraphics g, int mouseX, int mouseY, float alpha) {
-        List<Integer> slots = getNonEmptySlots();
+        List<Integer> slots = rebuildNonEmptySlots();
 
         for (int i = 0; i < MAX_VISIBLE; i++) {
             int listIndex = scrollOffset + i;
@@ -151,12 +150,12 @@ public class ScrollableItemList {
     }
 
     public boolean mouseScrolled(double delta) {
-        List<Integer> slots = getNonEmptySlots();
+        int totalItems = rebuildNonEmptySlots().size();
 
         if (delta < 0) scrollOffset++;
         if (delta > 0) scrollOffset--;
 
-        clampScroll(slots.size());
+        clampScroll(totalItems);
         return true;
     }
 
@@ -189,7 +188,7 @@ public class ScrollableItemList {
     }
 
     private void updateScrollFromMouse(double mouseY) {
-        int totalItems = getNonEmptySlots().size();
+        int totalItems = rebuildNonEmptySlots().size();
         if (totalItems <= MAX_VISIBLE) {
             scrollOffset = 0;
             return;
@@ -206,7 +205,7 @@ public class ScrollableItemList {
     }
 
     private boolean isMouseOverScrollbar(double mouseX, double mouseY) {
-        int totalItems = getNonEmptySlots().size();
+        int totalItems = rebuildNonEmptySlots().size();
         if (totalItems <= MAX_VISIBLE) {
             return false;
         }
@@ -244,13 +243,10 @@ public class ScrollableItemList {
 
     public int getClickedIndex(double mouseX, double mouseY) {
         int row = (int) ((mouseY - y) / ROW_HEIGHT);
-
         if (row < 0 || row >= MAX_VISIBLE) return -1;
 
-        List<Integer> slots = getNonEmptySlots();
-
+        List<Integer> slots = rebuildNonEmptySlots();
         int index = scrollOffset + row;
-
         if (index >= slots.size()) return -1;
 
         return slots.get(index);
