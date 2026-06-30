@@ -24,8 +24,9 @@ public class ContextMenu {
     private static final int HINT_TEXT_PADDING_X = 2;
     private static final int HINT_LINE_HEIGHT = 9;
     private static final int HINT_PADDING_TOP = 3;
-    private static final int HINT_PADDING_BOTTOM = -1;
+    private static final int HINT_PADDING_BOTTOM = -3;
     private static final float HINT_TEXT_SCALE = 0.82F;
+    private static final int MENU_Z = 500;
 
     private final Minecraft mc = Minecraft.getInstance();
 
@@ -68,6 +69,9 @@ public class ContextMenu {
 
     public void render(GuiGraphics g, int mouseX, int mouseY) {
         if (!open) return;
+
+        g.pose().pushPose();
+        g.pose().translate(0.0F, 0.0F, MENU_Z);
 
         int height = getMenuHeight();
         g.fill(x, y, x + MENU_WIDTH, y + height, MENU_BACKGROUND);
@@ -112,6 +116,8 @@ public class ContextMenu {
                 lineY += HINT_LINE_HEIGHT;
             }
         }
+
+        g.pose().popPose();
     }
 
     public int clicked(double mouseX, double mouseY) {
