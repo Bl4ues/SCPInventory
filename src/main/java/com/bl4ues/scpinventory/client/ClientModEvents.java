@@ -16,6 +16,11 @@ public class ClientModEvents {
                     PlayerVitalsOverlay.render(guiGraphics, width, height, partialTick);
                 });
 
+        event.registerAboveAll("pickup_prompt_overlay",
+                (gui, guiGraphics, partialTick, width, height) -> {
+                    PickupPromptClient.render(guiGraphics, width, height, partialTick);
+                });
+
         event.registerAboveAll("inventory_full_overlay",
                 (gui, guiGraphics, partialTick, width, height) -> {
                     InventoryFullOverlay.render(guiGraphics);
