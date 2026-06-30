@@ -19,7 +19,7 @@ public class ContextMenu {
     private static final int OPTION_TOP = 4;
     private static final int OPTION_GAP = 6;
     private static final int HINT_TOP_GAP = 11;
-    private static final float HINT_TEXT_SCALE = 0.64F;
+    private static final float HINT_TEXT_SCALE = 0.76F;
 
     private final Minecraft mc = Minecraft.getInstance();
 
@@ -91,14 +91,14 @@ public class ContextMenu {
 
         if (hintMode != HintMode.NONE) {
             int hintY = getOptionY(options.size() - 1) + OPTION_HEIGHT + HINT_TOP_GAP;
-            int hintLeft = x + 5;
-            int hintRight = x + MENU_WIDTH - 4;
+            int hintLeft = x + 4;
+            int hintRight = x + MENU_WIDTH - 2;
             int hintHeight = hintMode == HintMode.EQUIP ? 32 : 22;
             g.fill(hintLeft, hintY - 3, hintRight, hintY + hintHeight, HINT_BACKGROUND);
 
             if (hintMode == HintMode.EQUIP) {
-                drawScaledString(g, "You can double click or", hintLeft + 2, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
-                drawScaledString(g, "press Shift + Left Click", hintLeft + 2, hintY + 10, TEXT_WHITE, HINT_TEXT_SCALE);
+                drawScaledString(g, "You can double click", hintLeft + 2, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
+                drawScaledString(g, "or Shift + Left Click", hintLeft + 2, hintY + 10, TEXT_WHITE, HINT_TEXT_SCALE);
                 drawScaledString(g, "to EQUIP this item", hintLeft + 2, hintY + 20, TEXT_WHITE, HINT_TEXT_SCALE);
             } else {
                 drawScaledString(g, "You can double click to", hintLeft + 2, hintY, TEXT_WHITE, HINT_TEXT_SCALE);
