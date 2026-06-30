@@ -13,7 +13,11 @@ public class ClientModEvents {
     public static void registerOverlays(RegisterGuiOverlaysEvent event) {
         event.registerAboveAll("player_vitals_overlay",
                 (gui, guiGraphics, partialTick, width, height) -> {
-                    PlayerVitalsOverlay.render(guiGraphics, width, height, partialTick);
+                    if (gui.getMinecraft().player != null
+                            && !gui.getMinecraft().player.isCreative()
+                            && !gui.getMinecraft().player.isSpectator()) {
+                        PlayerVitalsOverlay.render(guiGraphics, width, height, partialTick);
+                    }
                 });
 
         event.registerAboveAll("pickup_prompt_overlay",
