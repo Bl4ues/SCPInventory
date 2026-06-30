@@ -5,10 +5,14 @@ import com.bl4ues.scpinventory.network.ModNetwork;
 import com.bl4ues.scpinventory.network.PickupItemPacket;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -25,11 +29,11 @@ public final class PickupPromptClient {
     private static final ResourceLocation PICKUP_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/pickup.png");
 
     private static final int ICON_SOURCE_SIZE = 128;
-    private static final int ICON_SIZE = 70;
+    private static final int ICON_SIZE = 82;
     private static final int TEXT_WHITE = 0xFFE8E8E8;
     private static final int TEXT_GRAY = 0xFFB2B3B3;
-    private static final float PICKUP_TEXT_SCALE = 1.35F;
-    private static final float ITEM_TEXT_SCALE = 1.55F;
+    private static final float PICKUP_TEXT_SCALE = 1.55F;
+    private static final float ITEM_TEXT_SCALE = 1.85F;
     private static final double MAX_PICKUP_REACH = 4.75D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.85D * 0.85D;
 
@@ -61,7 +65,7 @@ public final class PickupPromptClient {
             return;
         }
 
-        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.22D, 0.0D), screenWidth, screenHeight);
+        ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.02D, 0.0D), screenWidth, screenHeight);
         if (point == null) {
             point = new ScreenPoint(screenWidth / 2, screenHeight / 2);
         }
@@ -69,30 +73,30 @@ public final class PickupPromptClient {
         int screenX = Mth.clamp(point.x(), 28, screenWidth - 28);
         int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
 
-        int iconX = screenX - (ICON_SIZE / 2) - 8;
-        int iconY = screenY - (ICON_SIZE / 2) - 10;
-        int textX = iconX + ICON_SIZE + 10;
-        int pickupY = iconY + 18;
-        int itemY = pickupY + 27;
+        int iconX = screenX - (ICON_SIZE / 2) - 7;
+        int iconY = screenY - (ICON_SIZE / 2) + 6;
+        int textX = iconX + ICON_SIZE + 5;
+        int pickupY = iconY + 22;
+        int itemY = pickupY + 32;
 
         int itemWidth = Math.round(mc.font.width(target.getItem().getHoverName().getString()) * ITEM_TEXT_SCALE);
         if (textX + itemWidth > screenWidth - 8) {
             textX = Math.max(8, screenWidth - itemWidth - 8);
-            iconX = Math.max(6, textX - ICON_SIZE - 10);
+            iconX = Math.max(6, textX - ICON_SIZE - 5);
         }
         if (iconX < 6) {
             iconX = 6;
-            textX = iconX + ICON_SIZE + 10;
+            textX = iconX + ICON_SIZE + 5;
         }
         if (iconY < 6) {
             iconY = 6;
-            pickupY = iconY + 18;
-            itemY = pickupY + 27;
+            pickupY = iconY + 22;
+            itemY = pickupY + 32;
         }
         if (iconY + ICON_SIZE > screenHeight - 6) {
             iconY = screenHeight - ICON_SIZE - 6;
-            pickupY = iconY + 18;
-            itemY = pickupY + 27;
+            pickupY = iconY + 22;
+            itemY = pickupY + 32;
         }
 
         drawIcon(g, iconX, iconY);
@@ -101,8 +105,29 @@ public final class PickupPromptClient {
     }
 
     public static void renderWorldOutline(PoseStack poseStack, Camera camera) {
-        // The vanilla glowing flag set in updateGlowingTarget() is used for item feedback.
-        // Rendering the item again through OutlineBufferSource made selected items become a solid white duplicate.
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null || mc.screen != null || target == null || !target.isAlive()) {
+            return;
+        }
+
+        Vec3 cameraPosition = camera.getPosition();
+        AABB box = target.getBoundingBox()
+                .inflate(0.035D, 0.035D, 0.035D)
+                .move(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableCull();
+        RenderSystem.lineWidth(1.6F);
+
+        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
+        VertexConsumer consumer = buffer.getBuffer(RenderType.lines());
+        LevelRenderer.renderLineBox(poseStack, consumer, box, 1.0F, 1.0F, 1.0F, 0.68F);
+        buffer.endBatch(RenderType.lines());
+
+        RenderSystem.lineWidth(1.0F);
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
