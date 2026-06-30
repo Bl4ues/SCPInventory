@@ -7,9 +7,13 @@ import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.Optional;
@@ -83,12 +87,29 @@ public class InventoryActionPacket {
             return;
         }
 
-        if (stack.isEdible()) {
-            ItemStack result = player.eat(player.level(), stack.copy());
-            inventory.setInventoryItem(slot, result);
-        } else {
+        UseAnim animation = stack.getUseAnimation();
+        boolean hasVanillaUseResult = stack.isEdible() || animation == UseAnim.EAT || animation == UseAnim.DRINK;
+        if (!hasVanillaUseResult) {
             inventory.removeInventoryItem(slot);
+            return;
         }
+
+        ItemStack usedStack = stack.copy();
+        usedStack.setCount(1);
+        player.swing(InteractionHand.MAIN_HAND, true);
+        player.level().playSound(
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                animation == UseAnim.DRINK ? SoundEvents.GENERIC_DRINK : SoundEvents.GENERIC_EAT,
+                SoundSource.PLAYERS,
+                0.8F,
+                0.9F + player.getRandom().nextFloat() * 0.2F
+        );
+
+        ItemStack result = usedStack.finishUsingItem(player.level(), player);
+        inventory.setInventoryItem(slot, result);
     }
 
     private static void equipSlot(ServerPlayer player, IScpInventory inventory, int slot) {
