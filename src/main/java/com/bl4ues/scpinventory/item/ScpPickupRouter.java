@@ -10,7 +10,7 @@ public final class ScpPickupRouter {
     }
 
     public static int accept(IScpInventory inventory, ServerPlayer player, ItemStack stack) {
-        if (inventory == null || stack == null || stack.isEmpty()) {
+        if (inventory == null || stack == null || stack.isEmpty() || (player != null && player.isCreative())) {
             return 0;
         }
 
