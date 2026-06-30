@@ -1,11 +1,14 @@
 package com.bl4ues.scpinventory.client;
 
+import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import com.bl4ues.scpinventory.network.PickupItemPacket;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.phys.AABB;
@@ -18,10 +21,12 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class PickupPromptClient {
+    private static final ResourceLocation PICKUP_ICON = new ResourceLocation(ScpInventoryMod.MODID, "textures/gui/pickup.png");
+    private static final int ICON_SOURCE_SIZE = 64;
+    private static final int ICON_SIZE = 58;
     private static final int TEXT_WHITE = 0xFFE8E8E8;
     private static final int TEXT_GRAY = 0xFFB2B3B3;
     private static final int BRACKET = 0xDDE8E8E8;
-    private static final int HAND = 0xEEF2F2F2;
     private static final double MAX_PICKUP_REACH = 4.75D;
     private static final double SOFT_AIM_RADIUS_SQR = 0.85D * 0.85D;
 
@@ -53,25 +58,34 @@ public final class PickupPromptClient {
 
         ScreenPoint point = projectToScreen(mc, target.getBoundingBox().getCenter().add(0.0D, 0.18D, 0.0D), screenWidth, screenHeight);
         if (point == null) {
-            return;
+            point = new ScreenPoint(screenWidth / 2, screenHeight / 2);
         }
 
-        int screenX = Mth.clamp(point.x(), 24, screenWidth - 24);
-        int screenY = Mth.clamp(point.y(), 24, screenHeight - 24);
+        int screenX = Mth.clamp(point.x(), 28, screenWidth - 28);
+        int screenY = Mth.clamp(point.y(), 28, screenHeight - 28);
         drawTargetBrackets(g, screenX, screenY);
 
-        int iconX = Math.max(4, screenX - 54);
-        int iconY = Math.max(4, screenY - 32);
-        int textX = iconX + 56;
-        int textY = iconY + 8;
-        if (textX + 190 > screenWidth) {
-            textX = Math.max(4, screenX - 205);
-            iconX = Math.max(4, textX - 56);
+        int iconX = screenX - 78;
+        int iconY = screenY - 31;
+        int textX = iconX + ICON_SIZE + 14;
+        int textY = iconY + 9;
+
+        if (textX + 210 > screenWidth) {
+            textX = Math.max(6, screenX - 240);
+            iconX = Math.max(6, textX - ICON_SIZE - 14);
+        }
+        if (iconX < 6) {
+            iconX = 6;
+            textX = iconX + ICON_SIZE + 14;
+        }
+        if (iconY < 6) {
+            iconY = 6;
+            textY = iconY + 9;
         }
 
-        drawHandIcon(g, iconX, iconY);
+        drawIcon(g, iconX, iconY);
         g.drawString(mc.font, "Pickup", textX, textY, TEXT_GRAY, true);
-        g.drawString(mc.font, target.getItem().getHoverName().getString(), textX, textY + 16, TEXT_WHITE, true);
+        g.drawString(mc.font, target.getItem().getHoverName().getString(), textX, textY + 18, TEXT_WHITE, true);
     }
 
     private static ItemEntity findTarget(Minecraft mc, LocalPlayer player) {
@@ -111,20 +125,24 @@ public final class PickupPromptClient {
         Vec3 relative = worldPos.subtract(camera.getPosition());
         Quaternionf rotation = new Quaternionf(camera.rotation());
         rotation.conjugate();
+
         Vector3f transformed = new Vector3f((float) relative.x, (float) relative.y, (float) relative.z);
         transformed.rotate(rotation);
-        if (transformed.z() >= -0.05F) return null;
+
+        double depth = Math.abs(transformed.z());
+        if (depth < 0.05D) return null;
 
         double fov = mc.options.fov().get();
         double scale = screenHeight / (2.0D * Math.tan(Math.toRadians(fov) / 2.0D));
-        int x = (int) Math.round((screenWidth / 2.0D) - (transformed.x() * scale / transformed.z()));
-        int y = (int) Math.round((screenHeight / 2.0D) + (transformed.y() * scale / transformed.z()));
+
+        int x = (int) Math.round((screenWidth / 2.0D) + (transformed.x() * scale / depth));
+        int y = (int) Math.round((screenHeight / 2.0D) - (transformed.y() * scale / depth));
         return new ScreenPoint(x, y);
     }
 
     private static void drawTargetBrackets(GuiGraphics g, int centerX, int centerY) {
-        int half = 12;
-        int len = 7;
+        int half = 13;
+        int len = 8;
         int x1 = centerX - half;
         int x2 = centerX + half;
         int y1 = centerY - half;
@@ -139,14 +157,13 @@ public final class PickupPromptClient {
         g.fill(x2 - 1, y2 - len, x2, y2, BRACKET);
     }
 
-    private static void drawHandIcon(GuiGraphics g, int x, int y) {
-        g.fill(x + 15, y + 3, x + 19, y + 27, HAND);
-        g.fill(x + 21, y + 5, x + 25, y + 28, HAND);
-        g.fill(x + 27, y + 9, x + 31, y + 29, HAND);
-        g.fill(x + 33, y + 15, x + 37, y + 32, HAND);
-        g.fill(x + 8, y + 22, x + 16, y + 36, HAND);
-        g.fill(x + 12, y + 34, x + 34, y + 40, HAND);
-        g.fill(x + 18, y + 40, x + 32, y + 45, HAND);
+    private static void drawIcon(GuiGraphics g, int x, int y) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.96F);
+        g.blit(PICKUP_ICON, x, y, ICON_SIZE, ICON_SIZE, 0.0F, 0.0F, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE, ICON_SOURCE_SIZE);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableBlend();
     }
 
     private record TargetCandidate(ItemEntity item, double score) {
