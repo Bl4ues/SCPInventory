@@ -4,6 +4,7 @@ import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpItemType;
+import com.bl4ues.scpinventory.network.DocumentActionPacket;
 import com.bl4ues.scpinventory.network.EquipmentActionPacket;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.InventoryMovePacket;
@@ -26,6 +27,10 @@ public final class ClientInventoryBridge {
 
     public static void performKey(int index, String name) {
         ModNetwork.CHANNEL.sendToServer(new KeyActionPacket(index, name));
+    }
+
+    public static void performDocument(int index, String name) {
+        ModNetwork.CHANNEL.sendToServer(new DocumentActionPacket(index, name));
     }
 
     public static void performEquipment(ScpEquipmentSlot slot, String name) {
