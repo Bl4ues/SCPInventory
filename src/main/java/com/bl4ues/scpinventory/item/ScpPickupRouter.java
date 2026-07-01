@@ -83,12 +83,15 @@ public final class ScpPickupRouter {
             player.containerMenu.broadcastChanges();
         }
 
-        // Force raw inventory slot updates too. Some custom/non-container screens do not receive
-        // small direct NonNullList mutations reliably, which made partial coin stacks look deleted
-        // while full stacks eventually appeared through normal vanilla sync.
         for (int i = 0; i < inventory.items.size(); i++) {
-            player.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, i, inventory.items.get(i).copy()));
+            ItemStack copy = inventory.items.get(i).copy();
+            player.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, i, copy));
+            player.connection.send(new ClientboundContainerSetSlotPacket(player.inventoryMenu.containerId, 0, toInventoryMenuSlot(i), copy));
         }
+    }
+
+    private static int toInventoryMenuSlot(int inventoryIndex) {
+        return inventoryIndex >= 0 && inventoryIndex < 9 ? inventoryIndex + 36 : inventoryIndex;
     }
 
     public static void markUsableSession(ItemStack stack, int startTick) {
