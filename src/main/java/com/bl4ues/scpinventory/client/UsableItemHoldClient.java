@@ -15,23 +15,25 @@ public final class UsableItemHoldClient {
 
     private static final int MAX_HOLD_TICKS = 120;
     private static final int STARTUP_GRACE_TICKS = 24;
-    private static final int STARTUP_DELAY_TICKS = 4;
+    private static final int STARTUP_DELAY_TICKS = 6;
 
     private static int ticksRemaining = 0;
     private static int ticksElapsed = 0;
     private static int delayTicks = 0;
     private static boolean sawUsingItem = false;
+    private static boolean clickOnly = false;
 
     private UsableItemHoldClient() {
     }
 
     public static void start(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || stack.getUseAnimation() == UseAnim.NONE) {
+        if (stack == null || stack.isEmpty()) {
             stop(Minecraft.getInstance());
             return;
         }
 
-        ticksRemaining = MAX_HOLD_TICKS;
+        clickOnly = stack.getUseAnimation() == UseAnim.NONE;
+        ticksRemaining = clickOnly ? 2 : MAX_HOLD_TICKS;
         ticksElapsed = 0;
         delayTicks = STARTUP_DELAY_TICKS;
         sawUsingItem = false;
@@ -59,6 +61,13 @@ public final class UsableItemHoldClient {
         ticksRemaining--;
         mc.options.keyUse.setDown(true);
 
+        if (clickOnly) {
+            if (ticksElapsed >= 2 || ticksRemaining <= 0) {
+                stop(mc);
+            }
+            return;
+        }
+
         if (player.isUsingItem()) {
             sawUsingItem = true;
         } else if (sawUsingItem || ticksElapsed > STARTUP_GRACE_TICKS) {
@@ -76,6 +85,7 @@ public final class UsableItemHoldClient {
         ticksElapsed = 0;
         delayTicks = 0;
         sawUsingItem = false;
+        clickOnly = false;
         if (mc != null) {
             mc.options.keyUse.setDown(false);
         }
