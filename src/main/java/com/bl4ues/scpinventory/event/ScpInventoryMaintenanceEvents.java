@@ -131,9 +131,6 @@ public final class ScpInventoryMaintenanceEvents {
             return true;
         }
 
-        if (inventory.isInventoryFull()) {
-            ModNetwork.showInventoryFull(player);
-        }
         return false;
     }
 
