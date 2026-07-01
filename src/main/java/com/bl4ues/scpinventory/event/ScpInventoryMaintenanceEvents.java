@@ -10,7 +10,6 @@ import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
@@ -132,18 +131,21 @@ public final class ScpInventoryMaintenanceEvents {
     }
 
     private static boolean moveCoinStackToMainInventory(ServerPlayer player, List<ItemStack> sourceList, int sourceIndex, ItemStack stack) {
-        int accepted = ScpPickupRouter.acceptCoinStack(player, stack.copy());
-        if (accepted <= 0) {
-            return false;
+        ItemStack moving = stack.copy();
+        sourceList.set(sourceIndex, ItemStack.EMPTY);
+
+        int accepted = ScpPickupRouter.acceptCoinStack(player, moving.copy());
+        if (accepted >= moving.getCount()) {
+            return true;
         }
 
-        if (accepted >= stack.getCount()) {
-            sourceList.set(sourceIndex, ItemStack.EMPTY);
-        } else {
-            stack.shrink(accepted);
-            sourceList.set(sourceIndex, stack);
+        int leftover = moving.getCount() - Math.max(0, accepted);
+        if (leftover > 0) {
+            ItemStack remainder = moving.copy();
+            remainder.setCount(leftover);
+            sourceList.set(sourceIndex, remainder);
         }
-        return true;
+        return accepted > 0;
     }
 
     private static boolean enforceCoinCap(ServerPlayer player) {
@@ -155,10 +157,10 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         int remainingOverflow = overflow;
-        remainingOverflow = removeCoinOverflowFromList(inventory.offhand, remainingOverflow, player);
-        remainingOverflow = removeCoinOverflowFromList(inventory.armor, remainingOverflow, player);
-        remainingOverflow = removeCoinOverflowFromRange(inventory.items, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE, remainingOverflow, player);
-        remainingOverflow = removeCoinOverflowFromRange(inventory.items, 35, 8, remainingOverflow, player);
+        remainingOverflow = removeCoinOverflowFromList(inventory.offhand, remainingOverflow);
+        remainingOverflow = removeCoinOverflowFromList(inventory.armor, remainingOverflow);
+        remainingOverflow = removeCoinOverflowFromRange(inventory.items, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE, remainingOverflow);
+        remainingOverflow = removeCoinOverflowFromRange(inventory.items, 35, 8, remainingOverflow);
 
         inventory.setChanged();
         player.containerMenu.broadcastChanges();
@@ -180,42 +182,31 @@ public final class ScpInventoryMaintenanceEvents {
         return count;
     }
 
-    private static int removeCoinOverflowFromList(List<ItemStack> stacks, int overflow, ServerPlayer player) {
+    private static int removeCoinOverflowFromList(List<ItemStack> stacks, int overflow) {
         for (int i = 0; i < stacks.size() && overflow > 0; i++) {
-            overflow = removeCoinOverflowAt(stacks, i, overflow, player);
+            overflow = removeCoinOverflowAt(stacks, i, overflow);
         }
         return overflow;
     }
 
-    private static int removeCoinOverflowFromRange(List<ItemStack> stacks, int startInclusive, int endExclusive, int overflow, ServerPlayer player) {
+    private static int removeCoinOverflowFromRange(List<ItemStack> stacks, int startInclusive, int endExclusive, int overflow) {
         int step = startInclusive <= endExclusive ? 1 : -1;
         for (int i = startInclusive; overflow > 0 && i >= 0 && i < stacks.size() && i != endExclusive; i += step) {
-            overflow = removeCoinOverflowAt(stacks, i, overflow, player);
+            overflow = removeCoinOverflowAt(stacks, i, overflow);
         }
         return overflow;
     }
 
-    private static int removeCoinOverflowAt(List<ItemStack> stacks, int index, int overflow, ServerPlayer player) {
+    private static int removeCoinOverflowAt(List<ItemStack> stacks, int index, int overflow) {
         ItemStack stack = stacks.get(index);
         if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
             return overflow;
         }
 
         int removed = Math.min(overflow, stack.getCount());
-        ItemStack dropped = stack.copy();
-        dropped.setCount(removed);
         stack.shrink(removed);
         stacks.set(index, stack.isEmpty() ? ItemStack.EMPTY : stack);
-        dropCoinOverflow(player, dropped);
         return overflow - removed;
-    }
-
-    private static void dropCoinOverflow(ServerPlayer player, ItemStack stack) {
-        if (stack.isEmpty()) return;
-        ItemEntity entity = player.drop(stack, false);
-        if (entity != null) {
-            entity.setPickUpDelay(40);
-        }
     }
 
     private static void showCoinCapMessage(ServerPlayer player) {
@@ -242,11 +233,7 @@ public final class ScpInventoryMaintenanceEvents {
             return false;
         }
 
-        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
-            if (!equippedAccessory.isEmpty()) {
-                return false;
-            }
-
+        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand) && equippedAccessory.isEmpty()) {
             inventory.setEquipment(ScpEquipmentSlot.ACCESSORY, normalizeSingle(offhand));
             return true;
         }
