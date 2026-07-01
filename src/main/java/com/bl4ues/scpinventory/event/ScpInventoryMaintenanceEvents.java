@@ -20,7 +20,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,17 +57,19 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         ItemStack tossedStack = event.getEntity().getItem();
-        if (!ScpItemClassifier.isCoin(tossedStack) || !ScpPickupRouter.isCoinMirror(tossedStack)) {
+        if (!ScpItemClassifier.isCoin(tossedStack)) {
             return;
         }
 
-        player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            inventory.setCoinCount(inventory.getCoinCount() - tossedStack.getCount());
-            ScpPickupRouter.stripCoinMirror(tossedStack);
-            event.getEntity().setItem(tossedStack);
-            ScpPickupRouter.syncCoinMirror(player, inventory);
-            ModNetwork.syncTo(player, inventory);
-        });
+        if (ScpPickupRouter.isCoinMirror(tossedStack)) {
+            player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
+                inventory.setCoinCount(inventory.getCoinCount() - tossedStack.getCount());
+                ScpPickupRouter.stripCoinMirror(tossedStack);
+                event.getEntity().setItem(tossedStack);
+                ScpPickupRouter.syncCoinMirror(player, inventory);
+                ModNetwork.syncTo(player, inventory);
+            });
+        }
     }
 
     @SubscribeEvent
@@ -85,12 +86,11 @@ public final class ScpInventoryMaintenanceEvents {
             if (!player.isCreative()) {
                 changed |= enforceCoinCap(player, inventory);
                 changed |= migrateCoinsFromCustomInventory(player, inventory);
-                changed |= migrateVanillaCoinsToStorage(player, inventory);
+                changed |= ScpPickupRouter.reconcileCoinMirror(player, inventory);
                 changed |= maintainUsableSessions(player, inventory);
             }
             changed |= reconcileAccessoryHand(player, inventory);
             if (changed) {
-                ScpPickupRouter.syncCoinMirror(player, inventory);
                 ModNetwork.syncTo(player, inventory);
             }
         });
@@ -161,45 +161,6 @@ public final class ScpInventoryMaintenanceEvents {
                 stack.shrink(accepted);
                 inventory.setInventoryItem(i, stack);
                 changed = true;
-                showCoinCapMessage(player);
-            }
-        }
-        return changed;
-    }
-
-    private static boolean migrateVanillaCoinsToStorage(ServerPlayer player, IScpInventory scpInventory) {
-        boolean changed = false;
-        Inventory inventory = player.getInventory();
-
-        changed |= migrateCoinListToStorage(player, scpInventory, inventory.items);
-        changed |= migrateCoinListToStorage(player, scpInventory, inventory.offhand);
-        changed |= migrateCoinListToStorage(player, scpInventory, inventory.armor);
-
-        if (changed) {
-            ScpPickupRouter.syncVanillaInventory(player);
-        }
-        return changed;
-    }
-
-    private static boolean migrateCoinListToStorage(ServerPlayer player, IScpInventory scpInventory, List<ItemStack> stacks) {
-        boolean changed = false;
-        for (int i = 0; i < stacks.size(); i++) {
-            ItemStack stack = stacks.get(i);
-            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack) || ScpPickupRouter.isCoinMirror(stack)) {
-                continue;
-            }
-
-            int accepted = ScpPickupRouter.acceptCoinStack(scpInventory, player, stack.copy());
-            if (accepted >= stack.getCount()) {
-                stacks.set(i, ItemStack.EMPTY);
-                changed = true;
-            } else if (accepted > 0) {
-                ItemStack remainder = stack.copy();
-                remainder.shrink(accepted);
-                stacks.set(i, remainder);
-                changed = true;
-                showCoinCapMessage(player);
-            } else {
                 showCoinCapMessage(player);
             }
         }
