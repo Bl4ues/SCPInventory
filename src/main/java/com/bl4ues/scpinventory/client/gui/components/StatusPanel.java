@@ -1,10 +1,14 @@
 package com.bl4ues.scpinventory.client.gui.components;
 
 import com.bl4ues.scpinventory.client.PlayerVitalsClient;
+import com.bl4ues.scpinventory.config.ScpInventoryConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -18,6 +22,9 @@ public class StatusPanel {
 
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int TEXT_SELECTED = 0xFF202020;
+    private static final int TAB_ACTIVE = 0x55B2B3B3;
+    private static final int TAB_INACTIVE = 0x336A6C6C;
     private static final int ROW_BACKGROUND = 0x24303638;
     private static final int PREVIEW_BACKGROUND = 0x70303638;
     private static final int PREVIEW_BACKGROUND_INNER = 0x66181E20;
@@ -32,10 +39,13 @@ public class StatusPanel {
 
     private static final int CONDITION_ROW_HEIGHT = 38;
     private static final int CONDITION_ICON_SIZE = 24;
-    private static final int CONDITIONS_PAD_X = 28;
-    private static final int CONDITIONS_PAD_TOP = 10;
+    private static final int CONDITIONS_PAD_X = 18;
+    private static final int CONDITIONS_PAD_TOP = 36;
     private static final int PARAMETERS_PAD_X = 34;
     private static final int PARAMETERS_PAD_TOP = 34;
+    private static final int TAB_WIDTH = 100;
+    private static final int TAB_HEIGHT = 17;
+    private static final int TAB_GAP = 10;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final int conditionsX;
@@ -52,6 +62,7 @@ public class StatusPanel {
 
     private int conditionsScroll = 0;
     private boolean conditionsScrollbarDragging = false;
+    private ConditionTab conditionTab = ConditionTab.POSITIVE;
 
     public StatusPanel(int conditionsX, int conditionsY, int conditionsWidth, int conditionsHeight,
                        int parametersX, int parametersY, int parametersWidth, int parametersHeight,
@@ -78,7 +89,7 @@ public class StatusPanel {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (!isMouseOverConditions(mouseX, mouseY) || mc.player == null) return false;
-        int totalRows = mc.player.getActiveEffects().size();
+        int totalRows = getVisibleEffects().size();
         int visibleRows = getVisibleConditionRows();
         int maxScroll = Math.max(0, totalRows - visibleRows);
         if (maxScroll <= 0) return false;
@@ -87,6 +98,7 @@ public class StatusPanel {
     }
 
     public boolean mouseClickedScrollbar(double mouseX, double mouseY, int button) {
+        if (button == 0 && clickConditionTab(mouseX, mouseY)) return true;
         if (button != 0 || !hasScrollableConditions() || !isMouseOverConditionScrollbar(mouseX, mouseY)) return false;
         conditionsScrollbarDragging = true;
         updateConditionsScrollFromMouse(mouseY);
@@ -106,13 +118,10 @@ public class StatusPanel {
     }
 
     private void renderConditions(GuiGraphics g) {
+        renderConditionTabs(g);
         if (mc.player == null) return;
 
-        List<MobEffectInstance> effects = new ArrayList<>(mc.player.getActiveEffects());
-        effects.sort(Comparator.comparing(effect -> effect.getEffect().getDisplayName().getString()));
-
-        if (effects.isEmpty()) return;
-
+        List<MobEffectInstance> effects = getVisibleEffects();
         int contentX = conditionsX + CONDITIONS_PAD_X;
         int contentY = conditionsY + CONDITIONS_PAD_TOP;
         int contentWidth = conditionsWidth - (CONDITIONS_PAD_X * 2) - 14;
@@ -131,6 +140,70 @@ public class StatusPanel {
         if (effects.size() > visibleRows) {
             renderConditionScrollbar(g, effects.size(), visibleRows);
         }
+    }
+
+    private void renderConditionTabs(GuiGraphics g) {
+        int tabX = conditionsX + CONDITIONS_PAD_X;
+        int tabY = conditionsY + 8;
+        drawConditionTab(g, tabX, tabY, "POSITIVE", conditionTab == ConditionTab.POSITIVE);
+        drawConditionTab(g, tabX + TAB_WIDTH + TAB_GAP, tabY, "NEGATIVE", conditionTab == ConditionTab.NEGATIVE);
+    }
+
+    private void drawConditionTab(GuiGraphics g, int x, int y, String label, boolean active) {
+        g.fill(x, y, x + TAB_WIDTH, y + TAB_HEIGHT, active ? TAB_ACTIVE : TAB_INACTIVE);
+        g.drawString(mc.font, label, x + (TAB_WIDTH - mc.font.width(label)) / 2, y + 5, active ? TEXT_SELECTED : TEXT_WHITE, false);
+    }
+
+    private boolean clickConditionTab(double mouseX, double mouseY) {
+        int tabX = conditionsX + CONDITIONS_PAD_X;
+        int tabY = conditionsY + 8;
+        if (mouseY < tabY || mouseY > tabY + TAB_HEIGHT) return false;
+
+        if (mouseX >= tabX && mouseX <= tabX + TAB_WIDTH) {
+            conditionTab = ConditionTab.POSITIVE;
+            conditionsScroll = 0;
+            return true;
+        }
+
+        int negativeX = tabX + TAB_WIDTH + TAB_GAP;
+        if (mouseX >= negativeX && mouseX <= negativeX + TAB_WIDTH) {
+            conditionTab = ConditionTab.NEGATIVE;
+            conditionsScroll = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    private List<MobEffectInstance> getVisibleEffects() {
+        List<MobEffectInstance> effects = new ArrayList<>();
+        if (mc.player == null) return effects;
+
+        for (MobEffectInstance effect : mc.player.getActiveEffects()) {
+            if (isHiddenEffect(effect)) continue;
+            if (conditionTab == ConditionTab.NEGATIVE && !isNegativeEffect(effect)) continue;
+            if (conditionTab == ConditionTab.POSITIVE && isNegativeEffect(effect)) continue;
+            effects.add(effect);
+        }
+
+        effects.sort(Comparator.comparing(effect -> effect.getEffect().getDisplayName().getString()));
+        return effects;
+    }
+
+    private boolean isNegativeEffect(MobEffectInstance effect) {
+        return effect.getEffect().getCategory() == MobEffectCategory.HARMFUL;
+    }
+
+    private boolean isHiddenEffect(MobEffectInstance effect) {
+        ResourceLocation id = BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect());
+        if (id == null) return false;
+        String idString = id.toString();
+        for (String raw : ScpInventoryConfig.HIDDEN_STATUS_EFFECTS.get()) {
+            if (raw != null && raw.trim().equalsIgnoreCase(idString)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int getVisibleConditionRows() {
@@ -252,7 +325,7 @@ public class StatusPanel {
     }
 
     private boolean hasScrollableConditions() {
-        return mc.player != null && mc.player.getActiveEffects().size() > getVisibleConditionRows();
+        return getVisibleEffects().size() > getVisibleConditionRows();
     }
 
     private boolean isMouseOverConditions(double mouseX, double mouseY) {
@@ -273,11 +346,11 @@ public class StatusPanel {
     }
 
     private int getConditionScrollbarY() {
-        return conditionsY + 10;
+        return conditionsY + CONDITIONS_PAD_TOP;
     }
 
     private int getConditionScrollbarHeight() {
-        return conditionsHeight - 20;
+        return conditionsHeight - CONDITIONS_PAD_TOP - 12;
     }
 
     private int getConditionScrollbarThumbHeight(int totalRows, int visibleRows) {
@@ -291,8 +364,7 @@ public class StatusPanel {
     }
 
     private void updateConditionsScrollFromMouse(double mouseY) {
-        if (mc.player == null) return;
-        int totalRows = mc.player.getActiveEffects().size();
+        int totalRows = getVisibleEffects().size();
         int visibleRows = getVisibleConditionRows();
         int maxScroll = Math.max(0, totalRows - visibleRows);
         if (maxScroll <= 0) {
@@ -352,5 +424,10 @@ public class StatusPanel {
             case 5 -> "V";
             default -> Integer.toString(value);
         };
+    }
+
+    private enum ConditionTab {
+        POSITIVE,
+        NEGATIVE
     }
 }
