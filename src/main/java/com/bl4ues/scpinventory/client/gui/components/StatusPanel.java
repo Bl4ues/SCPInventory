@@ -198,6 +198,7 @@ public class StatusPanel {
         ResourceLocation id = BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect());
         if (id == null) return false;
         String idString = id.toString();
+        if ("minecraft:bad_omen".equalsIgnoreCase(idString)) return true;
         for (String raw : ScpInventoryConfig.HIDDEN_STATUS_EFFECTS.get()) {
             if (raw != null && raw.trim().equalsIgnoreCase(idString)) {
                 return true;
