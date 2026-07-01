@@ -1,6 +1,7 @@
 package com.bl4ues.scpinventory.capability;
 
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
+import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +19,7 @@ public class ScpInventory implements IScpInventory {
     private final Map<ScpEquipmentSlot, ItemStack> equipment = new EnumMap<>(ScpEquipmentSlot.class);
 
     private int maxMainSlots = DEFAULT_MAIN_SLOT_COUNT;
+    private int coinCount = 0;
 
     public ScpInventory() {
         resetEquipmentSlots();
@@ -123,10 +125,21 @@ public class ScpInventory implements IScpInventory {
     @Override
     public void resetAll() {
         maxMainSlots = DEFAULT_MAIN_SLOT_COUNT;
+        coinCount = 0;
         resetMainInventory();
         keys.clear();
         documents.clear();
         resetEquipmentSlots();
+    }
+
+    @Override
+    public int getCoinCount() {
+        return coinCount;
+    }
+
+    @Override
+    public void setCoinCount(int count) {
+        coinCount = Math.max(0, Math.min(ScpPickupRouter.MAX_COIN_COUNT, count));
     }
 
     @Override
@@ -230,6 +243,7 @@ public class ScpInventory implements IScpInventory {
         CompoundTag tag = new CompoundTag();
 
         tag.putInt("MaxMainSlots", maxMainSlots);
+        tag.putInt("CoinCount", coinCount);
         tag.put("Inventory", saveStackList(inventory, true));
         tag.put("Keys", saveStackList(keys, false));
         tag.put("Documents", saveStackList(documents, false));
@@ -248,6 +262,9 @@ public class ScpInventory implements IScpInventory {
         maxMainSlots = tag.contains("MaxMainSlots")
                 ? clampSlots(tag.getInt("MaxMainSlots"))
                 : DEFAULT_MAIN_SLOT_COUNT;
+        coinCount = tag.contains("CoinCount")
+                ? Math.max(0, Math.min(ScpPickupRouter.MAX_COIN_COUNT, tag.getInt("CoinCount")))
+                : 0;
 
         inventory.clear();
         ListTag invList = tag.getList("Inventory", 10);
