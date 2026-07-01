@@ -1,7 +1,6 @@
 package com.bl4ues.scpinventory.network;
 
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
-import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -68,21 +67,13 @@ public class PickupItemPacket {
 
             player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
                 ItemStack pickupStack = stack.copy();
-                boolean coin = ScpItemClassifier.isCoin(pickupStack);
-                if (!coin) {
-                    pickupStack.setCount(1);
-                }
+                pickupStack.setCount(1);
 
-                int requestedCount = pickupStack.getCount();
                 int acceptedCount = ScpPickupRouter.accept(inventory, player, pickupStack);
                 if (acceptedCount <= 0) {
                     ModNetwork.showInventoryFull(player);
                     ModNetwork.syncTo(player, inventory);
                     return;
-                }
-
-                if (coin && acceptedCount < requestedCount) {
-                    ModNetwork.showInventoryFull(player);
                 }
 
                 playPickupFeedback(player, itemEntity, acceptedCount);
