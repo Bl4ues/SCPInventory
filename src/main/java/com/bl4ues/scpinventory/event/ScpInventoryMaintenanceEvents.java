@@ -39,7 +39,6 @@ public final class ScpInventoryMaintenanceEvents {
             return;
         }
 
-        // Coins are custom-inventory items. They use the manual pickup packet like the rest of the SCP inventory.
         event.setCanceled(true);
     }
 
@@ -54,7 +53,6 @@ public final class ScpInventoryMaintenanceEvents {
             return;
         }
 
-        // Anything that leaves the vanilla mirror should become a normal item entity again.
         ScpPickupRouter.stripCoinMirror(tossedStack);
         event.getEntity().setItem(tossedStack);
     }
@@ -107,6 +105,13 @@ public final class ScpInventoryMaintenanceEvents {
         ScpPickupRouter.stripUsableSession(returning);
         ScpPickupRouter.stripNoMergeMarker(returning);
 
+        if (ScpPickupRouter.isCoinMirror(returning) || ScpItemClassifier.isCoin(returning)) {
+            ScpPickupRouter.stripUsableSession(stack);
+            vanillaInventory.setItem(hotbarSlot, stack);
+            ScpPickupRouter.syncVanillaInventory(player);
+            return true;
+        }
+
         if (returning.isEmpty()) {
             vanillaInventory.setItem(hotbarSlot, ItemStack.EMPTY);
             ScpPickupRouter.syncVanillaInventory(player);
@@ -126,7 +131,9 @@ public final class ScpInventoryMaintenanceEvents {
             return true;
         }
 
-        ModNetwork.showInventoryFull(player);
+        if (inventory.isInventoryFull()) {
+            ModNetwork.showInventoryFull(player);
+        }
         return false;
     }
 
