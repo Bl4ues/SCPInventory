@@ -10,6 +10,9 @@ public final class ScpPickupRouter {
 
     public static final String NO_MERGE_TAG = "ScpInventoryNoMerge";
 
+    private static final int VANILLA_MAIN_START = 9;
+    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
+
     private ScpPickupRouter() {
     }
 
@@ -38,7 +41,7 @@ public final class ScpPickupRouter {
     }
 
     public static int acceptCoinStack(ServerPlayer player, ItemStack stack) {
-        if (player == null || stack == null || stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
+        if (player == null || player.isCreative() || stack == null || stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
             return 0;
         }
 
@@ -47,8 +50,8 @@ public final class ScpPickupRouter {
         int startingCount = remaining.getCount();
         Inventory inventory = player.getInventory();
 
-        mergeCoinIntoExistingStacks(inventory, remaining);
-        placeCoinIntoEmptySlots(inventory, remaining);
+        mergeCoinIntoExistingMainStacks(inventory, remaining);
+        placeCoinIntoEmptyMainSlots(inventory, remaining);
 
         int accepted = startingCount - remaining.getCount();
         if (accepted > 0) {
@@ -82,8 +85,9 @@ public final class ScpPickupRouter {
         }
     }
 
-    private static void mergeCoinIntoExistingStacks(Inventory inventory, ItemStack remaining) {
-        for (int i = 0; i < inventory.items.size() && !remaining.isEmpty(); i++) {
+    private static void mergeCoinIntoExistingMainStacks(Inventory inventory, ItemStack remaining) {
+        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
+        for (int i = end - 1; i >= VANILLA_MAIN_START && !remaining.isEmpty(); i--) {
             ItemStack candidate = inventory.items.get(i);
             if (candidate.isEmpty() || !ItemStack.isSameItemSameTags(candidate, remaining)) {
                 continue;
@@ -100,8 +104,9 @@ public final class ScpPickupRouter {
         }
     }
 
-    private static void placeCoinIntoEmptySlots(Inventory inventory, ItemStack remaining) {
-        for (int i = 0; i < inventory.items.size() && !remaining.isEmpty(); i++) {
+    private static void placeCoinIntoEmptyMainSlots(Inventory inventory, ItemStack remaining) {
+        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
+        for (int i = end - 1; i >= VANILLA_MAIN_START && !remaining.isEmpty(); i--) {
             if (!inventory.items.get(i).isEmpty()) {
                 continue;
             }
