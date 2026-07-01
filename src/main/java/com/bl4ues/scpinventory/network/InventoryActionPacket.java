@@ -217,9 +217,9 @@ public class InventoryActionPacket {
 
         Inventory inventory = player.getInventory();
         removeAllMirrorsForSlot(inventory, ScpEquipmentSlot.ACCESSORY);
-        clearOffhandAccessory(player);
 
         if (stack == null || stack.isEmpty()) {
+            clearOffhandAccessory(player);
             inventory.setChanged();
             player.containerMenu.broadcastChanges();
             return;
@@ -228,11 +228,13 @@ public class InventoryActionPacket {
         ItemStack normalized = stack.copy();
         normalized.setCount(1);
         if (ScpItemClassifier.isAccessoryHand(normalized)) {
+            preserveCurrentOffhand(player, normalized);
             player.setItemSlot(EquipmentSlot.OFFHAND, normalized);
             player.containerMenu.broadcastChanges();
             return;
         }
 
+        clearOffhandAccessory(player);
         syncMainInventoryMirror(player, ScpEquipmentSlot.ACCESSORY, normalized);
     }
 
@@ -240,6 +242,35 @@ public class InventoryActionPacket {
         ItemStack offhand = player.getOffhandItem();
         if (ScpItemClassifier.isAccessoryHand(offhand)) {
             player.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        }
+    }
+
+    private static void preserveCurrentOffhand(ServerPlayer player, ItemStack incoming) {
+        ItemStack offhand = player.getOffhandItem();
+        if (offhand.isEmpty()) {
+            return;
+        }
+
+        if (ItemStack.isSameItemSameTags(offhand, incoming)) {
+            if (offhand.getCount() > incoming.getCount()) {
+                ItemStack extra = offhand.copy();
+                extra.setCount(offhand.getCount() - incoming.getCount());
+                storeOrDropVanillaRemainder(player, extra);
+            }
+            return;
+        }
+
+        storeOrDropVanillaRemainder(player, offhand.copy());
+    }
+
+    private static void storeOrDropVanillaRemainder(ServerPlayer player, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        player.getInventory().add(stack);
+        if (!stack.isEmpty()) {
+            player.drop(stack, false);
         }
     }
 
