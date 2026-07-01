@@ -10,10 +10,12 @@ import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -31,6 +33,40 @@ public final class ScpInventoryMaintenanceEvents {
     private static final Map<UUID, Long> LAST_COIN_MESSAGE_MS = new HashMap<>();
 
     private ScpInventoryMaintenanceEvents() {
+    }
+
+    @SubscribeEvent
+    public static void onEntityItemPickup(EntityItemPickupEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || player.isCreative() || player.isSpectator()) {
+            return;
+        }
+
+        ItemEntity itemEntity = event.getItem();
+        ItemStack stack = itemEntity.getItem();
+        if (!ScpItemClassifier.isCoin(stack)) {
+            return;
+        }
+
+        event.setCanceled(true);
+        player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
+            ItemStack pickupStack = stack.copy();
+            int accepted = ScpPickupRouter.accept(inventory, player, pickupStack);
+            if (accepted <= 0) {
+                showCoinCapMessage(player);
+                ModNetwork.syncTo(player, inventory);
+                return;
+            }
+
+            player.take(itemEntity, accepted);
+            stack.shrink(accepted);
+            if (stack.isEmpty()) {
+                itemEntity.discard();
+            } else {
+                itemEntity.setItem(stack);
+                itemEntity.setPickUpDelay(20);
+            }
+            ModNetwork.syncTo(player, inventory);
+        });
     }
 
     @SubscribeEvent
