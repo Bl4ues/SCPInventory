@@ -4,7 +4,9 @@ import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,7 +102,12 @@ public class ScrollableItemList {
         }
 
         if (keyList) {
-            g.drawString(mc.font, stack.getHoverName(), textX, rowY + 14, applyAlpha(TEXT_WHITE, alpha), false);
+            String description = getKeyDescription(stack);
+            int nameY = description.isEmpty() ? rowY + 14 : rowY + 8;
+            g.drawString(mc.font, stack.getHoverName(), textX, nameY, applyAlpha(TEXT_WHITE, alpha), false);
+            if (!description.isEmpty()) {
+                g.drawString(mc.font, description, textX, rowY + 21, applyAlpha(TEXT_GRAY, alpha), false);
+            }
         } else {
             g.drawString(mc.font, stack.getHoverName(), textX, rowY + 8, applyAlpha(TEXT_WHITE, alpha), false);
             g.drawString(mc.font, getTypeLabel(slotIndex), textX, rowY + 21, applyAlpha(TEXT_GRAY, alpha), false);
@@ -108,6 +115,21 @@ public class ScrollableItemList {
 
         int lineY = rowY + ROW_HEIGHT - 1;
         g.fill(x + 18, lineY, x + width - 18, lineY + 1, applyAlpha(LINE_GRAY, alpha));
+    }
+
+    private String getKeyDescription(ItemStack stack) {
+        if (stack.isEmpty() || mc.player == null) {
+            return "";
+        }
+
+        List<Component> lines = stack.getTooltipLines(mc.player, TooltipFlag.NORMAL);
+        for (int i = 1; i < lines.size(); i++) {
+            String text = lines.get(i).getString().trim();
+            if (!text.isEmpty()) {
+                return text;
+            }
+        }
+        return "";
     }
 
     private void drawIconFrame(GuiGraphics g, int x, int y, float alpha) {
