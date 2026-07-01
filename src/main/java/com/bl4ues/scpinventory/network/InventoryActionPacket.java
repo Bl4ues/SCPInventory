@@ -138,10 +138,11 @@ public class InventoryActionPacket {
 
         usableStack.setCount(1);
         ScpPickupRouter.stripNoMergeMarker(usableStack);
+        ScpPickupRouter.markUsableSession(usableStack, player.tickCount);
         boolean continuousUse = usableStack.getUseAnimation() != UseAnim.NONE;
 
         Inventory vanillaInventory = player.getInventory();
-        vanillaInventory.items.set(hotbarSlot, usableStack.copy());
+        vanillaInventory.setItem(hotbarSlot, usableStack.copy());
         vanillaInventory.selected = hotbarSlot;
         ScpPickupRouter.syncVanillaInventory(player);
         ModNetwork.activateUsableItem(player, hotbarSlot, continuousUse, usableStack);
