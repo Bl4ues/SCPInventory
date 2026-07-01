@@ -80,8 +80,20 @@ public class InventoryActionPacket {
 
     private static void useSlot(ServerPlayer player, IScpInventory inventory, int slot) {
         ItemStack stack = inventory.getInventoryItem(slot);
-        if (stack.isEmpty() || ScpItemClassifier.getType(stack) != ScpItemType.CONSUMABLE) return;
+        if (stack.isEmpty()) return;
 
+        ScpItemType type = ScpItemClassifier.getType(stack);
+        if (type == ScpItemType.CONSUMABLE) {
+            consumeSlot(player, inventory, slot, stack);
+            return;
+        }
+
+        if (type == ScpItemType.USABLE) {
+            useUsableSlot(player, inventory, slot);
+        }
+    }
+
+    private static void consumeSlot(ServerPlayer player, IScpInventory inventory, int slot, ItemStack stack) {
         UseAnim animation = stack.getUseAnimation();
         boolean hasVanillaUseResult = stack.isEdible() || animation == UseAnim.EAT || animation == UseAnim.DRINK;
         if (!hasVanillaUseResult) {
@@ -112,6 +124,44 @@ public class InventoryActionPacket {
         if (!result.isEmpty()) routeUseRemainder(player, inventory, result);
     }
 
+    private static void useUsableSlot(ServerPlayer player, IScpInventory inventory, int slot) {
+        int hotbarSlot = findUsableHotbarSlot(player);
+        if (hotbarSlot == -1) {
+            ModNetwork.showInventoryFull(player);
+            return;
+        }
+
+        ItemStack usableStack = inventory.extractInventoryItem(slot);
+        if (usableStack.isEmpty()) {
+            return;
+        }
+
+        usableStack.setCount(1);
+        ScpPickupRouter.stripNoMergeMarker(usableStack);
+
+        Inventory vanillaInventory = player.getInventory();
+        vanillaInventory.items.set(hotbarSlot, usableStack);
+        vanillaInventory.selected = hotbarSlot;
+        vanillaInventory.setChanged();
+        player.containerMenu.broadcastChanges();
+
+        player.swing(InteractionHand.MAIN_HAND, true);
+        player.gameMode.useItem(player, player.level(), player.getItemInHand(InteractionHand.MAIN_HAND), InteractionHand.MAIN_HAND);
+    }
+
+    private static int findUsableHotbarSlot(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        int selected = inventory.selected;
+        if (selected >= VANILLA_HOTBAR_START
+                && selected < VANILLA_HOTBAR_END_EXCLUSIVE
+                && selected < inventory.items.size()
+                && inventory.items.get(selected).isEmpty()) {
+            return selected;
+        }
+
+        return findFirstEmpty(inventory, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE);
+    }
+
     private static void routeUseRemainder(ServerPlayer player, IScpInventory inventory, ItemStack remainder) {
         ItemStack leftover = remainder.copy();
         ScpPickupRouter.stripNoMergeMarker(leftover);
@@ -138,13 +188,18 @@ public class InventoryActionPacket {
     }
 
     public static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
+        if (slot == ScpEquipmentSlot.ACCESSORY) {
+            syncAccessorySlot(player, stack);
+            return;
+        }
+
         EquipmentSlot vanillaSlot = getVanillaEquipmentSlot(slot);
         if (vanillaSlot != null) {
             player.setItemSlot(vanillaSlot, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
             return;
         }
 
-        if (slot == ScpEquipmentSlot.WEAPON || slot == ScpEquipmentSlot.ACCESSORY) syncMainInventoryMirror(player, slot, stack);
+        if (slot == ScpEquipmentSlot.WEAPON) syncMainInventoryMirror(player, slot, stack);
     }
 
     public static EquipmentSlot getVanillaEquipmentSlot(ScpEquipmentSlot slot) {
@@ -155,6 +210,37 @@ public class InventoryActionPacket {
             case FEET -> EquipmentSlot.FEET;
             default -> null;
         };
+    }
+
+    private static void syncAccessorySlot(ServerPlayer player, ItemStack stack) {
+        if (player == null) return;
+
+        Inventory inventory = player.getInventory();
+        removeAllMirrorsForSlot(inventory, ScpEquipmentSlot.ACCESSORY);
+        clearOffhandAccessory(player);
+
+        if (stack == null || stack.isEmpty()) {
+            inventory.setChanged();
+            player.containerMenu.broadcastChanges();
+            return;
+        }
+
+        ItemStack normalized = stack.copy();
+        normalized.setCount(1);
+        if (ScpItemClassifier.isAccessoryHand(normalized)) {
+            player.setItemSlot(EquipmentSlot.OFFHAND, normalized);
+            player.containerMenu.broadcastChanges();
+            return;
+        }
+
+        syncMainInventoryMirror(player, ScpEquipmentSlot.ACCESSORY, normalized);
+    }
+
+    private static void clearOffhandAccessory(ServerPlayer player) {
+        ItemStack offhand = player.getOffhandItem();
+        if (ScpItemClassifier.isAccessoryHand(offhand)) {
+            player.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        }
     }
 
     private static void syncMainInventoryMirror(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
