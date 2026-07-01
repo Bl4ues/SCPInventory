@@ -28,14 +28,14 @@ public final class ScpPickupRouter {
 
         stripNoMergeMarker(stack);
 
+        if (ScpItemClassifier.isCoin(stack)) {
+            return acceptCoin(inventory, player, stack);
+        }
+
         ScpItemType type = ScpItemClassifier.getType(stack);
 
         if (type == ScpItemType.KEY) {
             return acceptKey(inventory, player, stack);
-        }
-
-        if (type == ScpItemType.COIN) {
-            return acceptCoin(inventory, player, stack);
         }
 
         if (type == ScpItemType.CODEX) {
