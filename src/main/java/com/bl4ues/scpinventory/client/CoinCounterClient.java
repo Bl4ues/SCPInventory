@@ -32,6 +32,8 @@ public final class CoinCounterClient {
     private static final int ICON_BORDER = 0xAA6A6C6C;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int VANILLA_MAIN_START = 9;
+    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
 
     private static Field modeField;
 
@@ -55,7 +57,7 @@ public final class CoinCounterClient {
             return;
         }
 
-        int count = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countCoins(mc.player.getInventory(), coinId.get()));
+        int count = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countStableCoins(mc.player.getInventory(), coinId.get()));
         renderCounter(event.getGuiGraphics(), mc, coinStack, count);
     }
 
@@ -75,16 +77,11 @@ public final class CoinCounterClient {
         g.fill(x + ICON_BOX_SIZE + 4, y + ICON_BOX_SIZE - 3, x + ICON_BOX_SIZE + 6 + textWidth, y + ICON_BOX_SIZE - 2, TEXT_GRAY);
     }
 
-    private static int countCoins(Inventory inventory, ResourceLocation coinId) {
+    private static int countStableCoins(Inventory inventory, ResourceLocation coinId) {
         int count = 0;
-        for (ItemStack stack : inventory.items) {
-            count += countMatchingCoins(stack, coinId);
-        }
-        for (ItemStack stack : inventory.offhand) {
-            count += countMatchingCoins(stack, coinId);
-        }
-        for (ItemStack stack : inventory.armor) {
-            count += countMatchingCoins(stack, coinId);
+        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
+        for (int i = VANILLA_MAIN_START; i < end; i++) {
+            count += countMatchingCoins(inventory.items.get(i), coinId);
         }
         return count;
     }
