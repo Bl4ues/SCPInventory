@@ -49,6 +49,35 @@ public final class ScpItemClassifier {
         return getType(stack).getDisplayName();
     }
 
+    public static boolean isCoin(ItemStack stack) {
+        return getType(stack) == ScpItemType.COIN;
+    }
+
+    public static boolean isUsable(ItemStack stack) {
+        return getType(stack) == ScpItemType.USABLE;
+    }
+
+    public static boolean isAccessoryHand(ItemStack stack) {
+        return getType(stack) == ScpItemType.ACCESSORY_HAND;
+    }
+
+    public static Optional<ResourceLocation> getConfiguredCoinItemId() {
+        for (String rawRule : ScpInventoryConfig.ITEM_RULES.get()) {
+            Optional<ConfiguredItemRule> rule = parseItemRule(rawRule);
+            if (rule.isPresent() && rule.get().type() == ScpItemType.COIN) {
+                return Optional.of(rule.get().itemId());
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public static ItemStack getConfiguredCoinStack() {
+        return getConfiguredCoinItemId()
+                .flatMap(id -> BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new))
+                .orElse(ItemStack.EMPTY);
+    }
+
     public static String getCodexDisplayName(ItemStack stack) {
         return getCodexDocument(stack)
                 .map(document -> document.getDisplayName(stack))
@@ -99,29 +128,37 @@ public final class ScpItemClassifier {
 
     private static Optional<ScpItemType> getConfiguredType(ItemStack stack) {
         ResourceLocation stackId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (stackId == null) {
+            return Optional.empty();
+        }
 
         for (String rawRule : ScpInventoryConfig.ITEM_RULES.get()) {
-            if (rawRule == null || rawRule.isBlank()) {
-                continue;
-            }
-
-            String[] parts = rawRule.split("\\|", 2);
-            if (parts.length != 2) {
-                continue;
-            }
-
-            ResourceLocation configuredId = ResourceLocation.tryParse(parts[0].trim());
-            if (configuredId == null || !configuredId.equals(stackId)) {
-                continue;
-            }
-
-            Optional<ScpItemType> type = ScpItemType.fromConfigToken(parts[1]);
-            if (type.isPresent()) {
-                return type;
+            Optional<ConfiguredItemRule> rule = parseItemRule(rawRule);
+            if (rule.isPresent() && rule.get().itemId().equals(stackId)) {
+                return Optional.of(rule.get().type());
             }
         }
 
         return Optional.empty();
+    }
+
+    private static Optional<ConfiguredItemRule> parseItemRule(String rawRule) {
+        if (rawRule == null || rawRule.isBlank()) {
+            return Optional.empty();
+        }
+
+        String[] parts = rawRule.split("\\|", 2);
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+
+        ResourceLocation configuredId = ResourceLocation.tryParse(parts[0].trim());
+        if (configuredId == null) {
+            return Optional.empty();
+        }
+
+        Optional<ScpItemType> type = ScpItemType.fromConfigToken(parts[1]);
+        return type.map(scpItemType -> new ConfiguredItemRule(configuredId, scpItemType));
     }
 
     private static ScpItemType fromVanillaEquipmentSlot(EquipmentSlot slot) {
@@ -132,5 +169,8 @@ public final class ScpItemClassifier {
             case FEET -> ScpItemType.FEET;
             default -> ScpItemType.MISCELLANEOUS;
         };
+    }
+
+    private record ConfiguredItemRule(ResourceLocation itemId, ScpItemType type) {
     }
 }
