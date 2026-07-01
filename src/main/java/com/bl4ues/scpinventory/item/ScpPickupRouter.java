@@ -50,7 +50,18 @@ public final class ScpPickupRouter {
     }
 
     public static boolean reconcileCoinMirrors(ServerPlayer player, IScpInventory inventory) {
-        return false;
+        if (player == null || inventory == null || player.isCreative() || player.isSpectator()) {
+            return false;
+        }
+
+        boolean changed = sanitizeStoredCoinMirrors(inventory);
+        int customCoins = countCustomCoins(inventory);
+        int vanillaCoins = countConfiguredCoinsInVanilla(player.getInventory());
+        boolean hasPlainCoins = hasPlainConfiguredCoinsInVanilla(player.getInventory());
+        if (changed || vanillaCoins != customCoins || hasPlainCoins) {
+            changed |= syncCoinMirrors(player, inventory);
+        }
+        return changed;
     }
 
     public static boolean sanitizeStoredCoinMirrors(IScpInventory inventory) {
@@ -214,6 +225,23 @@ public final class ScpPickupRouter {
             }
         }
         return count;
+    }
+
+    private static int countConfiguredCoinsInVanilla(Inventory inventory) {
+        int count = 0;
+        if (inventory == null) return 0;
+        for (ItemStack stack : inventory.items) if (isConfiguredCoinStack(stack)) count += stack.getCount();
+        for (ItemStack stack : inventory.offhand) if (isConfiguredCoinStack(stack)) count += stack.getCount();
+        for (ItemStack stack : inventory.armor) if (isConfiguredCoinStack(stack)) count += stack.getCount();
+        return count;
+    }
+
+    private static boolean hasPlainConfiguredCoinsInVanilla(Inventory inventory) {
+        if (inventory == null) return false;
+        for (ItemStack stack : inventory.items) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
+        for (ItemStack stack : inventory.offhand) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
+        for (ItemStack stack : inventory.armor) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
+        return false;
     }
 
     private static boolean removeCoinMirrorStacks(Inventory inventory) {
