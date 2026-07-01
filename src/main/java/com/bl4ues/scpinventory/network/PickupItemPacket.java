@@ -104,7 +104,7 @@ public class PickupItemPacket {
     }
 
     private static void showCoinCapMessage(ServerPlayer player) {
-        player.displayClientMessage(Component.literal("You can't carry more than " + ScpPickupRouter.MAX_COIN_COUNT + " coins."), true);
+        player.displayClientMessage(Component.literal("You can't carry more coins."), true);
     }
 
     private static void playPickupFeedback(ServerPlayer player, ItemEntity itemEntity, int acceptedCount) {
