@@ -12,6 +12,7 @@ public final class ScpPickupRouter {
     public static final String NO_MERGE_TAG = "ScpInventoryNoMerge";
     public static final String USABLE_SESSION_TAG = "ScpInventoryUsableSession";
     public static final String USABLE_START_TICK_TAG = "ScpInventoryUsableStartTick";
+    public static final String COIN_MIRROR_TAG = "ScpInventoryCoinMirror";
     public static final int MAX_COIN_COUNT = 999;
 
     private static final int VANILLA_MAIN_START = 9;
@@ -30,7 +31,7 @@ public final class ScpPickupRouter {
         ScpItemType type = ScpItemClassifier.getType(stack);
 
         if (type == ScpItemType.COIN) {
-            return acceptCoinStack(player, stack);
+            return acceptCoinStack(inventory, player, stack);
         }
 
         if (type == ScpItemType.KEY) {
@@ -44,31 +45,106 @@ public final class ScpPickupRouter {
         return inventory.addInventoryItems(stack);
     }
 
-    public static int acceptCoinStack(ServerPlayer player, ItemStack stack) {
-        if (player == null || player.isCreative() || stack == null || stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
+    public static int acceptCoinStack(IScpInventory inventory, ServerPlayer player, ItemStack stack) {
+        if (inventory == null || player == null || player.isCreative() || stack == null || stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
             return 0;
+        }
+
+        int freeCoinSpace = MAX_COIN_COUNT - inventory.getCoinCount();
+        if (freeCoinSpace <= 0) {
+            syncCoinMirror(player, inventory);
+            return 0;
+        }
+
+        int accepted = Math.min(stack.getCount(), freeCoinSpace);
+        if (accepted <= 0) {
+            return 0;
+        }
+
+        inventory.setCoinCount(inventory.getCoinCount() + accepted);
+        syncCoinMirror(player, inventory);
+        return accepted;
+    }
+
+    public static boolean syncCoinMirror(ServerPlayer player, IScpInventory scpInventory) {
+        if (player == null || scpInventory == null || player.isCreative() || player.isSpectator()) {
+            return false;
         }
 
         Inventory inventory = player.getInventory();
-        int freeCoinSpace = MAX_COIN_COUNT - countCoins(inventory);
-        if (freeCoinSpace <= 0) {
-            return 0;
+        boolean changed = removeCoinMirrors(inventory);
+
+        ItemStack coinTemplate = ScpItemClassifier.getConfiguredCoinStack();
+        int remaining = Math.max(0, Math.min(MAX_COIN_COUNT, scpInventory.getCoinCount()));
+        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
+
+        if (!coinTemplate.isEmpty() && remaining > 0) {
+            for (int i = end - 1; i >= VANILLA_MAIN_START && remaining > 0; i--) {
+                if (!inventory.items.get(i).isEmpty()) {
+                    continue;
+                }
+
+                ItemStack mirror = coinTemplate.copy();
+                mirror.setCount(Math.min(remaining, Math.min(mirror.getMaxStackSize(), inventory.getMaxStackSize())));
+                markCoinMirror(mirror);
+                inventory.setItem(i, mirror);
+                remaining -= mirror.getCount();
+                changed = true;
+            }
         }
 
-        ItemStack remaining = stack.copy();
-        stripNoMergeMarker(remaining);
-        remaining.setCount(Math.min(remaining.getCount(), freeCoinSpace));
-        int startingCount = remaining.getCount();
-
-        mergeCoinIntoExistingMainStacks(inventory, remaining);
-        placeCoinIntoEmptyMainSlots(inventory, remaining);
-
-        int accepted = startingCount - remaining.getCount();
-        if (accepted > 0) {
+        if (changed) {
             syncVanillaInventory(player);
         }
+        return changed;
+    }
 
-        return accepted;
+    private static boolean removeCoinMirrors(Inventory inventory) {
+        boolean changed = false;
+        for (int i = 0; i < inventory.items.size(); i++) {
+            if (isCoinMirror(inventory.items.get(i))) {
+                inventory.setItem(i, ItemStack.EMPTY);
+                changed = true;
+            }
+        }
+        for (int i = 0; i < inventory.offhand.size(); i++) {
+            if (isCoinMirror(inventory.offhand.get(i))) {
+                inventory.offhand.set(i, ItemStack.EMPTY);
+                changed = true;
+            }
+        }
+        for (int i = 0; i < inventory.armor.size(); i++) {
+            if (isCoinMirror(inventory.armor.get(i))) {
+                inventory.armor.set(i, ItemStack.EMPTY);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    public static void markCoinMirror(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+        stack.getOrCreateTag().putBoolean(COIN_MIRROR_TAG, true);
+    }
+
+    public static boolean isCoinMirror(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.hasTag() && stack.getTag() != null && stack.getTag().getBoolean(COIN_MIRROR_TAG);
+    }
+
+    public static void stripCoinMirror(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !stack.hasTag()) {
+            return;
+        }
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return;
+        }
+        tag.remove(COIN_MIRROR_TAG);
+        if (tag.isEmpty()) {
+            stack.setTag(null);
+        }
     }
 
     public static void syncVanillaInventory(ServerPlayer player) {
@@ -139,17 +215,17 @@ public final class ScpPickupRouter {
 
         int count = 0;
         for (ItemStack stack : inventory.items) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) {
                 count += stack.getCount();
             }
         }
         for (ItemStack stack : inventory.offhand) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) {
                 count += stack.getCount();
             }
         }
         for (ItemStack stack : inventory.armor) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) {
                 count += stack.getCount();
             }
         }
@@ -176,40 +252,6 @@ public final class ScpPickupRouter {
         tag.remove(NO_MERGE_TAG);
         if (tag.isEmpty()) {
             stack.setTag(null);
-        }
-    }
-
-    private static void mergeCoinIntoExistingMainStacks(Inventory inventory, ItemStack remaining) {
-        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
-        for (int i = end - 1; i >= VANILLA_MAIN_START && !remaining.isEmpty(); i--) {
-            ItemStack candidate = inventory.items.get(i);
-            if (candidate.isEmpty() || !ItemStack.isSameItemSameTags(candidate, remaining)) {
-                continue;
-            }
-
-            int space = Math.min(candidate.getMaxStackSize(), inventory.getMaxStackSize()) - candidate.getCount();
-            if (space <= 0) {
-                continue;
-            }
-
-            int moved = Math.min(space, remaining.getCount());
-            candidate.grow(moved);
-            inventory.setItem(i, candidate);
-            remaining.shrink(moved);
-        }
-    }
-
-    private static void placeCoinIntoEmptyMainSlots(Inventory inventory, ItemStack remaining) {
-        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
-        for (int i = end - 1; i >= VANILLA_MAIN_START && !remaining.isEmpty(); i--) {
-            if (!inventory.items.get(i).isEmpty()) {
-                continue;
-            }
-
-            ItemStack inserted = remaining.copy();
-            inserted.setCount(Math.min(remaining.getCount(), Math.min(inserted.getMaxStackSize(), inventory.getMaxStackSize())));
-            inventory.setItem(i, inserted);
-            remaining.shrink(inserted.getCount());
         }
     }
 
