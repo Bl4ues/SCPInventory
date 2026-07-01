@@ -138,12 +138,13 @@ public class InventoryActionPacket {
 
         usableStack.setCount(1);
         ScpPickupRouter.stripNoMergeMarker(usableStack);
+        boolean continuousUse = usableStack.getUseAnimation() != UseAnim.NONE;
 
         Inventory vanillaInventory = player.getInventory();
-        vanillaInventory.items.set(hotbarSlot, usableStack);
+        vanillaInventory.items.set(hotbarSlot, usableStack.copy());
         vanillaInventory.selected = hotbarSlot;
-        vanillaInventory.setChanged();
-        player.containerMenu.broadcastChanges();
+        ScpPickupRouter.syncVanillaInventory(player);
+        ModNetwork.activateUsableItem(player, hotbarSlot, continuousUse, usableStack);
     }
 
     private static int findUsableHotbarSlot(ServerPlayer player) {
@@ -233,8 +234,7 @@ public class InventoryActionPacket {
 
         if (stack == null || stack.isEmpty()) {
             clearOffhandAccessory(player);
-            inventory.setChanged();
-            player.containerMenu.broadcastChanges();
+            ScpPickupRouter.syncVanillaInventory(player);
             return;
         }
 
@@ -243,12 +243,13 @@ public class InventoryActionPacket {
         if (ScpItemClassifier.isAccessoryHand(normalized)) {
             preserveCurrentOffhand(player, normalized);
             player.setItemSlot(EquipmentSlot.OFFHAND, normalized);
-            player.containerMenu.broadcastChanges();
+            ScpPickupRouter.syncVanillaInventory(player);
             return;
         }
 
         clearOffhandAccessory(player);
         syncMainInventoryMirror(player, ScpEquipmentSlot.ACCESSORY, normalized);
+        ScpPickupRouter.syncVanillaInventory(player);
     }
 
     private static void clearOffhandAccessory(ServerPlayer player) {
@@ -285,6 +286,7 @@ public class InventoryActionPacket {
         if (!stack.isEmpty()) {
             player.drop(stack, false);
         }
+        ScpPickupRouter.syncVanillaInventory(player);
     }
 
     private static void syncMainInventoryMirror(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
