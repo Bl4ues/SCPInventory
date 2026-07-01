@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -76,18 +77,42 @@ public final class ScpPickupRouter {
             return false;
         }
 
-        int vanillaCount = countAllConfiguredCoins(player.getInventory());
-        int lastMirrorCount = LAST_MIRROR_COUNT.getOrDefault(player.getUUID(), vanillaCount);
-        int delta = vanillaCount - lastMirrorCount;
+        Inventory inventory = player.getInventory();
+        UUID playerId = player.getUUID();
+        boolean hadTracking = LAST_MIRROR_COUNT.containsKey(playerId);
+        int mirrorCount = countCoinMirrors(inventory);
+        int realCount = countRealCoins(inventory);
+        int lastMirrorCount = hadTracking
+                ? LAST_MIRROR_COUNT.get(playerId)
+                : Math.min(mirrorCount, scpInventory.getCoinCount());
         boolean changed = false;
 
-        if (delta != 0) {
-            scpInventory.setCoinCount(scpInventory.getCoinCount() + delta);
+        int mirrorDelta = mirrorCount - lastMirrorCount;
+        if (mirrorDelta != 0) {
+            scpInventory.setCoinCount(scpInventory.getCoinCount() + mirrorDelta);
             changed = true;
         }
 
-        boolean mirrorChanged = syncCoinMirror(player, scpInventory);
-        return changed || mirrorChanged;
+        if (realCount > 0) {
+            int freeCoinSpace = Math.max(0, MAX_COIN_COUNT - scpInventory.getCoinCount());
+            int acceptedRealCoins = Math.min(realCount, freeCoinSpace);
+            if (acceptedRealCoins > 0) {
+                scpInventory.setCoinCount(scpInventory.getCoinCount() + acceptedRealCoins);
+                removeRealCoins(inventory, acceptedRealCoins);
+                changed = true;
+            }
+        }
+
+        Integer trackedAfterDelta = LAST_MIRROR_COUNT.get(playerId);
+        boolean shouldRebuildMirror = !hadTracking
+                || changed
+                || trackedAfterDelta == null
+                || trackedAfterDelta != Math.min(scpInventory.getCoinCount(), MAX_COIN_COUNT);
+        if (shouldRebuildMirror) {
+            return syncCoinMirror(player, scpInventory) || changed;
+        }
+
+        return changed;
     }
 
     public static boolean syncCoinMirror(ServerPlayer player, IScpInventory scpInventory) {
@@ -96,7 +121,7 @@ public final class ScpPickupRouter {
         }
 
         Inventory inventory = player.getInventory();
-        boolean changed = removeAllConfiguredCoins(inventory);
+        boolean changed = removeCoinMirrors(inventory);
 
         ItemStack coinTemplate = ScpItemClassifier.getConfiguredCoinStack();
         int remaining = Math.max(0, Math.min(MAX_COIN_COUNT, scpInventory.getCoinCount()));
@@ -132,40 +157,81 @@ public final class ScpPickupRouter {
         }
     }
 
-    private static int countAllConfiguredCoins(Inventory inventory) {
+    private static int countCoinMirrors(Inventory inventory) {
         if (inventory == null) {
             return 0;
         }
 
         int count = 0;
         for (ItemStack stack : inventory.items) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+            if (isCoinMirror(stack)) count += stack.getCount();
         }
         for (ItemStack stack : inventory.offhand) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+            if (isCoinMirror(stack)) count += stack.getCount();
         }
         for (ItemStack stack : inventory.armor) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+            if (isCoinMirror(stack)) count += stack.getCount();
         }
         return count;
     }
 
-    private static boolean removeAllConfiguredCoins(Inventory inventory) {
+    private static int countRealCoins(Inventory inventory) {
+        if (inventory == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (ItemStack stack : inventory.items) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) count += stack.getCount();
+        }
+        for (ItemStack stack : inventory.offhand) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) count += stack.getCount();
+        }
+        for (ItemStack stack : inventory.armor) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack) && !isCoinMirror(stack)) count += stack.getCount();
+        }
+        return count;
+    }
+
+    private static void removeRealCoins(Inventory inventory, int amount) {
+        int remaining = amount;
+        remaining = removeRealCoinsFromList(inventory.items, remaining);
+        remaining = removeRealCoinsFromList(inventory.offhand, remaining);
+        removeRealCoinsFromList(inventory.armor, remaining);
+    }
+
+    private static int removeRealCoinsFromList(List<ItemStack> stacks, int amount) {
+        int remaining = amount;
+        for (int i = 0; i < stacks.size() && remaining > 0; i++) {
+            ItemStack stack = stacks.get(i);
+            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack) || isCoinMirror(stack)) {
+                continue;
+            }
+
+            int removed = Math.min(remaining, stack.getCount());
+            stack.shrink(removed);
+            stacks.set(i, stack.isEmpty() ? ItemStack.EMPTY : stack);
+            remaining -= removed;
+        }
+        return remaining;
+    }
+
+    private static boolean removeCoinMirrors(Inventory inventory) {
         boolean changed = false;
         for (int i = 0; i < inventory.items.size(); i++) {
-            if (!inventory.items.get(i).isEmpty() && ScpItemClassifier.isCoin(inventory.items.get(i))) {
+            if (isCoinMirror(inventory.items.get(i))) {
                 inventory.setItem(i, ItemStack.EMPTY);
                 changed = true;
             }
         }
         for (int i = 0; i < inventory.offhand.size(); i++) {
-            if (!inventory.offhand.get(i).isEmpty() && ScpItemClassifier.isCoin(inventory.offhand.get(i))) {
+            if (isCoinMirror(inventory.offhand.get(i))) {
                 inventory.offhand.set(i, ItemStack.EMPTY);
                 changed = true;
             }
         }
         for (int i = 0; i < inventory.armor.size(); i++) {
-            if (!inventory.armor.get(i).isEmpty() && ScpItemClassifier.isCoin(inventory.armor.get(i))) {
+            if (isCoinMirror(inventory.armor.get(i))) {
                 inventory.armor.set(i, ItemStack.EMPTY);
                 changed = true;
             }
@@ -260,7 +326,7 @@ public final class ScpPickupRouter {
     }
 
     public static int countCoins(Inventory inventory) {
-        return countAllConfiguredCoins(inventory);
+        return countCoinMirrors(inventory) + countRealCoins(inventory);
     }
 
     public static void addNoMergeMarker(ItemStack stack, String marker) {
