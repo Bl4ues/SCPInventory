@@ -168,31 +168,25 @@ public class InventoryMovePacket {
     }
 
     private static ItemStack getPreviousEquipmentForReplacement(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot targetSlot, ItemStack incomingStack) {
-        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+        ItemStack previousEquipment = getEffectiveEquipment(player, inventory, targetSlot);
         if (targetSlot != ScpEquipmentSlot.ACCESSORY || !previousEquipment.isEmpty() || ScpItemClassifier.isAccessoryHand(incomingStack)) {
             return previousEquipment;
-        }
-
-        ItemStack offhand = player.getOffhandItem();
-        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
-            ItemStack copy = offhand.copy();
-            copy.setCount(1);
-            return copy;
         }
 
         return previousEquipment;
     }
 
     private static void moveEquipmentToWorld(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot sourceSlot) {
-        ItemStack stack = inventory.extractEquipment(sourceSlot);
+        ItemStack stack = getEffectiveEquipment(player, inventory, sourceSlot);
         if (!stack.isEmpty()) {
+            inventory.clearEquipment(sourceSlot);
             InventoryActionPacket.syncVanillaEquipmentSlot(player, sourceSlot, ItemStack.EMPTY);
             player.drop(stack, false);
         }
     }
 
     private static void moveEquipmentToMain(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot sourceSlot, int targetIndex) {
-        ItemStack equippedStack = inventory.getEquipment(sourceSlot);
+        ItemStack equippedStack = getEffectiveEquipment(player, inventory, sourceSlot);
         if (equippedStack.isEmpty()) {
             return;
         }
@@ -240,7 +234,7 @@ public class InventoryMovePacket {
             return;
         }
 
-        ItemStack sourceStack = inventory.getEquipment(sourceSlot);
+        ItemStack sourceStack = getEffectiveEquipment(player, inventory, sourceSlot);
         if (sourceStack.isEmpty()) {
             return;
         }
@@ -250,7 +244,7 @@ public class InventoryMovePacket {
             return;
         }
 
-        ItemStack targetStack = inventory.getEquipment(targetSlot);
+        ItemStack targetStack = getEffectiveEquipment(player, inventory, targetSlot);
         if (!targetStack.isEmpty()) {
             Optional<ScpEquipmentSlot> targetClassifiedSlot = ScpItemClassifier.getEquipmentSlot(targetStack);
             if (targetClassifiedSlot.isEmpty() || targetClassifiedSlot.get() != sourceSlot) {
@@ -262,6 +256,22 @@ public class InventoryMovePacket {
         inventory.setEquipment(sourceSlot, targetStack);
         InventoryActionPacket.syncVanillaEquipmentSlot(player, sourceSlot, targetStack);
         InventoryActionPacket.syncVanillaEquipmentSlot(player, targetSlot, sourceStack);
+    }
+
+    private static ItemStack getEffectiveEquipment(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot slot) {
+        ItemStack stack = inventory.getEquipment(slot);
+        if (!stack.isEmpty()) {
+            return stack;
+        }
+
+        if (slot == ScpEquipmentSlot.ACCESSORY && player != null && ScpItemClassifier.isAccessoryHand(player.getOffhandItem())) {
+            ItemStack offhand = player.getOffhandItem().copy();
+            offhand.setCount(1);
+            inventory.setEquipment(ScpEquipmentSlot.ACCESSORY, offhand.copy());
+            return offhand;
+        }
+
+        return ItemStack.EMPTY;
     }
 
     private static ScpEquipmentSlot parseSlot(String name) {
