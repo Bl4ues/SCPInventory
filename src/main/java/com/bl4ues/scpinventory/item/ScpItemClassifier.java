@@ -31,7 +31,8 @@ public final class ScpItemClassifier {
 
         Optional<ScpItemType> configuredType = getConfiguredType(stack);
         if (configuredType.isPresent()) {
-            return configuredType.get();
+            ScpItemType type = configuredType.get();
+            return type == ScpItemType.COIN ? ScpItemType.MISCELLANEOUS : type;
         }
 
         if (isDefaultConsumable(stack)) {
@@ -54,7 +55,10 @@ public final class ScpItemClassifier {
     }
 
     public static boolean isCoin(ItemStack stack) {
-        return !ScpPickupRouter.isCoinMirror(stack) && getType(stack) == ScpItemType.COIN;
+        if (stack == null || stack.isEmpty() || ScpPickupRouter.isCoinMirror(stack)) {
+            return false;
+        }
+        return getConfiguredType(stack).orElse(null) == ScpItemType.COIN;
     }
 
     public static boolean isUsable(ItemStack stack) {
