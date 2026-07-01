@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
@@ -16,7 +17,7 @@ public final class UsableItemHoldClient {
     private static final int MAX_HOLD_TICKS = 120;
     private static final int STARTUP_GRACE_TICKS = 24;
     private static final int MAX_SYNC_WAIT_TICKS = 20;
-    private static final int CLICK_ONLY_TICKS = 2;
+    private static final int CLICK_ONLY_TICKS = 4;
 
     private static int targetHotbarSlot = -1;
     private static boolean continuousUse = false;
@@ -67,6 +68,9 @@ public final class UsableItemHoldClient {
             }
 
             player.getInventory().selected = targetHotbarSlot;
+            if (player.connection != null) {
+                player.connection.send(new ServerboundSetCarriedItemPacket(targetHotbarSlot));
+            }
             if (mc.gameMode != null) {
                 mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
             }
