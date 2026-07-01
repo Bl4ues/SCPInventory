@@ -12,6 +12,21 @@ public final class ScpInventoryConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CODEX_DOCUMENTS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> HIDDEN_STATUS_EFFECTS;
 
+    private static final List<String> DEFAULT_ITEM_RULES = List.of(
+            "minecraft:cookie|COIN",
+            "minecraft:leather|ACCESSORYHAND",
+            "minecraft:clock|ACCESSORY",
+            "minecraft:fishing_rod|USABLE",
+            "minecraft:spyglass|USABLE",
+            "minecraft:bow|USABLE",
+            "minecraft:crossbow|USABLE",
+            "minecraft:shield|USABLE",
+            "minecraft:goat_horn|USABLE",
+            "minecraft:ender_pearl|USABLE",
+            "minecraft:snowball|USABLE",
+            "minecraft:egg|USABLE"
+    );
+
     private static final List<String> DEFAULT_CODEX_DOCUMENTS = List.of(
             "id=minecraft:paper;category=Debug Single;name=Debug Entry Alpha;image=scpinventory:textures/gui/health.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
             "id=minecraft:book;category=Debug Pair;name=Debug Entry Beta;image=scpinventory:textures/gui/inventoryicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
@@ -43,6 +58,7 @@ public final class ScpInventoryConfig {
                         "Item classification rules used by the SCP inventory.",
                         "Format: modid:item|TYPE",
                         "Accepted TYPE values: MISC, CONSUMABLE, USABLE, KEY, CODEX, COIN, HEAD, BODY, CHEST, LEGS, FEET, ACCESSORY, ACCESSORYHAND, WEAPON.",
+                        "The default debug list includes cookie as COIN, leather as ACCESSORYHAND, clock as ACCESSORY, and several vanilla USABLE items for testing.",
                         "USABLE items behave like right-click items that are not consumed by the SCP inventory: using one from the custom GUI moves it into the selected hotbar flow and simulates main-hand right click.",
                         "ACCESSORY and ACCESSORYHAND are displayed as the same Accessory equipment slot. ACCESSORY mirrors into the internal vanilla inventory; ACCESSORYHAND uses the player's offhand.",
                         "COIN is special: configure only ONE item as COIN. Coins stay only in the vanilla inventory, stack normally, do not consume main/key slots, are counted in the GUI counter, and are not listed as custom inventory entries.",
@@ -58,7 +74,7 @@ public final class ScpInventoryConfig {
                         "      \"minecraft:golden_apple|CONSUMABLE\"",
                         "  ]"
                 )
-                .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
+                .defineList("item_rules", DEFAULT_ITEM_RULES, ScpInventoryConfig::isString);
 
         HIDDEN_STATUS_EFFECTS = builder
                 .comment(
