@@ -119,6 +119,7 @@ public class ScpInventory implements IScpInventory {
     @Override
     public void resetMainInventory() {
         inventory.clear();
+        coinCount = 0;
         normalizeMainInventorySize();
     }
 
