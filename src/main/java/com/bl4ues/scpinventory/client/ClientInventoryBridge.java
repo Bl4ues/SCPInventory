@@ -12,6 +12,7 @@ import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 
 public final class ClientInventoryBridge {
 
@@ -133,19 +134,27 @@ public final class ClientInventoryBridge {
             }
 
             ItemStack stack = inventory.getInventoryItem(slot);
-            if (!stack.isEmpty() && ScpItemClassifier.getType(stack) == ScpItemType.USABLE && hasEmptyHotbarSlot(mc.player.getInventory())) {
-                mc.setScreen(null);
-                UsableItemHoldClient.start(stack);
+            if (!stack.isEmpty() && ScpItemClassifier.getType(stack) == ScpItemType.USABLE) {
+                int targetHotbarSlot = findPredictedHotbarSlot(mc.player.getInventory());
+                if (targetHotbarSlot != -1) {
+                    mc.setScreen(null);
+                    UsableItemHoldClient.start(targetHotbarSlot, stack.getUseAnimation() != UseAnim.NONE);
+                }
             }
         });
     }
 
-    private static boolean hasEmptyHotbarSlot(Inventory inventory) {
+    private static int findPredictedHotbarSlot(Inventory inventory) {
+        int selected = inventory.selected;
+        if (selected >= 0 && selected < 9 && selected < inventory.items.size() && inventory.items.get(selected).isEmpty()) {
+            return selected;
+        }
+
         for (int i = 0; i < 9 && i < inventory.items.size(); i++) {
             if (inventory.items.get(i).isEmpty()) {
-                return true;
+                return i;
             }
         }
-        return false;
+        return -1;
     }
 }
