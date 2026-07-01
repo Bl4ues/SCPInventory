@@ -1,6 +1,9 @@
 package com.bl4ues.scpinventory.network;
 
+import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
+import com.bl4ues.scpinventory.item.ScpItemClassifier;
+import com.bl4ues.scpinventory.item.ScpItemType;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -8,6 +11,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -21,6 +25,8 @@ public class PickupItemPacket {
     private static final double MAX_PICKUP_DISTANCE_SQR = 6.25D;
     private static final long PICKUP_PACKET_COOLDOWN_MS = 180L;
     private static final long SAME_ENTITY_COOLDOWN_TICKS = 5L;
+    private static final int VANILLA_MAIN_START = 9;
+    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
     private static final Map<UUID, Long> LAST_PICKUP_MS = new HashMap<>();
     private static final Map<UUID, Integer> LAST_PICKUP_ENTITY = new HashMap<>();
     private static final Map<UUID, Long> LAST_PICKUP_GAME_TICK = new HashMap<>();
@@ -83,7 +89,9 @@ public class PickupItemPacket {
                     LAST_PICKUP_MS.put(playerId, now);
                     LAST_PICKUP_ENTITY.put(playerId, msg.entityId);
                     LAST_PICKUP_GAME_TICK.put(playerId, gameTime);
-                    ModNetwork.showInventoryFull(player);
+                    if (shouldShowInventoryFull(player, inventory, pickupStack)) {
+                        ModNetwork.showInventoryFull(player);
+                    }
                     ModNetwork.syncTo(player, inventory);
                     return;
                 }
@@ -106,6 +114,37 @@ public class PickupItemPacket {
             });
         });
         ctx.get().setPacketHandled(true);
+    }
+
+    private static boolean shouldShowInventoryFull(ServerPlayer player, IScpInventory inventory, ItemStack stack) {
+        if (player == null || inventory == null || stack == null || stack.isEmpty() || ScpPickupRouter.isCoinMirror(stack)) {
+            return false;
+        }
+
+        if (ScpItemClassifier.isCoin(stack)) {
+            return inventory.getFreeMainSlots() <= 0 || !hasFreeVanillaMirrorSlot(player);
+        }
+
+        ScpItemType type = ScpItemClassifier.getType(stack);
+        if (type == ScpItemType.KEY) {
+            return inventory.getFreeKeySlots() <= 0 || !hasFreeVanillaMirrorSlot(player);
+        }
+
+        if (type == ScpItemType.CODEX) {
+            return false;
+        }
+
+        return inventory.getFreeMainSlots() <= 0;
+    }
+
+    private static boolean hasFreeVanillaMirrorSlot(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        for (int i = VANILLA_MAIN_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
+            if (inventory.items.get(i).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void playPickupFeedback(ServerPlayer player, ItemEntity itemEntity, int acceptedCount) {
