@@ -1,19 +1,12 @@
 package com.bl4ues.scpinventory.client;
 
-import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
-import com.bl4ues.scpinventory.item.ScpItemClassifier;
-import com.bl4ues.scpinventory.item.ScpItemType;
 import com.bl4ues.scpinventory.network.DocumentActionPacket;
 import com.bl4ues.scpinventory.network.EquipmentActionPacket;
 import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.InventoryMovePacket;
 import com.bl4ues.scpinventory.network.KeyActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
 
 public final class ClientInventoryBridge {
 
@@ -21,7 +14,6 @@ public final class ClientInventoryBridge {
     }
 
     public static void perform(int slot, String name) {
-        closeScreenBeforeUsableAction(slot, name);
         ModNetwork.CHANNEL.sendToServer(new InventoryActionPacket(slot, name));
     }
 
@@ -121,45 +113,5 @@ public final class ClientInventoryBridge {
                 -1,
                 ""
         ));
-    }
-
-    private static void closeScreenBeforeUsableAction(int slot, String action) {
-        if (!InventoryActionPacket.ACTION_USE.equals(action)) {
-            return;
-        }
-
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
-            return;
-        }
-
-        mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            if (!inventory.isValidMainSlot(slot)) {
-                return;
-            }
-
-            ItemStack stack = inventory.getInventoryItem(slot);
-            if (!stack.isEmpty() && ScpItemClassifier.getType(stack) == ScpItemType.USABLE) {
-                int targetHotbarSlot = findPredictedHotbarSlot(mc.player.getInventory());
-                if (targetHotbarSlot != -1) {
-                    mc.setScreen(null);
-                    UsableItemHoldClient.start(targetHotbarSlot, stack.getUseAnimation() != UseAnim.NONE);
-                }
-            }
-        });
-    }
-
-    private static int findPredictedHotbarSlot(Inventory inventory) {
-        int selected = inventory.selected;
-        if (selected >= 0 && selected < 9 && selected < inventory.items.size() && inventory.items.get(selected).isEmpty()) {
-            return selected;
-        }
-
-        for (int i = 0; i < 9 && i < inventory.items.size(); i++) {
-            if (inventory.items.get(i).isEmpty()) {
-                return i;
-            }
-        }
-        return -1;
     }
 }
