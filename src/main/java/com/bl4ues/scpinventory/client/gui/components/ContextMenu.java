@@ -164,7 +164,7 @@ public class ContextMenu {
     private String getHintText() {
         return switch (hintMode) {
             case EQUIP -> "You can double click or press Shift + Left Click to EQUIP this item";
-            case USABLE -> "You can double click to USE this item from your hotbar";
+            case USABLE -> "You can double click to USE this item";
             case CONSUME -> "You can double click to CONSUME this item";
             default -> "";
         };
