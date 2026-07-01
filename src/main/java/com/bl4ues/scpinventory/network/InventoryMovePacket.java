@@ -157,7 +157,7 @@ public class InventoryMovePacket {
         }
 
         ItemStack movingStack = inventory.extractInventoryItem(sourceIndex);
-        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+        ItemStack previousEquipment = getPreviousEquipmentForReplacement(player, inventory, targetSlot, movingStack);
 
         inventory.setEquipment(targetSlot, movingStack);
         InventoryActionPacket.syncVanillaEquipmentSlot(player, targetSlot, movingStack);
@@ -165,6 +165,22 @@ public class InventoryMovePacket {
         if (!previousEquipment.isEmpty()) {
             inventory.setInventoryItem(sourceIndex, previousEquipment);
         }
+    }
+
+    private static ItemStack getPreviousEquipmentForReplacement(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot targetSlot, ItemStack incomingStack) {
+        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+        if (targetSlot != ScpEquipmentSlot.ACCESSORY || !previousEquipment.isEmpty() || ScpItemClassifier.isAccessoryHand(incomingStack)) {
+            return previousEquipment;
+        }
+
+        ItemStack offhand = player.getOffhandItem();
+        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
+            ItemStack copy = offhand.copy();
+            copy.setCount(1);
+            return copy;
+        }
+
+        return previousEquipment;
     }
 
     private static void moveEquipmentToWorld(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot sourceSlot) {
