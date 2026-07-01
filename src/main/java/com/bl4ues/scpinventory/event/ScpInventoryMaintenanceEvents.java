@@ -155,8 +155,15 @@ public final class ScpInventoryMaintenanceEvents {
             return true;
         }
 
-        if (inventory.addInventoryItems(returning)) {
-            vanillaInventory.setItem(hotbarSlot, ItemStack.EMPTY);
+        int accepted = inventory.addInventoryItems(returning.copy());
+        if (accepted > 0) {
+            if (accepted >= returning.getCount()) {
+                vanillaInventory.setItem(hotbarSlot, ItemStack.EMPTY);
+            } else {
+                ItemStack remainder = stack.copy();
+                remainder.shrink(accepted);
+                vanillaInventory.setItem(hotbarSlot, remainder);
+            }
             ScpPickupRouter.syncVanillaInventory(player);
             return true;
         }
