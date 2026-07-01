@@ -122,7 +122,7 @@ public class PickupItemPacket {
         }
 
         if (ScpItemClassifier.isCoin(stack)) {
-            return inventory.getFreeMainSlots() <= 0 || !hasFreeVanillaMirrorSlot(player);
+            return inventory.getFreeMainSlots() <= 0;
         }
 
         ScpItemType type = ScpItemClassifier.getType(stack);
