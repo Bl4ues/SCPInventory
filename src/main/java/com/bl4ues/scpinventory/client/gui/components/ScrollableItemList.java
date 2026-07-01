@@ -268,6 +268,8 @@ public class ScrollableItemList {
     }
 
     public int getClickedIndex(double mouseX, double mouseY) {
+        if (!isMouseOver(mouseX, mouseY)) return -1;
+
         int row = (int) ((mouseY - y) / ROW_HEIGHT);
         if (row < 0 || row >= MAX_VISIBLE) return -1;
 
