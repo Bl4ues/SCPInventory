@@ -1,6 +1,7 @@
 package com.bl4ues.scpinventory.client.gui.components;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
+import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
@@ -121,7 +122,10 @@ public class ScrollableItemList {
     }
 
     private String getTypeLabel(int slotIndex) {
-        return fixedTypeLabel != null ? fixedTypeLabel : inventory.getItemType(slotIndex);
+        if (fixedTypeLabel != null) return fixedTypeLabel;
+        if (slotIndex < 0 || slotIndex >= items.size()) return "Empty";
+        ItemStack stack = items.get(slotIndex);
+        return stack.isEmpty() ? "Empty" : ScpItemClassifier.getDisplayType(stack);
     }
 
     private boolean isKeyList() {
