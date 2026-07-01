@@ -79,11 +79,19 @@ public class ModNetwork {
         );
 
         CHANNEL.registerMessage(
-                id,
+                id++,
                 PickupItemPacket.class,
                 PickupItemPacket::encode,
                 PickupItemPacket::decode,
                 PickupItemPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id,
+                UseHotbarItemPacket.class,
+                UseHotbarItemPacket::encode,
+                UseHotbarItemPacket::decode,
+                UseHotbarItemPacket::handle
         );
     }
 
@@ -104,5 +112,13 @@ public class ModNetwork {
         }
 
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new InventoryFullPacket());
+    }
+
+    public static void activateUsableItem(ServerPlayer player, int hotbarSlot, boolean continuousUse) {
+        if (player == null || player.isCreative() || player.isSpectator()) {
+            return;
+        }
+
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new UseHotbarItemPacket(hotbarSlot, continuousUse));
     }
 }
