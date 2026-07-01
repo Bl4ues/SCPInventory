@@ -10,6 +10,7 @@ public final class ScpInventoryConfig {
 
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> ITEM_RULES;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CODEX_DOCUMENTS;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> HIDDEN_STATUS_EFFECTS;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -37,6 +38,15 @@ public final class ScpInventoryConfig {
                         "  ]"
                 )
                 .defineList("item_rules", List.<String>of(), ScpInventoryConfig::isString);
+
+        HIDDEN_STATUS_EFFECTS = builder
+                .comment(
+                        "Mob effects that should not appear in the STATUS_CONDITIONS screen.",
+                        "Format: modid:effect_id",
+                        "Example:",
+                        "  hidden_status_effects = [\"scpo:pestilence\", \"minecraft:bad_omen\"]"
+                )
+                .defineList("hidden_status_effects", List.<String>of(), ScpInventoryConfig::isString);
 
         CODEX_DOCUMENTS = builder
                 .comment(
