@@ -62,11 +62,22 @@ public final class ScpPickupRouter {
 
         int accepted = startingCount - remaining.getCount();
         if (accepted > 0) {
-            inventory.setChanged();
-            player.containerMenu.broadcastChanges();
+            syncVanillaInventory(player);
         }
 
         return accepted;
+    }
+
+    public static void syncVanillaInventory(ServerPlayer player) {
+        if (player == null) {
+            return;
+        }
+
+        player.getInventory().setChanged();
+        player.inventoryMenu.broadcastChanges();
+        if (player.containerMenu != player.inventoryMenu) {
+            player.containerMenu.broadcastChanges();
+        }
     }
 
     public static int countCoins(Inventory inventory) {
