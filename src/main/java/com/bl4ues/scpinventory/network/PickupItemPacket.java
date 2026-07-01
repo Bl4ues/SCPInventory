@@ -20,7 +20,10 @@ public class PickupItemPacket {
 
     private static final double MAX_PICKUP_DISTANCE_SQR = 6.25D;
     private static final long PICKUP_PACKET_COOLDOWN_MS = 180L;
+    private static final long SAME_ENTITY_COOLDOWN_TICKS = 5L;
     private static final Map<UUID, Long> LAST_PICKUP_MS = new HashMap<>();
+    private static final Map<UUID, Integer> LAST_PICKUP_ENTITY = new HashMap<>();
+    private static final Map<UUID, Long> LAST_PICKUP_GAME_TICK = new HashMap<>();
 
     private final int entityId;
 
@@ -49,7 +52,13 @@ public class PickupItemPacket {
             if (now - lastPickup < PICKUP_PACKET_COOLDOWN_MS) {
                 return;
             }
-            LAST_PICKUP_MS.put(playerId, now);
+
+            long gameTime = player.serverLevel().getGameTime();
+            int lastEntityId = LAST_PICKUP_ENTITY.getOrDefault(playerId, Integer.MIN_VALUE);
+            long lastGameTick = LAST_PICKUP_GAME_TICK.getOrDefault(playerId, Long.MIN_VALUE);
+            if (lastEntityId == msg.entityId && gameTime - lastGameTick <= SAME_ENTITY_COOLDOWN_TICKS) {
+                return;
+            }
 
             Entity entity = player.serverLevel().getEntity(msg.entityId);
             if (!(entity instanceof ItemEntity itemEntity) || !itemEntity.isAlive()) {
@@ -71,10 +80,17 @@ public class PickupItemPacket {
 
                 int acceptedCount = ScpPickupRouter.accept(inventory, player, pickupStack);
                 if (acceptedCount <= 0) {
+                    LAST_PICKUP_MS.put(playerId, now);
+                    LAST_PICKUP_ENTITY.put(playerId, msg.entityId);
+                    LAST_PICKUP_GAME_TICK.put(playerId, gameTime);
                     ModNetwork.showInventoryFull(player);
                     ModNetwork.syncTo(player, inventory);
                     return;
                 }
+
+                LAST_PICKUP_MS.put(playerId, now);
+                LAST_PICKUP_ENTITY.put(playerId, msg.entityId);
+                LAST_PICKUP_GAME_TICK.put(playerId, gameTime);
 
                 playPickupFeedback(player, itemEntity, acceptedCount);
 
