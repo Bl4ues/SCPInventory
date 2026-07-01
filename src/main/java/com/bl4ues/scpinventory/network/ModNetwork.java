@@ -4,6 +4,7 @@ import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -122,11 +123,11 @@ public class ModNetwork {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new InventoryFullPacket());
     }
 
-    public static void activateUsableItem(ServerPlayer player, int hotbarSlot, boolean continuousUse) {
+    public static void activateUsableItem(ServerPlayer player, int hotbarSlot, boolean continuousUse, ItemStack stack) {
         if (player == null || player.isCreative() || player.isSpectator()) {
             return;
         }
 
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new UseHotbarItemPacket(hotbarSlot, continuousUse));
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new UseHotbarItemPacket(hotbarSlot, continuousUse, stack));
     }
 }
