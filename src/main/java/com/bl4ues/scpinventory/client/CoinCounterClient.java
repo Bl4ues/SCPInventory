@@ -32,8 +32,6 @@ public final class CoinCounterClient {
     private static final int ICON_BORDER = 0xAA6A6C6C;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int VANILLA_MAIN_START = 9;
-    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
 
     private static Field modeField;
 
@@ -79,8 +77,14 @@ public final class CoinCounterClient {
 
     private static int countCoins(Inventory inventory, ResourceLocation coinId) {
         int count = 0;
-        for (int i = VANILLA_MAIN_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
-            count += countMatchingCoins(inventory.items.get(i), coinId);
+        for (ItemStack stack : inventory.items) {
+            count += countMatchingCoins(stack, coinId);
+        }
+        for (ItemStack stack : inventory.offhand) {
+            count += countMatchingCoins(stack, coinId);
+        }
+        for (ItemStack stack : inventory.armor) {
+            count += countMatchingCoins(stack, coinId);
         }
         return count;
     }
