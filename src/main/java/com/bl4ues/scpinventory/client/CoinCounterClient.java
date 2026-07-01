@@ -1,15 +1,13 @@
 package com.bl4ues.scpinventory.client;
 
 import com.bl4ues.scpinventory.ScpInventoryMod;
+import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.client.gui.ScpInventoryScreen;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -17,7 +15,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.lang.reflect.Field;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod.EventBusSubscriber(modid = ScpInventoryMod.MODID, value = Dist.CLIENT)
 public final class CoinCounterClient {
@@ -32,14 +30,8 @@ public final class CoinCounterClient {
     private static final int ICON_BORDER = 0xAA6A6C6C;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
-    private static final int VANILLA_MAIN_START = 9;
-    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
-    private static final int STABLE_COUNT_TICKS = 5;
 
     private static Field modeField;
-    private static int displayedCount = -1;
-    private static int pendingCount = -1;
-    private static int pendingTicks = 0;
 
     private CoinCounterClient() {
     }
@@ -47,60 +39,24 @@ public final class CoinCounterClient {
     @SubscribeEvent
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         if (!(event.getScreen() instanceof ScpInventoryScreen screen) || !isInventoryMode(screen)) {
-            resetDebounce();
             return;
         }
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
-            resetDebounce();
             return;
         }
 
         ItemStack coinStack = ScpItemClassifier.getConfiguredCoinStack();
-        Optional<ResourceLocation> coinId = ScpItemClassifier.getConfiguredCoinItemId();
-        if (coinStack.isEmpty() || coinId.isEmpty()) {
-            resetDebounce();
+        if (coinStack.isEmpty()) {
             return;
         }
 
-        int rawCount = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countStableCoins(mc.player.getInventory(), coinId.get()));
-        int count = getDebouncedCount(rawCount);
-        renderCounter(event.getGuiGraphics(), mc, coinStack, count);
-    }
-
-    private static int getDebouncedCount(int rawCount) {
-        if (displayedCount < 0) {
-            displayedCount = rawCount;
-            pendingCount = rawCount;
-            pendingTicks = 0;
-            return displayedCount;
-        }
-
-        if (rawCount == displayedCount) {
-            pendingCount = rawCount;
-            pendingTicks = 0;
-            return displayedCount;
-        }
-
-        if (rawCount != pendingCount) {
-            pendingCount = rawCount;
-            pendingTicks = 1;
-            return displayedCount;
-        }
-
-        pendingTicks++;
-        if (pendingTicks >= STABLE_COUNT_TICKS) {
-            displayedCount = rawCount;
-            pendingTicks = 0;
-        }
-        return displayedCount;
-    }
-
-    private static void resetDebounce() {
-        displayedCount = -1;
-        pendingCount = -1;
-        pendingTicks = 0;
+        AtomicInteger count = new AtomicInteger(0);
+        mc.player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory ->
+                count.set(Math.min(ScpPickupRouter.MAX_COIN_COUNT, inventory.getCoinCount()))
+        );
+        renderCounter(event.getGuiGraphics(), mc, coinStack, count.get());
     }
 
     private static void renderCounter(GuiGraphics g, Minecraft mc, ItemStack coinStack, int count) {
@@ -117,23 +73,6 @@ public final class CoinCounterClient {
         g.renderItem(coinStack, x + 4, y + 4);
         g.drawString(mc.font, text, x + ICON_BOX_SIZE + 6, y + 8, TEXT_WHITE, false);
         g.fill(x + ICON_BOX_SIZE + 4, y + ICON_BOX_SIZE - 3, x + ICON_BOX_SIZE + 6 + textWidth, y + ICON_BOX_SIZE - 2, TEXT_GRAY);
-    }
-
-    private static int countStableCoins(Inventory inventory, ResourceLocation coinId) {
-        int count = 0;
-        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
-        for (int i = VANILLA_MAIN_START; i < end; i++) {
-            count += countMatchingCoins(inventory.items.get(i), coinId);
-        }
-        return count;
-    }
-
-    private static int countMatchingCoins(ItemStack stack, ResourceLocation coinId) {
-        if (stack == null || stack.isEmpty()) {
-            return 0;
-        }
-
-        return coinId.equals(BuiltInRegistries.ITEM.getKey(stack.getItem())) ? stack.getCount() : 0;
     }
 
     private static boolean isInventoryMode(Screen screen) {
