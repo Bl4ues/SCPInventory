@@ -85,6 +85,7 @@ public class EquipmentPanel {
         if (slot == ScpEquipmentSlot.ACCESSORY && mc.player != null && ScpItemClassifier.isAccessoryHand(mc.player.getOffhandItem())) {
             ItemStack offhand = mc.player.getOffhandItem().copy();
             offhand.setCount(1);
+            inventory.setEquipment(ScpEquipmentSlot.ACCESSORY, offhand.copy());
             return offhand;
         }
 
