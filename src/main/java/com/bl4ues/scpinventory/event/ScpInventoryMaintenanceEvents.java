@@ -47,26 +47,10 @@ public final class ScpInventoryMaintenanceEvents {
             return;
         }
 
+        // Coins must use the SCP manual pickup flow, just like the rest of the custom inventory items.
+        // Do not route them here: this event is also fired by vanilla proximity pickup and container drops,
+        // which caused false cap warnings and transient stacks inside the vanilla inventory.
         event.setCanceled(true);
-        player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            ItemStack pickupStack = stack.copy();
-            int accepted = ScpPickupRouter.accept(inventory, player, pickupStack);
-            if (accepted <= 0) {
-                showCoinCapMessage(player);
-                ModNetwork.syncTo(player, inventory);
-                return;
-            }
-
-            player.take(itemEntity, accepted);
-            stack.shrink(accepted);
-            if (stack.isEmpty()) {
-                itemEntity.discard();
-            } else {
-                itemEntity.setItem(stack);
-                itemEntity.setPickUpDelay(20);
-            }
-            ModNetwork.syncTo(player, inventory);
-        });
     }
 
     @SubscribeEvent
