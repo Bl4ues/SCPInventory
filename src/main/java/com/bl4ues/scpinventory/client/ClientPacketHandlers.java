@@ -28,4 +28,14 @@ public final class ClientPacketHandlers {
                 inventory.deserializeNBT(inventoryTag.copy())
         );
     }
+
+    public static void activateUsableItem(int hotbarSlot, boolean continuousUse) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.player.isCreative() || minecraft.player.isSpectator()) {
+            return;
+        }
+
+        minecraft.setScreen(null);
+        UsableItemHoldClient.start(hotbarSlot, continuousUse);
+    }
 }
