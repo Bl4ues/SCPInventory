@@ -135,7 +135,7 @@ public final class ClientInventoryBridge {
             ItemStack stack = inventory.getInventoryItem(slot);
             if (!stack.isEmpty() && ScpItemClassifier.getType(stack) == ScpItemType.USABLE && hasEmptyHotbarSlot(mc.player.getInventory())) {
                 mc.setScreen(null);
-                UsableItemHoldClient.start();
+                UsableItemHoldClient.start(stack);
             }
         });
     }
