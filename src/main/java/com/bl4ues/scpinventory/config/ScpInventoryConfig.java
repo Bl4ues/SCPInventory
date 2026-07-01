@@ -20,13 +20,19 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Item classification rules used by the SCP inventory.",
                         "Format: modid:item|TYPE",
-                        "Accepted TYPE values: MISC, CONSUMABLE, KEY, CODEX, HEAD, BODY, CHEST, LEGS, FEET, ACCESSORY, WEAPON.",
+                        "Accepted TYPE values: MISC, CONSUMABLE, USABLE, KEY, CODEX, COIN, HEAD, BODY, CHEST, LEGS, FEET, ACCESSORY, ACCESSORYHAND, WEAPON.",
+                        "USABLE items behave like right-click items that are not consumed by the SCP inventory: using one from the custom GUI moves it into the selected hotbar flow and simulates main-hand right click.",
+                        "ACCESSORY and ACCESSORYHAND are displayed as the same Accessory equipment slot. ACCESSORY mirrors into the internal vanilla inventory; ACCESSORYHAND uses the player's offhand.",
+                        "COIN is special: configure only ONE item as COIN. Coins stay only in the vanilla inventory, stack normally, do not consume main/key slots, are counted in the GUI counter, and are not listed as custom inventory entries.",
                         "Items not listed here fall back to vanilla detection: food becomes Consumable, vanilla armor goes to its matching equipment slot, everything else becomes Miscellaneous.",
                         "Readable example:",
                         "  item_rules = [",
                         "      \"scp_additions:level_2_keycard|KEY\",",
                         "      \"scp_additions:gas_mask|HEAD\",",
                         "      \"scp_additions:scp_714|ACCESSORY\",",
+                        "      \"scp_additions:handheld_scanner|USABLE\",",
+                        "      \"scp_additions:offhand_detector|ACCESSORYHAND\",",
+                        "      \"scp_additions:scp_coin|COIN\",",
                         "      \"minecraft:golden_apple|CONSUMABLE\"",
                         "  ]"
                 )
