@@ -1,0 +1,67 @@
+package com.bl4ues.scpinventory.client;
+
+import com.bl4ues.scpinventory.ScpInventoryMod;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+@Mod.EventBusSubscriber(modid = ScpInventoryMod.MODID, value = Dist.CLIENT)
+public final class UsableItemHoldClient {
+
+    private static final int MAX_HOLD_TICKS = 120;
+    private static final int STARTUP_GRACE_TICKS = 8;
+
+    private static int ticksRemaining = 0;
+    private static int ticksElapsed = 0;
+    private static boolean sawUsingItem = false;
+
+    private UsableItemHoldClient() {
+    }
+
+    public static void start() {
+        ticksRemaining = MAX_HOLD_TICKS;
+        ticksElapsed = 0;
+        sawUsingItem = false;
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || ticksRemaining <= 0) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
+        if (player == null || mc.level == null) {
+            stop(mc);
+            return;
+        }
+
+        ticksElapsed++;
+        ticksRemaining--;
+        mc.options.keyUse.setDown(true);
+
+        if (player.isUsingItem()) {
+            sawUsingItem = true;
+        } else if (sawUsingItem || ticksElapsed > STARTUP_GRACE_TICKS) {
+            stop(mc);
+            return;
+        }
+
+        if (ticksRemaining <= 0) {
+            stop(mc);
+        }
+    }
+
+    private static void stop(Minecraft mc) {
+        ticksRemaining = 0;
+        ticksElapsed = 0;
+        sawUsingItem = false;
+        if (mc != null) {
+            mc.options.keyUse.setDown(false);
+        }
+    }
+}
