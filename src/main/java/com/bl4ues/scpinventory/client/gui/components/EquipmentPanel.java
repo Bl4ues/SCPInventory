@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.client.gui.components;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
+import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -71,8 +72,27 @@ public class EquipmentPanel {
         return DISPLAY_SLOTS[row];
     }
 
-    private void renderSlot(GuiGraphics g, ScpEquipmentSlot slot, int rowY) {
+    public ItemStack getDisplayedStack(ScpEquipmentSlot slot) {
+        if (slot == null || inventory == null) {
+            return ItemStack.EMPTY;
+        }
+
         ItemStack stack = inventory.getEquipment(slot);
+        if (!stack.isEmpty()) {
+            return stack;
+        }
+
+        if (slot == ScpEquipmentSlot.ACCESSORY && mc.player != null && ScpItemClassifier.isAccessoryHand(mc.player.getOffhandItem())) {
+            ItemStack offhand = mc.player.getOffhandItem().copy();
+            offhand.setCount(1);
+            return offhand;
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private void renderSlot(GuiGraphics g, ScpEquipmentSlot slot, int rowY) {
+        ItemStack stack = getDisplayedStack(slot);
 
         int iconX = x + 8;
         int iconY = rowY + 6;
