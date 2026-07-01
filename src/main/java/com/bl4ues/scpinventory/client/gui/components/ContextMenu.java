@@ -220,6 +220,9 @@ public class ContextMenu {
         g.pose().popPose();
     }
 
+    private record MenuOption(String action, String label) {
+    }
+
     private enum HintMode {
         NONE,
         CONSUME,
