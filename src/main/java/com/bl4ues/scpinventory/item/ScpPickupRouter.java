@@ -59,9 +59,14 @@ public final class ScpPickupRouter {
         Inventory vanillaInventory = player.getInventory();
         UUID playerId = player.getUUID();
         boolean hadTracking = LAST_COIN_MIRROR_COUNT.containsKey(playerId);
+
+        if (!hadTracking) {
+            moveRealVanillaCoinsToCustomInventory(inventory, vanillaInventory);
+            return syncCoinMirrors(player, inventory);
+        }
+
         int mirrorCount = countCoinMirrors(vanillaInventory);
-        int customCoinCount = countCustomCoins(inventory);
-        int lastMirrorCount = hadTracking ? LAST_COIN_MIRROR_COUNT.get(playerId) : customCoinCount;
+        int lastMirrorCount = LAST_COIN_MIRROR_COUNT.get(playerId);
         boolean changed = false;
 
         int mirrorDelta = mirrorCount - lastMirrorCount;
@@ -78,7 +83,7 @@ public final class ScpPickupRouter {
 
         int finalCustomCoinCount = countCustomCoins(inventory);
         int finalMirrorCount = countCoinMirrors(vanillaInventory);
-        if (!hadTracking || changed || finalMirrorCount != Math.min(finalCustomCoinCount, getMirrorCapacity(vanillaInventory))) {
+        if (changed || finalMirrorCount != Math.min(finalCustomCoinCount, getMirrorCapacity(vanillaInventory))) {
             return syncCoinMirrors(player, inventory) || changed;
         }
 
