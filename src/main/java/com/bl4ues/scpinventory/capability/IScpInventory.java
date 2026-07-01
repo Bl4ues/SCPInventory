@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.capability;
 
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
+import com.bl4ues.scpinventory.item.ScpItemType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
@@ -100,6 +101,11 @@ public interface IScpInventory {
             return "Empty";
         }
 
-        return ScpItemClassifier.getDisplayType(stack);
+        ScpItemType type = ScpItemClassifier.getType(stack);
+        if (type == ScpItemType.USABLE) {
+            return ScpItemType.CONSUMABLE.getDisplayName();
+        }
+
+        return type.getDisplayName();
     }
 }
