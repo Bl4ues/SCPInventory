@@ -6,8 +6,11 @@ import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpEquipmentSlot;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
+import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
@@ -15,11 +18,18 @@ import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 @Mod.EventBusSubscriber(modid = ScpInventoryMod.MODID)
 public final class ScpInventoryMaintenanceEvents {
 
     private static final int VANILLA_HOTBAR_START = 0;
     private static final int VANILLA_HOTBAR_END_EXCLUSIVE = 9;
+    private static final long COIN_MESSAGE_COOLDOWN_MS = 2500L;
+    private static final Map<UUID, Long> LAST_COIN_MESSAGE_MS = new HashMap<>();
 
     private ScpInventoryMaintenanceEvents() {
     }
@@ -36,6 +46,7 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         event.setCanceled(true);
+        showCoinCapMessage(player);
     }
 
     @SubscribeEvent
@@ -50,6 +61,7 @@ public final class ScpInventoryMaintenanceEvents {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
             boolean changed = false;
             if (!player.isCreative()) {
+                changed |= enforceCoinCap(player);
                 changed |= migrateCoinsFromCustomInventory(player, inventory);
                 changed |= moveCoinsOutOfInvalidVanillaSlots(player);
             }
@@ -119,7 +131,7 @@ public final class ScpInventoryMaintenanceEvents {
         return changed;
     }
 
-    private static boolean moveCoinStackToMainInventory(ServerPlayer player, java.util.List<ItemStack> sourceList, int sourceIndex, ItemStack stack) {
+    private static boolean moveCoinStackToMainInventory(ServerPlayer player, List<ItemStack> sourceList, int sourceIndex, ItemStack stack) {
         int accepted = ScpPickupRouter.acceptCoinStack(player, stack.copy());
         if (accepted <= 0) {
             return false;
@@ -134,32 +146,118 @@ public final class ScpInventoryMaintenanceEvents {
         return true;
     }
 
+    private static boolean enforceCoinCap(ServerPlayer player) {
+        Inventory inventory = player.getInventory();
+        int total = countAllCoins(inventory);
+        int overflow = total - ScpPickupRouter.MAX_COIN_COUNT;
+        if (overflow <= 0) {
+            return false;
+        }
+
+        int remainingOverflow = overflow;
+        remainingOverflow = removeCoinOverflowFromList(inventory.offhand, remainingOverflow, player);
+        remainingOverflow = removeCoinOverflowFromList(inventory.armor, remainingOverflow, player);
+        remainingOverflow = removeCoinOverflowFromRange(inventory.items, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE, remainingOverflow, player);
+        remainingOverflow = removeCoinOverflowFromRange(inventory.items, 35, 8, remainingOverflow, player);
+
+        inventory.setChanged();
+        player.containerMenu.broadcastChanges();
+        showCoinCapMessage(player);
+        return remainingOverflow != overflow;
+    }
+
+    private static int countAllCoins(Inventory inventory) {
+        int count = 0;
+        for (ItemStack stack : inventory.items) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+        }
+        for (ItemStack stack : inventory.offhand) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+        }
+        for (ItemStack stack : inventory.armor) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
+        }
+        return count;
+    }
+
+    private static int removeCoinOverflowFromList(List<ItemStack> stacks, int overflow, ServerPlayer player) {
+        for (int i = 0; i < stacks.size() && overflow > 0; i++) {
+            overflow = removeCoinOverflowAt(stacks, i, overflow, player);
+        }
+        return overflow;
+    }
+
+    private static int removeCoinOverflowFromRange(List<ItemStack> stacks, int startInclusive, int endExclusive, int overflow, ServerPlayer player) {
+        int step = startInclusive <= endExclusive ? 1 : -1;
+        for (int i = startInclusive; overflow > 0 && i >= 0 && i < stacks.size() && i != endExclusive; i += step) {
+            overflow = removeCoinOverflowAt(stacks, i, overflow, player);
+        }
+        return overflow;
+    }
+
+    private static int removeCoinOverflowAt(List<ItemStack> stacks, int index, int overflow, ServerPlayer player) {
+        ItemStack stack = stacks.get(index);
+        if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
+            return overflow;
+        }
+
+        int removed = Math.min(overflow, stack.getCount());
+        ItemStack dropped = stack.copy();
+        dropped.setCount(removed);
+        stack.shrink(removed);
+        stacks.set(index, stack.isEmpty() ? ItemStack.EMPTY : stack);
+        dropCoinOverflow(player, dropped);
+        return overflow - removed;
+    }
+
+    private static void dropCoinOverflow(ServerPlayer player, ItemStack stack) {
+        if (stack.isEmpty()) return;
+        ItemEntity entity = player.drop(stack, false);
+        if (entity != null) {
+            entity.setPickUpDelay(40);
+        }
+    }
+
+    private static void showCoinCapMessage(ServerPlayer player) {
+        long now = System.currentTimeMillis();
+        UUID id = player.getUUID();
+        long last = LAST_COIN_MESSAGE_MS.getOrDefault(id, 0L);
+        if (now - last < COIN_MESSAGE_COOLDOWN_MS) {
+            return;
+        }
+
+        LAST_COIN_MESSAGE_MS.put(id, now);
+        player.displayClientMessage(Component.literal("You can't carry more coins."), true);
+    }
+
     private static boolean reconcileAccessoryHand(ServerPlayer player, IScpInventory inventory) {
         ItemStack equippedAccessory = inventory.getEquipment(ScpEquipmentSlot.ACCESSORY);
         ItemStack offhand = player.getOffhandItem();
 
-        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
-            if (!equippedAccessory.isEmpty() && !ScpItemClassifier.isAccessoryHand(equippedAccessory)) {
-                return false;
-            }
-
-            ItemStack normalizedOffhand = offhand.copy();
-            normalizedOffhand.setCount(1);
-            if (equippedAccessory.isEmpty()
-                    || equippedAccessory.getCount() != 1
-                    || !ItemStack.isSameItemSameTags(normalizedOffhand, equippedAccessory)) {
-                inventory.setEquipment(ScpEquipmentSlot.ACCESSORY, normalizedOffhand);
+        if (!equippedAccessory.isEmpty() && ScpItemClassifier.isAccessoryHand(equippedAccessory)) {
+            if (offhand.isEmpty() || !ItemStack.isSameItemSameTags(normalizeSingle(offhand), normalizeSingle(equippedAccessory))) {
+                InventoryActionPacket.syncVanillaEquipmentSlot(player, ScpEquipmentSlot.ACCESSORY, equippedAccessory);
                 return true;
             }
-
             return false;
         }
 
-        if (!equippedAccessory.isEmpty() && ScpItemClassifier.isAccessoryHand(equippedAccessory)) {
-            inventory.clearEquipment(ScpEquipmentSlot.ACCESSORY);
+        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
+            if (!equippedAccessory.isEmpty()) {
+                return false;
+            }
+
+            inventory.setEquipment(ScpEquipmentSlot.ACCESSORY, normalizeSingle(offhand));
             return true;
         }
 
         return false;
+    }
+
+    private static ItemStack normalizeSingle(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return ItemStack.EMPTY;
+        ItemStack copy = stack.copy();
+        copy.setCount(1);
+        return copy;
     }
 }
