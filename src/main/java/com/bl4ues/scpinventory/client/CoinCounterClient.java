@@ -31,6 +31,8 @@ public final class CoinCounterClient {
     private static final int ICON_BORDER = 0xAA6A6C6C;
     private static final int TEXT_WHITE = 0xFFB2B3B3;
     private static final int TEXT_GRAY = 0xFF6A6C6C;
+    private static final int VANILLA_MAIN_START = 9;
+    private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
 
     private static Field modeField;
 
@@ -59,12 +61,12 @@ public final class CoinCounterClient {
 
     private static void renderCounter(GuiGraphics g, Minecraft mc, ItemStack coinStack, int count) {
         Layout layout = computeLayout(mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
-        String text = "x" + count;
+        String text = Integer.toString(count);
         int textWidth = mc.font.width(text);
         int totalWidth = ICON_BOX_SIZE + 6 + textWidth;
-        int minX = layout.keysX() + KEYS_TAB_WIDTH + 16;
+        int minX = layout.keysX() + KEYS_TAB_WIDTH + 8;
         int right = layout.listPanelX() + layout.listPanelWidth() - 10;
-        int x = Math.max(minX, right - totalWidth);
+        int x = Math.max(minX, right - totalWidth - 12);
         int y = layout.tabY() - ((ICON_BOX_SIZE - TAB_HEIGHT) / 2);
 
         drawIconFrame(g, x, y);
@@ -75,14 +77,8 @@ public final class CoinCounterClient {
 
     private static int countCoins(Inventory inventory, ResourceLocation coinId) {
         int count = 0;
-        for (ItemStack stack : inventory.items) {
-            count += countMatchingCoins(stack, coinId);
-        }
-        for (ItemStack stack : inventory.offhand) {
-            count += countMatchingCoins(stack, coinId);
-        }
-        for (ItemStack stack : inventory.armor) {
-            count += countMatchingCoins(stack, coinId);
+        for (int i = VANILLA_MAIN_START; i < VANILLA_MAIN_END_EXCLUSIVE && i < inventory.items.size(); i++) {
+            count += countMatchingCoins(inventory.items.get(i), coinId);
         }
         return count;
     }
