@@ -16,6 +16,7 @@ public final class UsableItemHoldClient {
     private static final int MAX_HOLD_TICKS = 120;
     private static final int STARTUP_GRACE_TICKS = 24;
     private static final int MAX_SYNC_WAIT_TICKS = 20;
+    private static final int CLICK_ONLY_TICKS = 2;
 
     private static int targetHotbarSlot = -1;
     private static boolean continuousUse = false;
@@ -37,7 +38,7 @@ public final class UsableItemHoldClient {
         targetHotbarSlot = hotbarSlot;
         continuousUse = continuous;
         syncWaitTicks = MAX_SYNC_WAIT_TICKS;
-        ticksRemaining = continuous ? MAX_HOLD_TICKS : 2;
+        ticksRemaining = continuous ? MAX_HOLD_TICKS : CLICK_ONLY_TICKS;
         ticksElapsed = 0;
         activated = false;
         sawUsingItem = false;
@@ -77,7 +78,10 @@ public final class UsableItemHoldClient {
         ticksRemaining--;
 
         if (!continuousUse) {
-            stop(mc);
+            mc.options.keyUse.setDown(true);
+            if (ticksRemaining <= 0) {
+                stop(mc);
+            }
             return;
         }
 
