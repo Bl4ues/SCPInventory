@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 public final class ScpPickupRouter {
 
     public static final String NO_MERGE_TAG = "ScpInventoryNoMerge";
+    public static final int MAX_COIN_COUNT = 999;
 
     private static final int VANILLA_MAIN_START = 9;
     private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
@@ -45,10 +46,16 @@ public final class ScpPickupRouter {
             return 0;
         }
 
+        Inventory inventory = player.getInventory();
+        int freeCoinSpace = MAX_COIN_COUNT - countCoins(inventory);
+        if (freeCoinSpace <= 0) {
+            return 0;
+        }
+
         ItemStack remaining = stack.copy();
         stripNoMergeMarker(remaining);
+        remaining.setCount(Math.min(remaining.getCount(), freeCoinSpace));
         int startingCount = remaining.getCount();
-        Inventory inventory = player.getInventory();
 
         mergeCoinIntoExistingMainStacks(inventory, remaining);
         placeCoinIntoEmptyMainSlots(inventory, remaining);
@@ -60,6 +67,22 @@ public final class ScpPickupRouter {
         }
 
         return accepted;
+    }
+
+    public static int countCoins(Inventory inventory) {
+        if (inventory == null) {
+            return 0;
+        }
+
+        int count = 0;
+        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
+        for (int i = VANILLA_MAIN_START; i < end; i++) {
+            ItemStack stack = inventory.items.get(i);
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+                count += stack.getCount();
+            }
+        }
+        return count;
     }
 
     public static void addNoMergeMarker(ItemStack stack, String marker) {
