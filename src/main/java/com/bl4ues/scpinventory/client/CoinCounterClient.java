@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import com.bl4ues.scpinventory.client.gui.ScpInventoryScreen;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
+import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -56,7 +57,8 @@ public final class CoinCounterClient {
             return;
         }
 
-        renderCounter(event.getGuiGraphics(), mc, coinStack, countCoins(mc.player.getInventory(), coinId.get()));
+        int count = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countCoins(mc.player.getInventory(), coinId.get()));
+        renderCounter(event.getGuiGraphics(), mc, coinStack, count);
     }
 
     private static void renderCounter(GuiGraphics g, Minecraft mc, ItemStack coinStack, int count) {
