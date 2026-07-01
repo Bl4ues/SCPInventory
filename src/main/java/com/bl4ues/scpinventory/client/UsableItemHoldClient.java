@@ -3,6 +3,8 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -23,7 +25,12 @@ public final class UsableItemHoldClient {
     private UsableItemHoldClient() {
     }
 
-    public static void start() {
+    public static void start(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || stack.getUseAnimation() == UseAnim.NONE) {
+            stop(Minecraft.getInstance());
+            return;
+        }
+
         ticksRemaining = MAX_HOLD_TICKS;
         ticksElapsed = 0;
         delayTicks = STARTUP_DELAY_TICKS;
