@@ -43,10 +43,11 @@ public final class ScpInventoryConfig {
                 .comment(
                         "Mob effects that should not appear in the STATUS_CONDITIONS screen.",
                         "Format: modid:effect_id",
+                        "Default includes minecraft:bad_omen so it can be tested immediately.",
                         "Example:",
-                        "  hidden_status_effects = [\"scpo:pestilence\", \"minecraft:bad_omen\"]"
+                        "  hidden_status_effects = [\"minecraft:bad_omen\", \"scpo:pestilence\"]"
                 )
-                .defineList("hidden_status_effects", List.<String>of(), ScpInventoryConfig::isString);
+                .defineList("hidden_status_effects", List.<String>of("minecraft:bad_omen"), ScpInventoryConfig::isString);
 
         CODEX_DOCUMENTS = builder
                 .comment(
