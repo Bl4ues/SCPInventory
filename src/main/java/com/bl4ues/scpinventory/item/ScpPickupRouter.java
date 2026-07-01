@@ -75,9 +75,17 @@ public final class ScpPickupRouter {
         }
 
         int count = 0;
-        int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, inventory.items.size());
-        for (int i = VANILLA_MAIN_START; i < end; i++) {
-            ItemStack stack = inventory.items.get(i);
+        for (ItemStack stack : inventory.items) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+                count += stack.getCount();
+            }
+        }
+        for (ItemStack stack : inventory.offhand) {
+            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
+                count += stack.getCount();
+            }
+        }
+        for (ItemStack stack : inventory.armor) {
             if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) {
                 count += stack.getCount();
             }
