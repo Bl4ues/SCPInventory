@@ -122,7 +122,7 @@ public class ScrollableItemList {
             return "";
         }
 
-        List<Component> lines = stack.getTooltipLines(mc.player, TooltipFlag.NORMAL);
+        List<Component> lines = stack.getTooltipLines(mc.player, TooltipFlag.Default.NORMAL);
         for (int i = 1; i < lines.size(); i++) {
             String text = lines.get(i).getString().trim();
             if (!text.isEmpty()) {
