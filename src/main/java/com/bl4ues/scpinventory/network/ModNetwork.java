@@ -72,6 +72,14 @@ public class ModNetwork {
 
         CHANNEL.registerMessage(
                 id++,
+                DocumentActionPacket.class,
+                DocumentActionPacket::encode,
+                DocumentActionPacket::decode,
+                DocumentActionPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id++,
                 InventoryMovePacket.class,
                 InventoryMovePacket::encode,
                 InventoryMovePacket::decode,
