@@ -20,6 +20,10 @@ public final class ScpItemClassifier {
             return ScpItemType.MISCELLANEOUS;
         }
 
+        if (ScpPickupRouter.isCoinMirror(stack)) {
+            return ScpItemType.MISCELLANEOUS;
+        }
+
         Optional<CodexDocumentDefinition> codexDocument = getCodexDocument(stack);
         if (codexDocument.isPresent()) {
             return ScpItemType.CODEX;
@@ -50,7 +54,7 @@ public final class ScpItemClassifier {
     }
 
     public static boolean isCoin(ItemStack stack) {
-        return getType(stack) == ScpItemType.COIN;
+        return !ScpPickupRouter.isCoinMirror(stack) && getType(stack) == ScpItemType.COIN;
     }
 
     public static boolean isUsable(ItemStack stack) {
