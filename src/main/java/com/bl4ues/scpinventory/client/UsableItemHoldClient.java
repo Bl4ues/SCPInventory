@@ -3,8 +3,8 @@ package com.bl4ues.scpinventory.client;
 import com.bl4ues.scpinventory.ScpInventoryMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -15,33 +15,37 @@ public final class UsableItemHoldClient {
 
     private static final int MAX_HOLD_TICKS = 120;
     private static final int STARTUP_GRACE_TICKS = 24;
-    private static final int STARTUP_DELAY_TICKS = 6;
+    private static final int MAX_SYNC_WAIT_TICKS = 20;
 
+    private static int targetHotbarSlot = -1;
+    private static boolean continuousUse = false;
+    private static int syncWaitTicks = 0;
     private static int ticksRemaining = 0;
     private static int ticksElapsed = 0;
-    private static int delayTicks = 0;
+    private static boolean activated = false;
     private static boolean sawUsingItem = false;
-    private static boolean clickOnly = false;
 
     private UsableItemHoldClient() {
     }
 
-    public static void start(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
+    public static void start(int hotbarSlot, boolean continuous) {
+        if (hotbarSlot < 0 || hotbarSlot >= 9) {
             stop(Minecraft.getInstance());
             return;
         }
 
-        clickOnly = stack.getUseAnimation() == UseAnim.NONE;
-        ticksRemaining = clickOnly ? 2 : MAX_HOLD_TICKS;
+        targetHotbarSlot = hotbarSlot;
+        continuousUse = continuous;
+        syncWaitTicks = MAX_SYNC_WAIT_TICKS;
+        ticksRemaining = continuous ? MAX_HOLD_TICKS : 2;
         ticksElapsed = 0;
-        delayTicks = STARTUP_DELAY_TICKS;
+        activated = false;
         sawUsingItem = false;
     }
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || ticksRemaining <= 0) {
+        if (event.phase != TickEvent.Phase.END || targetHotbarSlot < 0) {
             return;
         }
 
@@ -52,21 +56,32 @@ public final class UsableItemHoldClient {
             return;
         }
 
-        if (delayTicks > 0) {
-            delayTicks--;
-            return;
+        if (!activated) {
+            if (!isHotbarSlotReady(player)) {
+                syncWaitTicks--;
+                if (syncWaitTicks <= 0) {
+                    stop(mc);
+                }
+                return;
+            }
+
+            player.getInventory().selected = targetHotbarSlot;
+            if (mc.gameMode != null) {
+                mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
+            }
+            player.swing(InteractionHand.MAIN_HAND);
+            activated = true;
         }
 
         ticksElapsed++;
         ticksRemaining--;
-        mc.options.keyUse.setDown(true);
 
-        if (clickOnly) {
-            if (ticksElapsed >= 2 || ticksRemaining <= 0) {
-                stop(mc);
-            }
+        if (!continuousUse) {
+            stop(mc);
             return;
         }
+
+        mc.options.keyUse.setDown(true);
 
         if (player.isUsingItem()) {
             sawUsingItem = true;
@@ -80,12 +95,23 @@ public final class UsableItemHoldClient {
         }
     }
 
+    private static boolean isHotbarSlotReady(LocalPlayer player) {
+        if (targetHotbarSlot < 0 || targetHotbarSlot >= player.getInventory().items.size()) {
+            return false;
+        }
+
+        ItemStack stack = player.getInventory().items.get(targetHotbarSlot);
+        return !stack.isEmpty();
+    }
+
     private static void stop(Minecraft mc) {
+        targetHotbarSlot = -1;
+        continuousUse = false;
+        syncWaitTicks = 0;
         ticksRemaining = 0;
         ticksElapsed = 0;
-        delayTicks = 0;
+        activated = false;
         sawUsingItem = false;
-        clickOnly = false;
         if (mc != null) {
             mc.options.keyUse.setDown(false);
         }
