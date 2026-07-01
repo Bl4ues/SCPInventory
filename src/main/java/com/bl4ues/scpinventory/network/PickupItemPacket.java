@@ -4,6 +4,7 @@ import com.bl4ues.scpinventory.capability.ScpInventoryCapability;
 import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -68,15 +69,22 @@ public class PickupItemPacket {
 
             player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
                 ItemStack pickupStack = stack.copy();
-                if (!ScpItemClassifier.isCoin(pickupStack)) {
+                boolean coin = ScpItemClassifier.isCoin(pickupStack);
+                if (!coin) {
                     pickupStack.setCount(1);
                 }
 
+                int requestedCount = pickupStack.getCount();
                 int acceptedCount = ScpPickupRouter.accept(inventory, player, pickupStack);
                 if (acceptedCount <= 0) {
-                    ModNetwork.showInventoryFull(player);
+                    if (coin) showCoinCapMessage(player);
+                    else ModNetwork.showInventoryFull(player);
                     ModNetwork.syncTo(player, inventory);
                     return;
+                }
+
+                if (coin && acceptedCount < requestedCount) {
+                    showCoinCapMessage(player);
                 }
 
                 playPickupFeedback(player, itemEntity, acceptedCount);
@@ -93,6 +101,10 @@ public class PickupItemPacket {
             });
         });
         ctx.get().setPacketHandled(true);
+    }
+
+    private static void showCoinCapMessage(ServerPlayer player) {
+        player.displayClientMessage(Component.literal("You can't carry more than " + ScpPickupRouter.MAX_COIN_COUNT + " coins."), true);
     }
 
     private static void playPickupFeedback(ServerPlayer player, ItemEntity itemEntity, int acceptedCount) {
