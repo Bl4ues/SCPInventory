@@ -54,12 +54,24 @@ public final class ScpPickupRouter {
             return false;
         }
 
+        if (isCarryingConfiguredCoin(player)) {
+            return false;
+        }
+
         boolean changed = sanitizeStoredCoinMirrors(inventory);
+        changed |= removePlainConfiguredCoins(player.getInventory());
+
         int customCoins = countCustomCoins(inventory);
-        int vanillaCoins = countConfiguredCoinsInVanilla(player.getInventory());
-        boolean hasPlainCoins = hasPlainConfiguredCoinsInVanilla(player.getInventory());
-        if (changed || vanillaCoins != customCoins || hasPlainCoins) {
-            changed |= syncCoinMirrors(player, inventory);
+        int mirrorCoins = countCoinMirrors(player.getInventory());
+
+        if (mirrorCoins < customCoins) {
+            changed |= removeCustomCoins(inventory, customCoins - mirrorCoins) > 0;
+        } else if (mirrorCoins > customCoins) {
+            changed |= removeCoinMirrors(player.getInventory(), mirrorCoins - customCoins) > 0;
+        }
+
+        if (changed) {
+            syncVanillaInventory(player);
         }
         return changed;
     }
@@ -85,8 +97,14 @@ public final class ScpPickupRouter {
             return false;
         }
 
+        if (isCarryingConfiguredCoin(player)) {
+            return false;
+        }
+
         Inventory vanillaInventory = player.getInventory();
-        boolean changed = removeCoinMirrorStacks(vanillaInventory);
+        boolean changed = removeAllCoinMirrors(vanillaInventory);
+        changed |= removePlainConfiguredCoins(vanillaInventory);
+
         int amount = countCustomCoins(inventory);
         int end = Math.min(VANILLA_MAIN_END_EXCLUSIVE, vanillaInventory.items.size());
         ItemStack template = ScpItemClassifier.getConfiguredCoinStack();
@@ -227,56 +245,105 @@ public final class ScpPickupRouter {
         return count;
     }
 
-    private static int countConfiguredCoinsInVanilla(Inventory inventory) {
+    private static int removeCustomCoins(IScpInventory inventory, int amount) {
+        int remaining = amount;
+        for (int i = inventory.getMaxMainSlots() - 1; i >= 0 && remaining > 0; i--) {
+            ItemStack stack = inventory.getInventoryItem(i);
+            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
+                continue;
+            }
+
+            inventory.removeInventoryItem(i);
+            remaining--;
+        }
+        return amount - remaining;
+    }
+
+    private static int countCoinMirrors(Inventory inventory) {
         int count = 0;
         if (inventory == null) return 0;
-        for (ItemStack stack : inventory.items) if (isConfiguredCoinStack(stack)) count += stack.getCount();
-        for (ItemStack stack : inventory.offhand) if (isConfiguredCoinStack(stack)) count += stack.getCount();
-        for (ItemStack stack : inventory.armor) if (isConfiguredCoinStack(stack)) count += stack.getCount();
+        for (ItemStack stack : inventory.items) if (isCoinMirror(stack)) count += stack.getCount();
+        for (ItemStack stack : inventory.offhand) if (isCoinMirror(stack)) count += stack.getCount();
+        for (ItemStack stack : inventory.armor) if (isCoinMirror(stack)) count += stack.getCount();
         return count;
     }
 
-    private static boolean hasPlainConfiguredCoinsInVanilla(Inventory inventory) {
-        if (inventory == null) return false;
-        for (ItemStack stack : inventory.items) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
-        for (ItemStack stack : inventory.offhand) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
-        for (ItemStack stack : inventory.armor) if (isConfiguredCoinStack(stack) && !isCoinMirror(stack)) return true;
-        return false;
+    private static int removeCoinMirrors(Inventory inventory, int amount) {
+        int remaining = amount;
+        remaining -= removeCoinMirrorsFromList(inventory.items, remaining);
+        remaining -= removeCoinMirrorsFromList(inventory.offhand, remaining);
+        remaining -= removeCoinMirrorsFromList(inventory.armor, remaining);
+        if (remaining != amount) {
+            inventory.setChanged();
+        }
+        return amount - remaining;
     }
 
-    private static boolean removeCoinMirrorStacks(Inventory inventory) {
+    private static int removeCoinMirrorsFromList(java.util.List<ItemStack> stacks, int amount) {
+        int removed = 0;
+        for (int i = stacks.size() - 1; i >= 0 && removed < amount; i--) {
+            ItemStack stack = stacks.get(i);
+            if (!isCoinMirror(stack)) {
+                continue;
+            }
+
+            stacks.set(i, ItemStack.EMPTY);
+            removed += stack.getCount();
+        }
+        return removed;
+    }
+
+    private static boolean removeAllCoinMirrors(Inventory inventory) {
         boolean changed = false;
-        changed |= removeCoinMirrorStacksFromMain(inventory);
-        changed |= removeCoinMirrorStacksFromList(inventory.offhand);
-        changed |= removeCoinMirrorStacksFromList(inventory.armor);
+        changed |= removeAllCoinMirrorsFromList(inventory.items);
+        changed |= removeAllCoinMirrorsFromList(inventory.offhand);
+        changed |= removeAllCoinMirrorsFromList(inventory.armor);
         if (changed) {
             inventory.setChanged();
         }
         return changed;
     }
 
-    private static boolean removeCoinMirrorStacksFromMain(Inventory inventory) {
+    private static boolean removeAllCoinMirrorsFromList(java.util.List<ItemStack> stacks) {
         boolean changed = false;
-        for (int i = 0; i < inventory.items.size(); i++) {
-            ItemStack stack = inventory.items.get(i);
-            if (isCoinMirror(stack) || isConfiguredCoinStack(stack)) {
-                inventory.items.set(i, ItemStack.EMPTY);
+        for (int i = 0; i < stacks.size(); i++) {
+            if (isCoinMirror(stacks.get(i))) {
+                stacks.set(i, ItemStack.EMPTY);
                 changed = true;
             }
         }
         return changed;
     }
 
-    private static boolean removeCoinMirrorStacksFromList(java.util.List<ItemStack> stacks) {
+    private static boolean removePlainConfiguredCoins(Inventory inventory) {
+        boolean changed = false;
+        changed |= removePlainConfiguredCoinsFromList(inventory.items);
+        changed |= removePlainConfiguredCoinsFromList(inventory.offhand);
+        changed |= removePlainConfiguredCoinsFromList(inventory.armor);
+        if (changed) {
+            inventory.setChanged();
+        }
+        return changed;
+    }
+
+    private static boolean removePlainConfiguredCoinsFromList(java.util.List<ItemStack> stacks) {
         boolean changed = false;
         for (int i = 0; i < stacks.size(); i++) {
             ItemStack stack = stacks.get(i);
-            if (isCoinMirror(stack) || isConfiguredCoinStack(stack)) {
+            if (!isCoinMirror(stack) && isConfiguredCoinStack(stack)) {
                 stacks.set(i, ItemStack.EMPTY);
                 changed = true;
             }
         }
         return changed;
+    }
+
+    private static boolean isCarryingConfiguredCoin(ServerPlayer player) {
+        if (player == null || player.containerMenu == null) {
+            return false;
+        }
+        ItemStack carried = player.containerMenu.getCarried();
+        return isCoinMirror(carried) || isConfiguredCoinStack(carried);
     }
 
     private static boolean isConfiguredCoinStack(ItemStack stack) {
@@ -324,20 +391,7 @@ public final class ScpPickupRouter {
     }
 
     public static int countCoins(Inventory inventory) {
-        int count = 0;
-        if (inventory == null) {
-            return 0;
-        }
-        for (ItemStack stack : inventory.items) {
-            if (isCoinMirror(stack)) count += stack.getCount();
-        }
-        for (ItemStack stack : inventory.offhand) {
-            if (isCoinMirror(stack)) count += stack.getCount();
-        }
-        for (ItemStack stack : inventory.armor) {
-            if (isCoinMirror(stack)) count += stack.getCount();
-        }
-        return count;
+        return countCoinMirrors(inventory);
     }
 
     public static void syncVanillaInventory(ServerPlayer player) {
