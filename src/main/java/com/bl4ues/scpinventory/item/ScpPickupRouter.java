@@ -3,6 +3,7 @@ package com.bl4ues.scpinventory.item;
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 public final class ScpPickupRouter {
@@ -21,6 +22,10 @@ public final class ScpPickupRouter {
 
         ScpItemType type = ScpItemClassifier.getType(stack);
 
+        if (type == ScpItemType.COIN) {
+            return acceptCoinStack(player, stack);
+        }
+
         if (type == ScpItemType.KEY) {
             return acceptKey(inventory, player, stack);
         }
@@ -30,6 +35,28 @@ public final class ScpPickupRouter {
         }
 
         return inventory.addInventoryItems(stack);
+    }
+
+    public static int acceptCoinStack(ServerPlayer player, ItemStack stack) {
+        if (player == null || stack == null || stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
+            return 0;
+        }
+
+        ItemStack remaining = stack.copy();
+        stripNoMergeMarker(remaining);
+        int startingCount = remaining.getCount();
+        Inventory inventory = player.getInventory();
+
+        mergeCoinIntoExistingStacks(inventory, remaining);
+        placeCoinIntoEmptySlots(inventory, remaining);
+
+        int accepted = startingCount - remaining.getCount();
+        if (accepted > 0) {
+            inventory.setChanged();
+            player.containerMenu.broadcastChanges();
+        }
+
+        return accepted;
     }
 
     public static void addNoMergeMarker(ItemStack stack, String marker) {
@@ -52,6 +79,37 @@ public final class ScpPickupRouter {
         tag.remove(NO_MERGE_TAG);
         if (tag.isEmpty()) {
             stack.setTag(null);
+        }
+    }
+
+    private static void mergeCoinIntoExistingStacks(Inventory inventory, ItemStack remaining) {
+        for (int i = 0; i < inventory.items.size() && !remaining.isEmpty(); i++) {
+            ItemStack candidate = inventory.items.get(i);
+            if (candidate.isEmpty() || !ItemStack.isSameItemSameTags(candidate, remaining)) {
+                continue;
+            }
+
+            int space = Math.min(candidate.getMaxStackSize(), inventory.getMaxStackSize()) - candidate.getCount();
+            if (space <= 0) {
+                continue;
+            }
+
+            int moved = Math.min(space, remaining.getCount());
+            candidate.grow(moved);
+            remaining.shrink(moved);
+        }
+    }
+
+    private static void placeCoinIntoEmptySlots(Inventory inventory, ItemStack remaining) {
+        for (int i = 0; i < inventory.items.size() && !remaining.isEmpty(); i++) {
+            if (!inventory.items.get(i).isEmpty()) {
+                continue;
+            }
+
+            ItemStack inserted = remaining.copy();
+            inserted.setCount(Math.min(remaining.getCount(), Math.min(inserted.getMaxStackSize(), inventory.getMaxStackSize())));
+            inventory.items.set(i, inserted);
+            remaining.shrink(inserted.getCount());
         }
     }
 
