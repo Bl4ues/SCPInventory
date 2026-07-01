@@ -144,9 +144,6 @@ public class InventoryActionPacket {
         vanillaInventory.selected = hotbarSlot;
         vanillaInventory.setChanged();
         player.containerMenu.broadcastChanges();
-
-        player.swing(InteractionHand.MAIN_HAND, true);
-        player.gameMode.useItem(player, player.level(), player.getItemInHand(InteractionHand.MAIN_HAND), InteractionHand.MAIN_HAND);
     }
 
     private static int findUsableHotbarSlot(ServerPlayer player) {
