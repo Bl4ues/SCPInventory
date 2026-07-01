@@ -12,10 +12,12 @@ import net.minecraftforge.fml.common.Mod;
 public final class UsableItemHoldClient {
 
     private static final int MAX_HOLD_TICKS = 120;
-    private static final int STARTUP_GRACE_TICKS = 8;
+    private static final int STARTUP_GRACE_TICKS = 24;
+    private static final int STARTUP_DELAY_TICKS = 4;
 
     private static int ticksRemaining = 0;
     private static int ticksElapsed = 0;
+    private static int delayTicks = 0;
     private static boolean sawUsingItem = false;
 
     private UsableItemHoldClient() {
@@ -24,6 +26,7 @@ public final class UsableItemHoldClient {
     public static void start() {
         ticksRemaining = MAX_HOLD_TICKS;
         ticksElapsed = 0;
+        delayTicks = STARTUP_DELAY_TICKS;
         sawUsingItem = false;
     }
 
@@ -37,6 +40,11 @@ public final class UsableItemHoldClient {
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null) {
             stop(mc);
+            return;
+        }
+
+        if (delayTicks > 0) {
+            delayTicks--;
             return;
         }
 
@@ -59,6 +67,7 @@ public final class UsableItemHoldClient {
     private static void stop(Minecraft mc) {
         ticksRemaining = 0;
         ticksElapsed = 0;
+        delayTicks = 0;
         sawUsingItem = false;
         if (mc != null) {
             mc.options.keyUse.setDown(false);
