@@ -30,6 +30,9 @@ public interface IScpInventory {
     void resetMainInventory();
     void resetAll();
 
+    int getCoinCount();
+    void setCoinCount(int count);
+
     List<ItemStack> getKeys();
     void setKeys(List<ItemStack> list);
     boolean addKeyItem(ItemStack stack);
