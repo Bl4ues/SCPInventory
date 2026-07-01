@@ -12,6 +12,15 @@ public final class ScpInventoryConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CODEX_DOCUMENTS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> HIDDEN_STATUS_EFFECTS;
 
+    private static final List<String> DEFAULT_CODEX_DOCUMENTS = List.of(
+            "id=minecraft:paper;category=Debug Single;name=Debug Entry Alpha;image=scpinventory:textures/gui/health.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:book;category=Debug Pair;name=Debug Entry Beta;image=scpinventory:textures/gui/inventoryicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:writable_book;category=Debug Pair;name=Debug Entry Gamma;image=scpinventory:textures/gui/statusicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:map;category=Debug Trio;name=Debug Entry Delta;image=scpinventory:textures/gui/codexicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:compass;category=Debug Trio;name=Debug Entry Epsilon;image=scpinventory:textures/gui/inventory_background.png;text=scpinventory:codex/debug_paper_long.txt;image_width=1406;image_height=1080",
+            "id=minecraft:clock;category=Debug Trio;name=Debug Entry Zeta;image=scpinventory:textures/gui/codexicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128"
+    );
+
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -52,6 +61,7 @@ public final class ScpInventoryConfig {
         CODEX_DOCUMENTS = builder
                 .comment(
                         "Codex document rules. Matching documents are unlocked into the Codex and do not consume main inventory slots.",
+                        "The default list contains six debug/sample documents: one in Debug Single, two in Debug Pair, and three in Debug Trio.",
                         "IMPORTANT: this is a TOML string list. Each whole document rule must be wrapped in quotes.",
                         "One-line example:",
                         "  codex_documents = [\"id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=1279;image_height=1920\"]",
@@ -77,7 +87,7 @@ public final class ScpInventoryConfig {
                         "  creator/timestamp/uuid: optional Camerapture-style NBT filters kept for later integration.",
                         "  nbt_key/nbt_value: optional generic NBT filter for custom documents."
                 )
-                .defineList("codex_documents", List.<String>of(), ScpInventoryConfig::isString);
+                .defineList("codex_documents", DEFAULT_CODEX_DOCUMENTS, ScpInventoryConfig::isString);
 
         builder.pop();
 
