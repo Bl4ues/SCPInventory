@@ -179,12 +179,28 @@ public class InventoryActionPacket {
 
         ScpEquipmentSlot targetSlot = equipmentSlot.get();
         ItemStack newEquipment = inventory.extractInventoryItem(slot);
-        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+        ItemStack previousEquipment = getPreviousEquipmentForReplacement(player, inventory, targetSlot, newEquipment);
 
         inventory.setEquipment(targetSlot, newEquipment);
         syncVanillaEquipmentSlot(player, targetSlot, newEquipment);
 
         if (!previousEquipment.isEmpty()) inventory.setInventoryItem(slot, previousEquipment);
+    }
+
+    private static ItemStack getPreviousEquipmentForReplacement(ServerPlayer player, IScpInventory inventory, ScpEquipmentSlot targetSlot, ItemStack incomingStack) {
+        ItemStack previousEquipment = inventory.getEquipment(targetSlot);
+        if (targetSlot != ScpEquipmentSlot.ACCESSORY || !previousEquipment.isEmpty() || ScpItemClassifier.isAccessoryHand(incomingStack)) {
+            return previousEquipment;
+        }
+
+        ItemStack offhand = player.getOffhandItem();
+        if (!offhand.isEmpty() && ScpItemClassifier.isAccessoryHand(offhand)) {
+            ItemStack copy = offhand.copy();
+            copy.setCount(1);
+            return copy;
+        }
+
+        return previousEquipment;
     }
 
     public static void syncVanillaEquipmentSlot(ServerPlayer player, ScpEquipmentSlot slot, ItemStack stack) {
