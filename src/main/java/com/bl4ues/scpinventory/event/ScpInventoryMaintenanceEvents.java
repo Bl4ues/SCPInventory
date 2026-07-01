@@ -10,11 +10,9 @@ import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
@@ -31,7 +29,6 @@ public final class ScpInventoryMaintenanceEvents {
 
     private static final int VANILLA_HOTBAR_START = 0;
     private static final int VANILLA_HOTBAR_END_EXCLUSIVE = 9;
-    private static final int USABLE_RETURN_GRACE_TICKS = 12;
     private static final long COIN_MESSAGE_COOLDOWN_MS = 2500L;
     private static final Map<UUID, Long> LAST_COIN_MESSAGE_MS = new HashMap<>();
 
@@ -50,8 +47,7 @@ public final class ScpInventoryMaintenanceEvents {
             return;
         }
 
-        // Coins must use the SCP manual pickup flow, just like the rest of the custom inventory items.
-        // This only blocks vanilla proximity pickup; PickupItemPacket handles the actual manual pickup.
+        // Coins must use the SCP manual pickup flow. Vanilla proximity pickup is blocked.
         event.setCanceled(true);
     }
 
@@ -62,28 +58,17 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         ItemStack tossedStack = event.getEntity().getItem();
-        if (!ScpItemClassifier.isCoin(tossedStack)) {
+        if (!ScpItemClassifier.isCoin(tossedStack) || !ScpPickupRouter.isCoinMirror(tossedStack)) {
             return;
         }
 
-        int originalCount = tossedStack.getCount();
-        int accepted = ScpPickupRouter.acceptCoinStack(player, tossedStack.copy());
-        if (accepted >= originalCount) {
-            event.setCanceled(true);
-            return;
-        }
-
-        if (accepted > 0) {
-            ItemStack remainder = tossedStack.copy();
-            remainder.setCount(originalCount - accepted);
-            event.getEntity().setItem(remainder);
-            showCoinCapMessage(player);
-            return;
-        }
-
-        // If the player is already at the cap, do not cancel the toss: canceling here deletes coins
-        // dropped from containers. The manual pickup/cap rules will still prevent free collection.
-        showCoinCapMessage(player);
+        player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
+            inventory.setCoinCount(inventory.getCoinCount() - tossedStack.getCount());
+            ScpPickupRouter.stripCoinMirror(tossedStack);
+            event.getEntity().setItem(tossedStack);
+            ScpPickupRouter.syncCoinMirror(player, inventory);
+            ModNetwork.syncTo(player, inventory);
+        });
     }
 
     @SubscribeEvent
@@ -98,13 +83,14 @@ public final class ScpInventoryMaintenanceEvents {
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
             boolean changed = false;
             if (!player.isCreative()) {
-                changed |= enforceCoinCap(player);
+                changed |= enforceCoinCap(player, inventory);
                 changed |= migrateCoinsFromCustomInventory(player, inventory);
-                changed |= moveCoinsOutOfInvalidVanillaSlots(player);
+                changed |= migrateVanillaCoinsToStorage(player, inventory);
                 changed |= maintainUsableSessions(player, inventory);
             }
             changed |= reconcileAccessoryHand(player, inventory);
             if (changed) {
+                ScpPickupRouter.syncCoinMirror(player, inventory);
                 ModNetwork.syncTo(player, inventory);
             }
         });
@@ -121,8 +107,7 @@ public final class ScpInventoryMaintenanceEvents {
                 continue;
             }
 
-            int age = player.tickCount - ScpPickupRouter.getUsableSessionStartTick(stack);
-            if (vanillaInventory.selected == slot && shouldKeepUsableInHand(player, stack, age)) {
+            if (vanillaInventory.selected == slot) {
                 continue;
             }
 
@@ -130,18 +115,6 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         return changed;
-    }
-
-    private static boolean shouldKeepUsableInHand(ServerPlayer player, ItemStack stack, int age) {
-        if (age < USABLE_RETURN_GRACE_TICKS) {
-            return true;
-        }
-
-        if (stack.is(Items.FISHING_ROD) && player.fishing != null) {
-            return true;
-        }
-
-        return player.isUsingItem() && player.getUsedItemHand() == InteractionHand.MAIN_HAND;
     }
 
     private static boolean returnUsableSessionToCustomInventory(ServerPlayer player, IScpInventory inventory, Inventory vanillaInventory, int hotbarSlot, ItemStack stack) {
@@ -180,7 +153,7 @@ public final class ScpInventoryMaintenanceEvents {
                 continue;
             }
 
-            int accepted = ScpPickupRouter.acceptCoinStack(player, stack.copy());
+            int accepted = ScpPickupRouter.acceptCoinStack(inventory, player, stack.copy());
             if (accepted >= stack.getCount()) {
                 inventory.removeInventoryItem(i);
                 changed = true;
@@ -188,41 +161,19 @@ public final class ScpInventoryMaintenanceEvents {
                 stack.shrink(accepted);
                 inventory.setInventoryItem(i, stack);
                 changed = true;
+                showCoinCapMessage(player);
             }
         }
         return changed;
     }
 
-    private static boolean moveCoinsOutOfInvalidVanillaSlots(ServerPlayer player) {
+    private static boolean migrateVanillaCoinsToStorage(ServerPlayer player, IScpInventory scpInventory) {
         boolean changed = false;
         Inventory inventory = player.getInventory();
 
-        for (int i = VANILLA_HOTBAR_START; i < VANILLA_HOTBAR_END_EXCLUSIVE && i < inventory.items.size(); i++) {
-            ItemStack stack = inventory.items.get(i);
-            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
-                continue;
-            }
-
-            changed |= moveCoinStackToMainInventory(player, inventory.items, i, stack);
-        }
-
-        for (int i = 0; i < inventory.offhand.size(); i++) {
-            ItemStack stack = inventory.offhand.get(i);
-            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
-                continue;
-            }
-
-            changed |= moveCoinStackToMainInventory(player, inventory.offhand, i, stack);
-        }
-
-        for (int i = 0; i < inventory.armor.size(); i++) {
-            ItemStack stack = inventory.armor.get(i);
-            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
-                continue;
-            }
-
-            changed |= moveCoinStackToMainInventory(player, inventory.armor, i, stack);
-        }
+        changed |= migrateCoinListToStorage(player, scpInventory, inventory.items);
+        changed |= migrateCoinListToStorage(player, scpInventory, inventory.offhand);
+        changed |= migrateCoinListToStorage(player, scpInventory, inventory.armor);
 
         if (changed) {
             ScpPickupRouter.syncVanillaInventory(player);
@@ -230,82 +181,40 @@ public final class ScpInventoryMaintenanceEvents {
         return changed;
     }
 
-    private static boolean moveCoinStackToMainInventory(ServerPlayer player, List<ItemStack> sourceList, int sourceIndex, ItemStack stack) {
-        ItemStack moving = stack.copy();
-        sourceList.set(sourceIndex, ItemStack.EMPTY);
+    private static boolean migrateCoinListToStorage(ServerPlayer player, IScpInventory scpInventory, List<ItemStack> stacks) {
+        boolean changed = false;
+        for (int i = 0; i < stacks.size(); i++) {
+            ItemStack stack = stacks.get(i);
+            if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack) || ScpPickupRouter.isCoinMirror(stack)) {
+                continue;
+            }
 
-        int accepted = ScpPickupRouter.acceptCoinStack(player, moving.copy());
-        if (accepted >= moving.getCount()) {
-            return true;
+            int accepted = ScpPickupRouter.acceptCoinStack(scpInventory, player, stack.copy());
+            if (accepted >= stack.getCount()) {
+                stacks.set(i, ItemStack.EMPTY);
+                changed = true;
+            } else if (accepted > 0) {
+                ItemStack remainder = stack.copy();
+                remainder.shrink(accepted);
+                stacks.set(i, remainder);
+                changed = true;
+                showCoinCapMessage(player);
+            } else {
+                showCoinCapMessage(player);
+            }
         }
-
-        int leftover = moving.getCount() - Math.max(0, accepted);
-        if (leftover > 0) {
-            ItemStack remainder = moving.copy();
-            remainder.setCount(leftover);
-            sourceList.set(sourceIndex, remainder);
-        }
-        return accepted > 0;
+        return changed;
     }
 
-    private static boolean enforceCoinCap(ServerPlayer player) {
-        Inventory inventory = player.getInventory();
-        int total = countAllCoins(inventory);
-        int overflow = total - ScpPickupRouter.MAX_COIN_COUNT;
-        if (overflow <= 0) {
+    private static boolean enforceCoinCap(ServerPlayer player, IScpInventory inventory) {
+        if (inventory.getCoinCount() <= ScpPickupRouter.MAX_COIN_COUNT) {
             return false;
         }
 
-        int remainingOverflow = overflow;
-        remainingOverflow = removeCoinOverflowFromList(inventory.offhand, remainingOverflow);
-        remainingOverflow = removeCoinOverflowFromList(inventory.armor, remainingOverflow);
-        remainingOverflow = removeCoinOverflowFromRange(inventory.items, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE, remainingOverflow);
-        remainingOverflow = removeCoinOverflowFromRange(inventory.items, 35, 8, remainingOverflow);
-
-        ScpPickupRouter.syncVanillaInventory(player);
+        inventory.setCoinCount(ScpPickupRouter.MAX_COIN_COUNT);
+        ScpPickupRouter.syncCoinMirror(player, inventory);
         showCoinCapMessage(player);
-        return remainingOverflow != overflow;
-    }
-
-    private static int countAllCoins(Inventory inventory) {
-        int count = 0;
-        for (ItemStack stack : inventory.items) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
-        }
-        for (ItemStack stack : inventory.offhand) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
-        }
-        for (ItemStack stack : inventory.armor) {
-            if (!stack.isEmpty() && ScpItemClassifier.isCoin(stack)) count += stack.getCount();
-        }
-        return count;
-    }
-
-    private static int removeCoinOverflowFromList(List<ItemStack> stacks, int overflow) {
-        for (int i = 0; i < stacks.size() && overflow > 0; i++) {
-            overflow = removeCoinOverflowAt(stacks, i, overflow);
-        }
-        return overflow;
-    }
-
-    private static int removeCoinOverflowFromRange(List<ItemStack> stacks, int startInclusive, int endExclusive, int overflow) {
-        int step = startInclusive <= endExclusive ? 1 : -1;
-        for (int i = startInclusive; overflow > 0 && i >= 0 && i < stacks.size() && i != endExclusive; i += step) {
-            overflow = removeCoinOverflowAt(stacks, i, overflow);
-        }
-        return overflow;
-    }
-
-    private static int removeCoinOverflowAt(List<ItemStack> stacks, int index, int overflow) {
-        ItemStack stack = stacks.get(index);
-        if (stack.isEmpty() || !ScpItemClassifier.isCoin(stack)) {
-            return overflow;
-        }
-
-        int removed = Math.min(overflow, stack.getCount());
-        stack.shrink(removed);
-        stacks.set(index, stack.isEmpty() ? ItemStack.EMPTY : stack);
-        return overflow - removed;
+        return true;
     }
 
     private static void showCoinCapMessage(ServerPlayer player) {
