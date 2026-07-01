@@ -48,8 +48,7 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         // Coins must use the SCP manual pickup flow, just like the rest of the custom inventory items.
-        // Do not route them here: this event is also fired by vanilla proximity pickup and container drops,
-        // which caused false cap warnings and transient stacks inside the vanilla inventory.
+        // This only blocks vanilla proximity pickup; PickupItemPacket handles the actual manual pickup.
         event.setCanceled(true);
     }
 
@@ -64,7 +63,23 @@ public final class ScpInventoryMaintenanceEvents {
             return;
         }
 
-        event.setCanceled(true);
+        int originalCount = tossedStack.getCount();
+        int accepted = ScpPickupRouter.acceptCoinStack(player, tossedStack.copy());
+        if (accepted >= originalCount) {
+            event.setCanceled(true);
+            return;
+        }
+
+        if (accepted > 0) {
+            ItemStack remainder = tossedStack.copy();
+            remainder.setCount(originalCount - accepted);
+            event.getEntity().setItem(remainder);
+            showCoinCapMessage(player);
+            return;
+        }
+
+        // If the player is already at the cap, do not cancel the toss: canceling here deletes coins
+        // dropped from containers. The manual pickup/cap rules will still prevent free collection.
         showCoinCapMessage(player);
     }
 
@@ -144,8 +159,7 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         if (changed) {
-            inventory.setChanged();
-            player.containerMenu.broadcastChanges();
+            ScpPickupRouter.syncVanillaInventory(player);
         }
         return changed;
     }
@@ -182,8 +196,7 @@ public final class ScpInventoryMaintenanceEvents {
         remainingOverflow = removeCoinOverflowFromRange(inventory.items, VANILLA_HOTBAR_START, VANILLA_HOTBAR_END_EXCLUSIVE, remainingOverflow);
         remainingOverflow = removeCoinOverflowFromRange(inventory.items, 35, 8, remainingOverflow);
 
-        inventory.setChanged();
-        player.containerMenu.broadcastChanges();
+        ScpPickupRouter.syncVanillaInventory(player);
         showCoinCapMessage(player);
         return remainingOverflow != overflow;
     }
