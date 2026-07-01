@@ -34,8 +34,12 @@ public final class CoinCounterClient {
     private static final int TEXT_GRAY = 0xFF6A6C6C;
     private static final int VANILLA_MAIN_START = 9;
     private static final int VANILLA_MAIN_END_EXCLUSIVE = 36;
+    private static final int STABLE_COUNT_TICKS = 5;
 
     private static Field modeField;
+    private static int displayedCount = -1;
+    private static int pendingCount = -1;
+    private static int pendingTicks = 0;
 
     private CoinCounterClient() {
     }
@@ -43,22 +47,60 @@ public final class CoinCounterClient {
     @SubscribeEvent
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         if (!(event.getScreen() instanceof ScpInventoryScreen screen) || !isInventoryMode(screen)) {
+            resetDebounce();
             return;
         }
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
+            resetDebounce();
             return;
         }
 
         ItemStack coinStack = ScpItemClassifier.getConfiguredCoinStack();
         Optional<ResourceLocation> coinId = ScpItemClassifier.getConfiguredCoinItemId();
         if (coinStack.isEmpty() || coinId.isEmpty()) {
+            resetDebounce();
             return;
         }
 
-        int count = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countStableCoins(mc.player.getInventory(), coinId.get()));
+        int rawCount = Math.min(ScpPickupRouter.MAX_COIN_COUNT, countStableCoins(mc.player.getInventory(), coinId.get()));
+        int count = getDebouncedCount(rawCount);
         renderCounter(event.getGuiGraphics(), mc, coinStack, count);
+    }
+
+    private static int getDebouncedCount(int rawCount) {
+        if (displayedCount < 0) {
+            displayedCount = rawCount;
+            pendingCount = rawCount;
+            pendingTicks = 0;
+            return displayedCount;
+        }
+
+        if (rawCount == displayedCount) {
+            pendingCount = rawCount;
+            pendingTicks = 0;
+            return displayedCount;
+        }
+
+        if (rawCount != pendingCount) {
+            pendingCount = rawCount;
+            pendingTicks = 1;
+            return displayedCount;
+        }
+
+        pendingTicks++;
+        if (pendingTicks >= STABLE_COUNT_TICKS) {
+            displayedCount = rawCount;
+            pendingTicks = 0;
+        }
+        return displayedCount;
+    }
+
+    private static void resetDebounce() {
+        displayedCount = -1;
+        pendingCount = -1;
+        pendingTicks = 0;
     }
 
     private static void renderCounter(GuiGraphics g, Minecraft mc, ItemStack coinStack, int count) {
