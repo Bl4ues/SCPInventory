@@ -18,7 +18,19 @@ public final class ScpInventoryConfig {
             "id=minecraft:writable_book;category=Debug Pair;name=Debug Entry Gamma;image=scpinventory:textures/gui/statusicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
             "id=minecraft:map;category=Debug Trio;name=Debug Entry Delta;image=scpinventory:textures/gui/codexicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
             "id=minecraft:compass;category=Debug Trio;name=Debug Entry Epsilon;image=scpinventory:textures/gui/inventory_background.png;text=scpinventory:codex/debug_paper_long.txt;image_width=1406;image_height=1080",
-            "id=minecraft:clock;category=Debug Trio;name=Debug Entry Zeta;image=scpinventory:textures/gui/codexicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128"
+            "id=minecraft:clock;category=Debug Trio;name=Debug Entry Zeta;image=scpinventory:textures/gui/codexicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:name_tag;category=Debug Scroll A;name=Debug Entry Eta;image=scpinventory:textures/gui/inventoryicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:feather;category=Debug Scroll A;name=Debug Entry Theta;image=scpinventory:textures/gui/statusicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:bone;category=Debug Scroll A;name=Debug Entry Iota;image=scpinventory:textures/gui/codexicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:blaze_rod;category=Debug Scroll A;name=Debug Entry Kappa;image=scpinventory:textures/gui/health.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:amethyst_shard;category=Debug Scroll B;name=Debug Entry Lambda;image=scpinventory:textures/gui/inventoryicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:echo_shard;category=Debug Scroll B;name=Debug Entry Mu;image=scpinventory:textures/gui/statusicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:prismarine_shard;category=Debug Scroll B;name=Debug Entry Nu;image=scpinventory:textures/gui/codexicon.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:nether_star;category=Debug Scroll B;name=Debug Entry Xi;image=scpinventory:textures/gui/codexicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:heart_of_the_sea;category=Debug Scroll C;name=Debug Entry Omicron;image=scpinventory:textures/gui/inventory_background.png;text=scpinventory:codex/debug_paper_long.txt;image_width=1406;image_height=1080",
+            "id=minecraft:rabbit_foot;category=Debug Scroll C;name=Debug Entry Pi;image=scpinventory:textures/gui/inventoryicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:nautilus_shell;category=Debug Scroll C;name=Debug Entry Rho;image=scpinventory:textures/gui/statusicon_selected.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128",
+            "id=minecraft:recovery_compass;category=Debug Scroll C;name=Debug Entry Sigma;image=scpinventory:textures/gui/health.png;text=scpinventory:codex/debug_paper_long.txt;image_width=128;image_height=128"
     );
 
     static {
@@ -61,7 +73,7 @@ public final class ScpInventoryConfig {
         CODEX_DOCUMENTS = builder
                 .comment(
                         "Codex document rules. Matching documents are unlocked into the Codex and do not consume main inventory slots.",
-                        "The default list contains six debug/sample documents: one in Debug Single, two in Debug Pair, and three in Debug Trio.",
+                        "The default list contains eighteen debug/sample documents using vanilla items: one in Debug Single, two in Debug Pair, three in Debug Trio, and extra scroll-test categories.",
                         "IMPORTANT: this is a TOML string list. Each whole document rule must be wrapped in quotes.",
                         "One-line example:",
                         "  codex_documents = [\"id=modid:item;category=SCP Documents;name=SCP-330 Containment Protocol;image=scpinventory:textures/gui/documents/scp_330.png;text=scpinventory:codex/scp_330.txt;image_width=1279;image_height=1920\"]",
