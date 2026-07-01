@@ -49,6 +49,22 @@ public final class ScpPickupRouter {
         return false;
     }
 
+    public static boolean sanitizeStoredCoinMirrors(IScpInventory inventory) {
+        if (inventory == null) {
+            return false;
+        }
+
+        boolean changed = false;
+        for (int i = 0; i < inventory.getMaxMainSlots(); i++) {
+            ItemStack stack = inventory.getInventoryItem(i);
+            if (!stack.isEmpty() && isCoinMirror(stack)) {
+                inventory.removeInventoryItem(i);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
     public static boolean syncCoinMirrors(ServerPlayer player, IScpInventory inventory) {
         if (player == null || inventory == null || player.isCreative() || player.isSpectator()) {
             return false;
