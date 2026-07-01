@@ -50,7 +50,7 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         ItemStack tossedStack = event.getEntity().getItem();
-        if (!ScpItemClassifier.isCoin(tossedStack) || !ScpPickupRouter.isCoinMirror(tossedStack)) {
+        if (!ScpPickupRouter.isCoinMirror(tossedStack)) {
             return;
         }
 
