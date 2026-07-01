@@ -8,7 +8,6 @@ import com.bl4ues.scpinventory.item.ScpItemClassifier;
 import com.bl4ues.scpinventory.item.ScpPickupRouter;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
@@ -37,8 +36,6 @@ public final class ScpInventoryMaintenanceEvents {
         }
 
         event.setCanceled(true);
-        ScpPickupRouter.acceptCoinStack(player, tossedStack.copy());
-        event.getEntity().discard();
     }
 
     @SubscribeEvent
@@ -46,14 +43,16 @@ public final class ScpInventoryMaintenanceEvents {
         if (event.phase != TickEvent.Phase.END
                 || event.player.level().isClientSide
                 || !(event.player instanceof ServerPlayer player)
-                || player.isCreative()
                 || player.isSpectator()) {
             return;
         }
 
         player.getCapability(ScpInventoryCapability.INSTANCE).ifPresent(inventory -> {
-            boolean changed = migrateCoinsFromCustomInventory(player, inventory);
-            changed |= moveCoinsOutOfInvalidVanillaSlots(player);
+            boolean changed = false;
+            if (!player.isCreative()) {
+                changed |= migrateCoinsFromCustomInventory(player, inventory);
+                changed |= moveCoinsOutOfInvalidVanillaSlots(player);
+            }
             changed |= reconcileAccessoryHand(player, inventory);
             if (changed) {
                 ModNetwork.syncTo(player, inventory);
