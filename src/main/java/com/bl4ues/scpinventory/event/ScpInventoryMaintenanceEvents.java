@@ -10,9 +10,11 @@ import com.bl4ues.scpinventory.network.InventoryActionPacket;
 import com.bl4ues.scpinventory.network.ModNetwork;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
@@ -29,6 +31,7 @@ public final class ScpInventoryMaintenanceEvents {
 
     private static final int VANILLA_HOTBAR_START = 0;
     private static final int VANILLA_HOTBAR_END_EXCLUSIVE = 9;
+    private static final int USABLE_RETURN_GRACE_TICKS = 12;
     private static final long COIN_MESSAGE_COOLDOWN_MS = 2500L;
     private static final Map<UUID, Long> LAST_COIN_MESSAGE_MS = new HashMap<>();
 
@@ -98,12 +101,68 @@ public final class ScpInventoryMaintenanceEvents {
                 changed |= enforceCoinCap(player);
                 changed |= migrateCoinsFromCustomInventory(player, inventory);
                 changed |= moveCoinsOutOfInvalidVanillaSlots(player);
+                changed |= maintainUsableSessions(player, inventory);
             }
             changed |= reconcileAccessoryHand(player, inventory);
             if (changed) {
                 ModNetwork.syncTo(player, inventory);
             }
         });
+    }
+
+    private static boolean maintainUsableSessions(ServerPlayer player, IScpInventory inventory) {
+        boolean changed = false;
+        Inventory vanillaInventory = player.getInventory();
+        int end = Math.min(VANILLA_HOTBAR_END_EXCLUSIVE, vanillaInventory.items.size());
+
+        for (int slot = VANILLA_HOTBAR_START; slot < end; slot++) {
+            ItemStack stack = vanillaInventory.items.get(slot);
+            if (stack.isEmpty() || !ScpPickupRouter.isUsableSession(stack)) {
+                continue;
+            }
+
+            int age = player.tickCount - ScpPickupRouter.getUsableSessionStartTick(stack);
+            if (vanillaInventory.selected == slot && shouldKeepUsableInHand(player, stack, age)) {
+                continue;
+            }
+
+            changed |= returnUsableSessionToCustomInventory(player, inventory, vanillaInventory, slot, stack);
+        }
+
+        return changed;
+    }
+
+    private static boolean shouldKeepUsableInHand(ServerPlayer player, ItemStack stack, int age) {
+        if (age < USABLE_RETURN_GRACE_TICKS) {
+            return true;
+        }
+
+        if (stack.is(Items.FISHING_ROD) && player.fishing != null) {
+            return true;
+        }
+
+        return player.isUsingItem() && player.getUsedItemHand() == InteractionHand.MAIN_HAND;
+    }
+
+    private static boolean returnUsableSessionToCustomInventory(ServerPlayer player, IScpInventory inventory, Inventory vanillaInventory, int hotbarSlot, ItemStack stack) {
+        ItemStack returning = stack.copy();
+        ScpPickupRouter.stripUsableSession(returning);
+        ScpPickupRouter.stripNoMergeMarker(returning);
+
+        if (returning.isEmpty()) {
+            vanillaInventory.setItem(hotbarSlot, ItemStack.EMPTY);
+            ScpPickupRouter.syncVanillaInventory(player);
+            return true;
+        }
+
+        if (inventory.addInventoryItems(returning)) {
+            vanillaInventory.setItem(hotbarSlot, ItemStack.EMPTY);
+            ScpPickupRouter.syncVanillaInventory(player);
+            return true;
+        }
+
+        ModNetwork.showInventoryFull(player);
+        return false;
     }
 
     private static boolean migrateCoinsFromCustomInventory(ServerPlayer player, IScpInventory inventory) {
