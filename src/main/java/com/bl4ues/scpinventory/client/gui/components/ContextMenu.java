@@ -48,6 +48,10 @@ public class ContextMenu {
             options.add(new MenuOption("USE", "Use Item"));
             options.add(new MenuOption("DROP", "Drop Item"));
             hintMode = HintMode.CONSUME;
+        } else if ("Usable".equals(type)) {
+            options.add(new MenuOption("USE", "Use Item"));
+            options.add(new MenuOption("DROP", "Drop Item"));
+            hintMode = HintMode.USABLE;
         } else if (isEquipmentType(type)) {
             options.add(new MenuOption("EQUIP", "Equip Item"));
             options.add(new MenuOption("DROP", "Drop Item"));
@@ -158,9 +162,12 @@ public class ContextMenu {
     }
 
     private String getHintText() {
-        return hintMode == HintMode.EQUIP
-                ? "You can double click or press Shift + Left Click to EQUIP this item"
-                : "You can double click to CONSUME this item";
+        return switch (hintMode) {
+            case EQUIP -> "You can double click or press Shift + Left Click to EQUIP this item";
+            case USABLE -> "You can double click to USE this item from your hotbar";
+            case CONSUME -> "You can double click to CONSUME this item";
+            default -> "";
+        };
     }
 
     private List<String> wrapHintText(String text, int maxWidth) {
@@ -216,16 +223,7 @@ public class ContextMenu {
     private enum HintMode {
         NONE,
         CONSUME,
+        USABLE,
         EQUIP
-    }
-
-    private static class MenuOption {
-        private final String action;
-        private final String label;
-
-        private MenuOption(String action, String label) {
-            this.action = action;
-            this.label = label;
-        }
     }
 }
