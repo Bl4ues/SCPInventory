@@ -2,6 +2,7 @@ package com.bl4ues.scpinventory.item;
 
 import com.bl4ues.scpinventory.capability.IScpInventory;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -9,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 public final class ScpPickupRouter {
 
     public static final String NO_MERGE_TAG = "ScpInventoryNoMerge";
+    public static final String USABLE_SESSION_TAG = "ScpInventoryUsableSession";
+    public static final String USABLE_START_TICK_TAG = "ScpInventoryUsableStartTick";
     public static final int MAX_COIN_COUNT = 999;
 
     private static final int VANILLA_MAIN_START = 9;
@@ -73,10 +76,56 @@ public final class ScpPickupRouter {
             return;
         }
 
-        player.getInventory().setChanged();
+        Inventory inventory = player.getInventory();
+        inventory.setChanged();
         player.inventoryMenu.broadcastChanges();
         if (player.containerMenu != player.inventoryMenu) {
             player.containerMenu.broadcastChanges();
+        }
+
+        // Force raw inventory slot updates too. Some custom/non-container screens do not receive
+        // small direct NonNullList mutations reliably, which made partial coin stacks look deleted
+        // while full stacks eventually appeared through normal vanilla sync.
+        for (int i = 0; i < inventory.items.size(); i++) {
+            player.connection.send(new ClientboundContainerSetSlotPacket(-2, 0, i, inventory.items.get(i).copy()));
+        }
+    }
+
+    public static void markUsableSession(ItemStack stack, int startTick) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putBoolean(USABLE_SESSION_TAG, true);
+        tag.putInt(USABLE_START_TICK_TAG, startTick);
+    }
+
+    public static boolean isUsableSession(ItemStack stack) {
+        return stack != null && !stack.isEmpty() && stack.hasTag() && stack.getTag() != null && stack.getTag().getBoolean(USABLE_SESSION_TAG);
+    }
+
+    public static int getUsableSessionStartTick(ItemStack stack) {
+        if (!isUsableSession(stack) || stack.getTag() == null) {
+            return 0;
+        }
+        return stack.getTag().getInt(USABLE_START_TICK_TAG);
+    }
+
+    public static void stripUsableSession(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !stack.hasTag()) {
+            return;
+        }
+
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        tag.remove(USABLE_SESSION_TAG);
+        tag.remove(USABLE_START_TICK_TAG);
+        if (tag.isEmpty()) {
+            stack.setTag(null);
         }
     }
 
@@ -142,6 +191,7 @@ public final class ScpPickupRouter {
 
             int moved = Math.min(space, remaining.getCount());
             candidate.grow(moved);
+            inventory.setItem(i, candidate);
             remaining.shrink(moved);
         }
     }
@@ -155,7 +205,7 @@ public final class ScpPickupRouter {
 
             ItemStack inserted = remaining.copy();
             inserted.setCount(Math.min(remaining.getCount(), Math.min(inserted.getMaxStackSize(), inventory.getMaxStackSize())));
-            inventory.items.set(i, inserted);
+            inventory.setItem(i, inserted);
             remaining.shrink(inserted.getCount());
         }
     }
